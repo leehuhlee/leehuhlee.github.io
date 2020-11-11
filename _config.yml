@@ -32,14 +32,14 @@ disqus_shortname:   taylantatli
 
 # Social
 # if you don't have any of social below, comment the line.
-#google:
+google:             leehuhlee
   #plus:            #username
   #analytics:
   #verify:
   #ad-client:
   #ad-slot:
 #bing-verify:
-email:              ph4020@hanmail.net
+#email:              
 #twitter:            leehuhlee
 facebook:           leehuhlee
 github-url:         leehuhlee
@@ -63,7 +63,6 @@ instagram:          leehuhlee
 #keybase:           username
 #xmpp:              username@server.com
 #hackernews:        username
-discord:            leehuhlee
 
 # Gems
 gems:
