@@ -1,3 +1,5 @@
+remote_theme : TaylanTatli/Moon
+
 # Site
 title:              Moon
 bio:                'Minimal, one column jekyll theme.'
@@ -8,7 +10,7 @@ logo:               'assets/img/logo.png'
 background:         'assets/img/placeholder-big.jpg'
 tiled_bg:           false   # Set this true if you want to tile your background image, otherwise it will be covered
 locale:             en_US
-url:                https://taylantatli.github.io/Moon
+url:                "https://leehuhlee.github.io" # the base hostname & protocol for your site e.g. "https://taylantatli.github.io/Moon"
 
 # Jekyll
 permalink:          /:title/
@@ -70,7 +72,7 @@ gems:
   - jekyll-gist
 
 jekyll-mentions:
-    base_url: https://github.com
+    base_url: "" # the subpath of your site, e.g. "/blog"
 
 # Exclude list
 exclude: [README.md, Gemfile, Gemfile.lock, node_modules, gulpfile.js, package.json, _site, src, vendor, CNAME, LICENSE, Rakefile]
