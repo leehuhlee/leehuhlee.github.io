@@ -1,9 +1,9 @@
 remote_theme : TaylanTatli/Moon
 
 # Site
-title:              Moon
-bio:                'Minimal, one column jekyll theme.'
-description:        "Moon is a minimal, one column jekyll theme for your blog."
+title:              Hanna's Blog
+bio:                'Go, Global, Game'
+description:        "I wanna be global game developer."
 reading_time:       true
 words_per_minute:   200
 logo:               'assets/img/logo.png'
@@ -40,13 +40,13 @@ disqus_shortname:   taylantatli
   #ad-slot:
 #bing-verify:
 #email:
-twitter:            username
-facebook:           username
-github-url:         username
+#twitter:            leehuhlee
+facebook:           leehuhlee
+github-url:         leehuhlee
 #stackoverflow:     123456/username   from a "http://stackoverflow.com/users/123456/username" link
-#linkedin:          username
+linkedin:           leehuhlee
 #xing:              username
-instagram:          username
+instagram:          leehuhlee
 #lastfm:            username
 #tumblr:            username
 #medium:            '@username'
@@ -63,6 +63,7 @@ steam:              username
 #keybase:           username
 #xmpp:              username@server.com
 #hackernews:        username
+discord:            leehuhlee
 
 # Gems
 gems:
