@@ -1,8 +1,8 @@
 ---
 layout: page
-title: About the Theme
-tags: [about, Jekyll, theme, moon]
-date: 2016-03-21
+title: Resume
+tags: [Resume, Hanna, Game, Development]
+date: 2020-11-11
 comments: false
 ---
     
