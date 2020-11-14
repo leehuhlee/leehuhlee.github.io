@@ -33,8 +33,8 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
 
 ## Knowledge
 * Language
-  - Korean &nbsp;&nbsp;■■■■■
-  - English &nbsp;■■■■□
+  - Korean &nbsp;&nbsp;&nbsp;■■■■■
+  - English &nbsp;&nbsp;&nbsp;■■■■□
   - German &nbsp;&nbsp;■■■□□
 
 * IT Skills
