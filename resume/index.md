@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Resumé
-tags: [Resume, Hanna, Game, Development]
+tags: [Resume]
 date: 2020-11-11
 comments: false
 ---
