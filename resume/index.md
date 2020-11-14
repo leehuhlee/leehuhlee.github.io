@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Resume
+title: Resumé
 tags: [Resume, Hanna, Game, Development]
 date: 2020-11-11
 comments: false
@@ -10,15 +10,15 @@ comments: false
 
 ## Career
 * Working Student in Sogang University
-- Marketer in YellowGreen
-- LAB Manager in Engineering Faculty
-- Mentor in Python course
-- Supporter in Youth Education center
+  - Marketer in YellowGreen
+  - LAB Manager in Engineering Faculty
+  - Mentor in Python course
+  - Supporter in Youth Education center
 
 * Internship in Oneday Korea
-- Natural Language Programmer
-- Web Programmer
-- Web Designer
+  - Natural Language Programmer
+  - Web Programmer
+  - Web Designer
 
 ## Education
 
