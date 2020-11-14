@@ -38,9 +38,9 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - German  ■■■□□
 
 * IT Skills
-  - Programming Language: 
-        C/C++  ■■■■■
-        Python ■■■■□
+  - Programming Language: <br>
+        C/C++  ■■■■■<br>
+        Python ■■■■□<br>
         JAVA   ■■■□□
   - MS Office  ■■■■■
   - Web Design ■■■■■ 
