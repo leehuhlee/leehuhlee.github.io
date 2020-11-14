@@ -8,19 +8,19 @@ comments: false
     
 <center><a href="https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf"><b>This</b></a> is my résumé.</center>
 
-## Features
-* Minimal, you can focus on your content
-* Responsive
-* Disqus integration
-* Syntax highlighting
-* Optional post image
-* Social icons
-* Page for sharing projects
-* Optional background image
-* Simple navigation menu
-* MathJax support
+## Career
+* Working Student in Sogang University
+- Marketer in YellowGreen
+- LAB Manager in Engineering Faculty
+- Mentor in Python course
+- Supporter in Youth Education center
 
-## Preview
+* Internship in Oneday Korea
+- Natural Language Programmer
+- Web Programmer
+- Web Designer
+
+## Education
 
 {% capture images %}
     https://cloud.githubusercontent.com/assets/754514/14509720/61c61058-01d6-11e6-93ab-0918515ecd56.png
@@ -30,8 +30,8 @@ comments: false
 
 See a [live version of Moon](http://taylantatli.github.io/Moon) hosted on GitHub.
 
-## Getting Started
+## Knowledge
 
 To learn how to install and use this theme check out the [Setup Guide](http://taylantatli.me/Moon/moon-theme/) for more information.
       
-[Install Moon](https://github.com/TaylanTatli/Moon){: .btn}
+[Download deutsch résumé](https://github.com/TaylanTatli/Moon){: .btn}
