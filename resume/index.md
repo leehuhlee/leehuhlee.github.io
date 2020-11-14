@@ -41,8 +41,8 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - Programming Language: <br>
         C/C++ &nbsp;&nbsp;&nbsp;■■■■■<br>
         Python &nbsp;■■■■□<br>
-        JAVA &nbsp;&nbsp;&nbsp;&nbsp;■■■□□
-  - MS Office &nbsp;&nbsp;&nbsp;■■■■■
+        JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□
+  - MS Office &nbsp;&nbsp;&nbsp;&nbsp;■■■■■
   - Web Design &nbsp;■■■■■ 
       
 [Download résumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
