@@ -21,18 +21,28 @@ comments: false
   - Web Designer
 
 ## Education
-
 * K-move Training course
 * Sogang University
   - Computer Science and Engineering
 * Brno University of Technology
+  - Faculty of Information Technology
 * Giic AR/VR Hackerway
 * Smilegate Server Development Camp
 
-See [my codes](https://github.com/) hosted on GitHub.
+See [my codes](https://github.com/leehuhlee) hosted on GitHub.
 
 ## Knowledge
+* Language
+  - Korean  ■■■■■
+  - English ■■■■□
+  - German  ■■■□□
 
-To learn how to install and use this theme check out the [Setup Guide](http://taylantatli.me/Moon/moon-theme/) for more information.
+* IT Skills
+  - Programming Language: 
+        C/C++  ■■■■■
+        Python ■■■■□
+        JAVA   ■■■□□
+  - MS Office  ■■■■■
+  - Web Design ■■■■■ 
       
-[Download deutsch résumé](https://github.com/TaylanTatli/Moon){: .btn}
+[Download résumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
