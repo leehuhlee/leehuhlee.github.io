@@ -42,7 +42,7 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
         C/C++ &nbsp;&nbsp;&nbsp;■■■■■<br>
         Python &nbsp;■■■■□<br>
         JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□
-  - MS Office &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
-  - Web Design &nbsp;&nbsp;■■■■■ 
+  - MS Office <pre> ■■■■■</pre>
+  - Web Design <pre>■■■■■ </pre>
       
 [Download résumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
