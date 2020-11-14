@@ -45,4 +45,4 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - MS Office &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
   - Web Design &nbsp;&nbsp;&nbsp;■■■■■ 
       
-[Download résumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
+[Download Resumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
