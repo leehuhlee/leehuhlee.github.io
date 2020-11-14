@@ -33,9 +33,9 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
 
 ## Knowledge
 * Language
-  - Korean  ■■■■■
-  - English ■■■■□
-  - German  ■■■□□
+  - Korean &nbsp;&nbsp;■■■■■
+  - English &nbsp;■■■■□
+  - German &nbsp;&nbsp;■■■□□
 
 * IT Skills
   - Programming Language: <br>
