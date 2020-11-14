@@ -6,7 +6,7 @@ date: 2020-11-11
 comments: false
 ---
     
-<center><a href="https://leehuhlee.github.io/"><b>This</b></a> is my résumé.</center>
+<center><a href="https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf"><b>This</b></a> is my résumé.</center>
 
 ## Features
 * Minimal, you can focus on your content
