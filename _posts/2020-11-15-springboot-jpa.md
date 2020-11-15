@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Web application with spring boot and JPA v1"
+title: "Java web application v1"
 date: 2020-11-15
-excerpt: "How to make an online shopping mall"
+excerpt: "How to make an online shopping mall with spring boot and JPA "
 tags: [web, java, spring, JPA]
 comments: true
 ---
@@ -17,3 +17,4 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 	<img src="/assets/img/posts/spring/springboot1.jpg">
 	<figcaption>Spring boot Setting</figcaption>
   </figure>
+
