@@ -12,7 +12,7 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 ## Settings
 * Create project
   - <a href ="https://Start.spring.io/">Spring boot starter</a>
-  - dependencies : web, thymeleaf, jpa, h2, lombok, validation
+  - dependencies : web, thymeleaf, jpa, h2, lombok, validation, devtools
   <figure>
 	<img src="/assets/img/posts/spring/springboot1.jpg">
 	<figcaption>Spring boot Setting</figcaption>
@@ -26,14 +26,16 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
   {% highlight java %}
     // exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
   {% endhighlight %}
+  - Add <a href="https://github.com/gavlyukovskiy/spring-boot-data-source-decorator">P6Spy</a>
 
 * h2 database
   - <a href="https://h2database.com/h2-setup-2019-10-14.exe">Download </a>
   - Go to h2/bin and excute h2-1.4.200.jar(os : window)
+  - Connect DB
   <figure class="half">
 	<img src="/assets/img/posts/spring/springboot2.jpg">
   <img src="/assets/img/posts/spring/springboot3.jpg">
 	<figcaption>H2 Databse Setting</figcaption>
-  </figure>
-  // login.jsp?jsessionid=9ca2700a84669af3c11077c40d7eb867
+  </figure>  
+
   
