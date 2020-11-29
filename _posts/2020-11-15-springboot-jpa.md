@@ -22,10 +22,6 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 
 * build.gradle
   - Add spring-boot-devtools(for recompile)
-  - commentation
-  {% highlight java %}
-    // exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-  {% endhighlight %}
   - Add <a href="https://github.com/gavlyukovskiy/spring-boot-data-source-decorator">P6Spy</a>
 
 * h2 database
@@ -36,6 +32,19 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 	<img src="/assets/img/posts/spring/springboot2.jpg">
   <img src="/assets/img/posts/spring/springboot3.jpg">
 	<figcaption>H2 Databse Setting</figcaption>
-  </figure>  
+  </figure>
+
+* Domain
+  <figure class="half">
+	<img src="/assets/img/posts/spring/domainAnalyze1.jpg">
+  <img src="/assets/img/posts/spring/domainAnalyze2.jpg">
+	<figcaption>Domain Analyze</figcaption>
+  </figure>
+  - Connect DB
+  <figure>
+	<img src="/assets/img/posts/spring/domainAnalyze3.jpg">
+	<figcaption>H2 Databse Checking</figcaption>
+  </figure>
+
 
   
