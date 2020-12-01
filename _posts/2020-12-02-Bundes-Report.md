@@ -62,7 +62,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * Eclipse : 2020-09
   * Maven
   <figure>
-	  <a href="/assets/img/posts/bundes_report/de.png"><img src="/assets/img/posts/bundes_report/de.png"></a>
+	  <img src="/assets/img/posts/bundes_report/de.png">
   <figcaption>Development Environment</figcaption>
   </figure>
 
@@ -77,11 +77,11 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
     - Versioning: Git
     - Managing: Github Project
   <figure>
-	  <a href="/assets/img/posts/bundes_report/spec.png"><img src="/assets/img/posts/bundes_report/spec.png"></a>
+	  <img src="/assets/img/posts/bundes_report/spec.png">
   <figcaption>SPEC</figcaption>
   </figure>
   <figure>
-	  <a href="/assets/img/posts/bundes_report/version.png"><img src="/assets/img/posts/bundes_report/version.png" height="77"></a>
+	  <img src="/assets/img/posts/bundes_report/version.png">
   <figcaption>Versioning</figcaption>
   </figure>
 
