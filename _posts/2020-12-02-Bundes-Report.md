@@ -8,7 +8,7 @@ comments: false
 ---
 
   <figure>
-	  <a href="/assets/img/posts/bundes_report/bundesreport.png"><img src="/assets/img/posts/bundes_report/bundesreport-logo.png"></a>
+	  <img src="/assets/img/posts/bundes_report/bundesreport-logo.png">
 	<figcaption>Bundes Report</figcaption>
   </figure>
 
@@ -31,6 +31,25 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * Mini games can help users learn German and expect a high rate of revisit.
 
 # Julnaf
+  * SeungJae Lee, Olaf
+    - Leader, Back-end
+    - Setting Development Environment
+    - Implementing User Function
+    - Implementing Note Function
+    - <a href="https://github.com/veritas0806">🔗 Github</a>
+  * YouJin Lee, Juli
+    - Implementing Back-end
+    - Data Modeling
+    - Implementing Post/Gallery Function
+    - Implementing Comment Function
+    - <a href="https://github.com/dev-ujin">🔗 Github</a>
+  * JiHyun Lee, Hanna
+    - Front-end
+    - Designing Layout/View
+    - Implementing mini games
+    - <a href="https://github.com/leehuhlee">🔗 Github</a>
+
+## 2. Progress
 
 # Preiod
 
@@ -38,8 +57,8 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
 
 # SPEC
 
-# Function
+## 3. Introduce
 
-# Further
+# Function
 
 # Further Plan
