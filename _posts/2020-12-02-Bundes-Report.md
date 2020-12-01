@@ -63,13 +63,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * Eclipse : 2020-09
   * Maven
   <figure class="third">
-	  <img src="/assets/img/posts/bundes_report/java.png">
-    <img src="/assets/img/posts/bundes_report/mysql.png">
-    <img src="/assets/img/posts/bundes_report/tomcat.png">
-  </figure>
-  <figure class="half">
-    <img src="/assets/img/posts/bundes_report/eclipse.png">
-    <img src="/assets/img/posts/bundes_report/maven.png">
+	  <img src="/assets/img/posts/bundes_report/de.png">
   <figcaption>Development Environment</figcaption>
   </figure>
 
