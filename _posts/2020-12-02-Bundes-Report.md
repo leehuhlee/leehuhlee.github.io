@@ -107,7 +107,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
     - Check view count
     <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostView.mp4" frameborder="0"> </iframe>
     - Like
-    <iframe width="560" width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostLike.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostLike.mp4" frameborder="0"> </iframe>
   * Comment
     - Create Comment 
     <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentCreate.mp4" frameborder="0"> </iframe>
