@@ -62,7 +62,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * Apache Tomcat : 9.0.39
   * Eclipse : 2020-09
   * Maven
-  <figure class="fifth">
+  <figure col="5">
 	  <img src="/assets/img/posts/bundes_report/java.png">
     <img src="/assets/img/posts/bundes_report/mysql.png">
     <img src="/assets/img/posts/bundes_report/tomcat.png">
@@ -81,7 +81,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * ETC
     - Versioning: Git
     - Managing: Github Project
-  <figure class="sixth">
+  <figure col="6">
 	  <img src="/assets/img/posts/bundes_report/spring_boot.png">
     <img src="/assets/img/posts/bundes_report/thymeleaf.png">
     <img src="/assets/img/posts/bundes_report/bootstrap.png">
