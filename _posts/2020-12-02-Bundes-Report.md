@@ -62,8 +62,8 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * Apache Tomcat : 9.0.39
   * Eclipse : 2020-09
   * Maven
-  <figure class="third">
-	  <img src="/assets/img/posts/bundes_report/de.png">
+  <figure>
+	  <a href="/assets/img/posts/bundes_report/de.png"><img src="/assets/img/posts/bundes_report/de.png"></a>
   <figcaption>Development Environment</figcaption>
   </figure>
 
