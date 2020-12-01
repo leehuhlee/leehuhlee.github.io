@@ -13,15 +13,15 @@ comments: false
   </figure>
 
 1. Introduce
-  * [Bundesreport](#Bundesreport)
-  * [Julnaf](#Julnaf)
+  * [Bundesreport](#bundesreport)
+  * [Julnaf](#julnaf)
 2. Progress
-  * [Period](#Period)
-  * [Development Environment](#Development-Environment)
-  * [SPEC](#SPEC)
+  * [Period](#period)
+  * [Development Environment](#development-environment)
+  * [SPEC](#spec)
 3. Result
-  * [Function](#Function)
-  * [Further Plan](#Further-Plan)
+  * [Function](#function)
+  * [Further Plan](#further-plan)
 
 # Bundesreport
 
