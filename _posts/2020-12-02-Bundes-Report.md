@@ -23,6 +23,8 @@ comments: false
   * [Function](#function)
   * [Further Plan](#further-plan)
 
+## 1. Introduce
+
 # Bundesreport
 Bundesreport, a combination of the word 'Bund-' for the German Federation and the word 'Report' for the record, is a community site that connects Germany and Korea.
   * Optionally provide Korean and German for your convenience.
