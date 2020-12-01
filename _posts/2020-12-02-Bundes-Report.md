@@ -81,7 +81,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   <figcaption>SPEC</figcaption>
   </figure>
   <figure>
-	  <a href="/assets/img/posts/bundes_report/version.png"><img src="/assets/img/posts/bundes_report/version.png" style="height:73;"></a>
+	  <a href="/assets/img/posts/bundes_report/version.png"><img src="/assets/img/posts/bundes_report/version.png" height="77"></a>
   <figcaption>Versioning</figcaption>
   </figure>
 
@@ -90,46 +90,46 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
 # Function
   * User
     - Sign up
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserSignUp.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserSignUp.mp4" frameborder="0"> </iframe>
     - Sign in
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserSignIn.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserSignIn.mp4" frameborder="0"> </iframe>
     - Logout
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserLogout.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserLogout.mp4" frameborder="0"> </iframe>
     - Change profile
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserChange.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserChange.mp4" frameborder="0"> </iframe>
   * Post
     - Create Post
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostCreate.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostCreate.mp4" frameborder="0"> </iframe>
     - Change Post
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostChange.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostChange.mp4" frameborder="0"> </iframe>
     - Delete Post
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostDelete.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostDelete.mp4" frameborder="0"> </iframe>
     - Check view count
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostView.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostView.mp4" frameborder="0"> </iframe>
     - Like
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostLike.mp4" frameborder="0"> </iframe>
+    <iframe width="560" width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-PostLike.mp4" frameborder="0"> </iframe>
   * Comment
     - Create Comment 
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentCreate.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentCreate.mp4" frameborder="0"> </iframe>
     - Change Comment 
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrom-CommentChange.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrom-CommentChange.mp4" frameborder="0"> </iframe>
     - Delete Comment 
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentDelete.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentDelete.mp4" frameborder="0"> </iframe>
     - Like 
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentLike.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-CommentLike.mp4" frameborder="0"> </iframe>
   * Message
     - Send Message
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessegeSend.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessegeSend.mp4" frameborder="0"> </iframe>
     - Receive Message
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessegeRecieve.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessegeRecieve.mp4" frameborder="0"> </iframe>
     - Send Reply
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessageReply.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-MessageReply.mp4" frameborder="0"> </iframe>
   * Games  
     - Rain
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-GameRain.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-GameRain.mp4" frameborder="0"> </iframe>
     - Article
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-GameArticle.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-GameArticle.mp4" frameborder="0"> </iframe>
   * Presentation
-    <iframe height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-Presentation.mp4" frameborder="0"> </iframe>
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-Presentation.mp4" frameborder="0"> </iframe>
 
-
+[Download Bundes Report](https://github.com/veritas0806/BundesReport){: .btn}
