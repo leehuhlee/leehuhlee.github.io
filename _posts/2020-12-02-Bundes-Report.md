@@ -77,20 +77,12 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   * ETC
     - Versioning: Git
     - Managing: Github Project
-  <figure class="third">
-	  <img src="/assets/img/posts/bundes_report/spring_boot.png">
-    <img src="/assets/img/posts/bundes_report/thymeleaf.png">
-    <img src="/assets/img/posts/bundes_report/bootstrap.png">
-  </figure>
-  <figure class="third">
-    <img src="/assets/img/posts/bundes_report/lombok.png">
-    <img src="/assets/img/posts/bundes_report/JPA_Hibernate.png">
-    <img src="/assets/img/posts/bundes_report/reCAPTCHA.png">
+  <figure>
+	  <a href="/assets/img/posts/bundes_report/spec.png"><img src="/assets/img/posts/bundes_report/spec.png"></a>
   <figcaption>SPEC</figcaption>
   </figure>
-  <figure class="half">
-    <img src="/assets/img/posts/bundes_report/github.png">
-    <img src="/assets/img/posts/bundes_report/github_project.png">
+  <figure>
+	  <a href="/assets/img/posts/bundes_report/version.png"><img src="/assets/img/posts/bundes_report/version.png"></a>
   <figcaption>Versioning</figcaption>
   </figure>
 
