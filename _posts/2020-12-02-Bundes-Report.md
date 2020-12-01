@@ -8,7 +8,7 @@ comments: false
 ---
 
   <figure>
-	  <a href="/assets/img/posts/bundes_report/bundesreport.png"><img src="/assets/img/posts/bundes_report/bundesreport.png"></a>
+	  <a href="/assets/img/posts/bundes_report/bundesreport.png"><img src="/assets/img/posts/bundes_report/bundesreport-logo.png"></a>
 	<figcaption>Bundes Report</figcaption>
   </figure>
 
