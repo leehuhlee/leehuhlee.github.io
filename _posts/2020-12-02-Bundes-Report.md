@@ -24,6 +24,9 @@ comments: false
   * [Further Plan](#further-plan)
 
 # Bundesreport
+Bundesreport, a combination of the word 'Bund-' for the German Federation and the word 'Report' for the record, is a community site that connects Germany and Korea.
+  * Optionally provide Korean and German for your convenience.
+  * Mini games can help users learn German and expect a high rate of revisit.
 
 # Julnaf
 
