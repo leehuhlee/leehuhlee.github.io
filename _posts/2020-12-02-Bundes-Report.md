@@ -86,8 +86,51 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   <figcaption>Versioning</figcaption>
   </figure>
 
-## 3. Introduce
+## 3. Result
 
 # Function
+  * User
+    - Sign up
+    <iframe width="560" height="315" src="/assets/video/posts/bundes_report/BundesReport-Chrome-UserSignUp.mp4" frameborder="0"> </iframe>
+    - Sign in
 
-# Further Plan
+    - Logout
+
+    - Change profile
+
+  * Post
+    - Create Post
+
+    - Change Post
+
+    - Delete Post
+
+    - Check view count
+
+    - Like
+
+  * Comment
+    - Create Comment 
+
+    - Change Comment 
+  
+    - Delete Comment 
+  
+    - Like 
+  
+  * Message
+    - Send Message
+   
+    - Receive Message
+  
+    - Send Reply
+   
+  * Games  
+    - Rain
+   
+    - Article
+  
+  * Presentation
+
+
+
