@@ -23,6 +23,7 @@ comments: false
   * [Function](#function)
   * [Further Plan](#further-plan)
 
+
 ## 1. Introduce
 
 # Bundesreport
@@ -49,13 +50,30 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
     - Implementing mini games
     - <a href="https://github.com/leehuhlee">🔗 Github</a>
 
+
 ## 2. Progress
 
 # Preiod
+04/11/2020 - 02/12/2020
 
 # Development Environment
+  * Java : 11.0.9(Adopt OpenJDK)
+  * MySQL : 8.0.22
+  * Apache Tomcat : 9.0.39
+  * Eclipse : 2020-09
+  * Maven
 
 # SPEC
+  * Spring Boot
+  * Thymeleaf
+  * Bootstrap
+  * Lombok
+  * JPA
+  * reCAPTCHA
+  * ETC
+    - Versioning: Git
+    - Managing: Github Project
+
 
 ## 3. Introduce
 
