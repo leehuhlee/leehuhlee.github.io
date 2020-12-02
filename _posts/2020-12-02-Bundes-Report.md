@@ -3,6 +3,7 @@ layout: post
 title: "Bundes Report"
 date: 2020-12-02
 excerpt: "JAVA Project: JPA, Springboot"
+project: true
 tags: [web, java, spring, JPA]
 comments: false
 ---
