@@ -114,6 +114,7 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
   <figure>
 	  <a href="/assets/img/posts/bundes_report/WBS.png"><img src="/assets/img/posts/bundes_report/WBS.png"></a>
   <figcaption>WBS</figcaption>
+  </figure>
 
 # UML Diagram
   <figure>
