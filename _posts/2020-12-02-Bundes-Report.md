@@ -33,19 +33,19 @@ Bundesreport, a combination of the word 'Bund-' for the German Federation and th
 
 # Julnaf
   * SeungJae Lee, Olaf
-    - Leader, Back-end
+    - Leader, Back-End
     - Setting Development Environment
     - Implementing User Function
     - Implementing Note Function
     - <a href="https://github.com/veritas0806">🔗 Github</a>
   * YouJin Lee, Juli
-    - Implementing Back-end
+    - Implementing Back-End
     - Data Modeling
     - Implementing Post/Gallery Function
     - Implementing Comment Function
     - <a href="https://github.com/dev-ujin">🔗 Github</a>
   * JiHyun Lee, Hanna
-    - Front-end
+    - Front-End
     - Designing Layout/View
     - Implementing mini games
     - <a href="https://github.com/leehuhlee">🔗 Github</a>
