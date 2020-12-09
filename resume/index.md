@@ -9,25 +9,24 @@ comments: false
 <center><a href="https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf"><b>This</b></a> is my résumé.</center>
 
 ## Career
-* Working Student in Sogang University
-  - Marketer in YellowGreen
-  - LAB Manager in Engineering Faculty
-  - Mentor in Python course
-  - Supporter in Youth Education center
-
-* Internship in Oneday Korea
-  - Natural Language Programmer
-  - Web Programmer
-  - Web Designer
+* Intern, Oneday Korea
+  - Chatbot Developer
+  - Front-End Developer
+* Working student, Sogang University
+  - Intern, Yello Green
+  - Mentor, Python course
+  - LAB Manager, Enginerring Faculty
+  - Supporter, Youth Education center
 
 ## Education
-* K-move Training course
-* Sogang University
-  - Computer Science and Engineering
+* K-move (Germany) IT School
 * Brno University of Technology
+  - Exchange Student
   - Faculty of Information Technology
 * Giic AR/VR Hackerway
 * Smilegate Server Development Camp
+* Sogang University
+  - Computer Science and Engineering
 
 See [my codes](https://github.com/leehuhlee) hosted on GitHub.
 
@@ -36,6 +35,7 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - Korean &nbsp;&nbsp;&nbsp;■■■■■
   - English &nbsp;&nbsp;&nbsp;■■■■□
   - German &nbsp;&nbsp;■■■□□
+  - Japanese &nbsp;&nbsp;&nbsp;■■■■□
 
 * IT Skills
   - Programming Language: <br>
@@ -43,6 +43,6 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
         Python &nbsp;■■■■□<br>
         JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□
   - MS Office &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
-  - Web Design &nbsp;&nbsp;&nbsp;■■■■■ 
+  - Photoshop &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
       
 [Download Resumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
