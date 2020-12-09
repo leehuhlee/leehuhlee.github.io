@@ -81,15 +81,15 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 
 
 ## Demo Video
-* Member
+* Member<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Member.mp4" frameborder="0"> </iframe>
-* Product
+* Product<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Product.mp4" frameborder="0"> </iframe>
-* Order
+* Order<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Order.mp4" frameborder="0"> </iframe>
-* Cancle
+* Cancle<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Cancle.mp4" frameborder="0"> </iframe>
-* Search orders
+* Search orders<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Search.mp4" frameborder="0"> </iframe>
 
 
