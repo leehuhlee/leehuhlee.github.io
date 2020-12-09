@@ -69,14 +69,14 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
   <figure class="half">
 	  <a href="/assets/img/posts/spring/createProduct.jpg"><img src="/assets/img/posts/spring/createProduct.jpg"></a>
     <a href="/assets/img/posts/spring/productList.jpg"><img src="/assets/img/posts/spring/productList.jpg"></a>
-	<figcaption>Sign</figcaption>
+	<figcaption>Product</figcaption>
   </figure>
 
 * Order
   <figure class="half">
 	  <a href="/assets/img/posts/spring/order.jpg"><img src="/assets/img/posts/spring/order.jpg"></a>
     <a href="/assets/img/posts/spring/orderList.jpg"><img src="/assets/img/posts/spring/orderList.jpg"></a>
-	<figcaption>Sign</figcaption>
+	<figcaption>Order</figcaption>
   </figure>
 
 
@@ -85,6 +85,8 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Member.mp4" frameborder="0"> </iframe>
 * Product<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Product.mp4" frameborder="0"> </iframe>
+* Modify<br>
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Modify.mp4" frameborder="0"> </iframe>
 * Order<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Order.mp4" frameborder="0"> </iframe>
 * Cancle<br>
