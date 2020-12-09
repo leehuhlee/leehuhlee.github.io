@@ -47,6 +47,9 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 	  <a href="/assets/img/posts/spring/domainCheking.jpg"><img src="/assets/img/posts/spring/domainChecking.jpg"></a>
 	<figcaption>H2 Databse Checking</figcaption>
   </figure>
+  - '@ManyToOne', '@OneToMany'
+  Don't use '@ManyToMany'. It cannot add colums in middle table.<br>
+  So create middle entity and mapping with '@ManyToOne' and '@OneToMany'.
 
 * Download Bootstrap
 
@@ -54,7 +57,7 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 ## View
 * Thymeleaf Template Engine
   - Spring Boot thymeleaf View Name<br>
-  (resources:templates/) + {ViewName} + (.html)
+  '(resources:templates/) + {ViewName} + (.html)'
   {% highlight java %}
     @Controller
     public class HelloController{
@@ -67,7 +70,8 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
     }
   {% endhighlight %}
   - Template location<br>
-    resource/templates/hello.html
+    'resource/templates/hello.html'
+
 
 ## UI
 * Main
