@@ -46,3 +46,4 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - Photoshop &nbsp;&nbsp;&nbsp;&nbsp;■■■■■
       
 [Download Resumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
+[Download Project](https://leehuhlee.github.io/resume/Project.pdf){: .btn}
