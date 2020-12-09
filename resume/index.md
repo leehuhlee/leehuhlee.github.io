@@ -43,6 +43,6 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
         Python &nbsp;■■■■□<br>
         JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□
   - MS Office &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
-  - Photoshop &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
+  - Photoshop &nbsp;&nbsp;&nbsp;&nbsp;■■■■■
       
 [Download Resumé](https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf){: .btn}
