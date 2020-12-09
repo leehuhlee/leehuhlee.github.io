@@ -51,6 +51,24 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 * Download Bootstrap
 
 
+## View
+* Thymeleaf Template Engine
+  - Spring Boot thymeleaf View Name
+  (resources:templates/) + {ViewName} + (.html)
+{% highlight vim %}
+    @Controller
+    public class HelloController{
+
+      @GetMapping("hello)
+      public String hello(Model model){
+        model.addAttribute("data", "hello!!");
+        return "hello";
+      }
+    }
+{% endhighlight %}
+    - Template location
+    resource/templates/hello.html
+
 ## UI
 * Main
   <figure>
