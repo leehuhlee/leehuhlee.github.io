@@ -53,9 +53,9 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 
 ## View
 * Thymeleaf Template Engine
-  - Spring Boot thymeleaf View Name
+  - Spring Boot thymeleaf View Name<br>
   (resources:templates/) + {ViewName} + (.html)
-{% highlight vim %}
+  {% highlight java %}
     @Controller
     public class HelloController{
 
@@ -65,8 +65,8 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
         return "hello";
       }
     }
-{% endhighlight %}
-    - Template location
+  {% endhighlight %}
+  - Template location<br>
     resource/templates/hello.html
 
 ## UI
