@@ -71,6 +71,109 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
   {% endhighlight %}
   - Template location<br>
     `resource/templates/hello.html`
+  - Skip `null` when use ?
+
+
+## Entity
+* `fetch = FetchType.LAZY`
+  - `EAGER` is hard to expect and follow which SQL will excute.
+  - To check related entities in DB together, use `fetch`, `join` or Entity Graph Function.
+  - Need to set `fetch = FetchType.LAZY` in `@OneToOne`, `@ManyToOne`.
+
+
+## Application Architecture
+<figure>
+ <a href="/assets/img/posts/spring/applicationArchitecture.jpg"><img src="/assets/img/posts/spring/applicationArchitecture.jpg"></a>
+<figcaption>Main</figcaption>
+</figure>
+
+* Hierarchy Structure
+  - controller, web: web level
+  - service: business logic, transaction process
+  - repository: use JPA directly, use entity manager
+  - domain: gather entities
+
+
+## Member
+
+### Repository
+* `@Repository`: Register as a spring bin
+* `@PersistenceContext`: Insert `EntityManager`
+* `@PersistenceUnit`: Insert `EntityManagerFactory`
+
+### Service
+* `@Transactional`: Transaction, perpetuity context
+  - `readOnly=true`: Use for read-only methods
+* `@Autowired`: Use for many Generator Injection
+  - If there is only one Generator, it can be skipped
+* `final`: Use to check error unsetted `~Repository`
+
+
+### Test
+* `@RunWith(SpringRunner.class)`: Combinate Spring and test
+* `@SpringBootTest`: Excute Spring Boot first, then test
+* `@Transactional`: Support repeatable test
+  - Rollback after the test
+* `//Given`, `//When`, `//Then`
+* Setting for Test Case
+  - Run in isolated environment and initialize data at end
+  - Use Memory DB
+  - Add Setting file for Test `test/resources/application.yml`
+  {% highlight java %}
+    spring:
+    logging.level:
+      org.hibernate.SQL: debug
+  {% endhighlight %}
+
+
+## Item
+
+### Entity
+* `addStock()`: Increase stock quantity when modify wtock quantity or cancel order
+* `removeStock()`: Decrease stock quantity. When stock is lack, generate error.
+
+### Repository
+* `save()`
+  - Execute `persist()` for new `id`
+  - Excutee `merge()` for existed `id`
+
+
+## Order
+
+### Entity
+* `createdOrder()`: Create Order Entity
+* `cancle()`: Change order status to cancle
+
+### Repository
+* `findAll(OrderSearch orderSearch)`: Create queries dynamically in search condition to check order entities
+
+### Service
+* `order()`: Create Order Entity
+* `cancleOrder()`: Request cancel to Order 
+* `findOrders()`: Search Order Entity with `OrderSearch` condition 
+> Domain Model Pattern: Entity has business logic<br>Transaction Script Pattern: Service has business logic
+
+### Test
+* Generate `NotEnoughStockException` when order exceeds stock quantity
+
+
+## OrderItem
+
+### Entity
+* `createOrderItem()`: Create OrderItem Entity and call `item.removeStock(count)` to decrease stock quantity as much as order
+* `cancle()`: Call `getItem().addStock(count)` to increase stock quantity as much as cancled order
+* `getTotalPrice()`: Return count * price
+
+
+## Controller
+* Save `Model` object to send View
+* Press `Submit`, then request url with POST method
+  - After the change, redirect `redirect:/~`
+  - Excute method
+* Press `Modify`, then request url with GET method
+  - Execute `updateItemForm()` method and call `itemService.findOne(itemId)`
+  - send result to View 
+* Always use change detection when changing an entity.
 
 
 ## UI
@@ -115,8 +218,6 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Cancle.mp4" frameborder="0"> </iframe>
 * Search orders<br>
   <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Search.mp4" frameborder="0"> </iframe>
-
-
 
   
 [Download Jpashop](https://github.com/leehuhlee/jpashop){: .btn}
