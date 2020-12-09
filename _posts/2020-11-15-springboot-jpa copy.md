@@ -9,6 +9,7 @@ comments: false
 
 Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81%EB%B6%80%ED%8A%B8-JPA-%ED%99%9C%EC%9A%A9-1/dashboard">실전! 스프링 부트와 JPA 활용 1 - 웹 애플리케이션 개발</a>
 
+
 ## Settings
 * Create project
   - <a href ="https://Start.spring.io/">Spring boot starter</a>
@@ -47,13 +48,50 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 	<figcaption>H2 Databse Checking</figcaption>
   </figure>
 
+* Download Bootstrap
+
+
 ## UI
 * Main
   <figure>
 	  <a href="/assets/img/posts/spring/main.jpg"><img src="/assets/img/posts/spring/main.jpg"></a>
 	<figcaption>Main</figcaption>
+  </figure>
 
-* 
+* Member
+  <figure class="half">
+	  <a href="/assets/img/posts/spring/sign.jpg"><img src="/assets/img/posts/spring/sign.jpg"></a>
+    <a href="/assets/img/posts/spring/memberList.jpg"><img src="/assets/img/posts/spring/memberList.jpg"></a>
+	<figcaption>Sign</figcaption>
+  </figure>
+
+* Product
+  <figure class="half">
+	  <a href="/assets/img/posts/spring/createProduct.jpg"><img src="/assets/img/posts/spring/createProduct.jpg"></a>
+    <a href="/assets/img/posts/spring/productList.jpg"><img src="/assets/img/posts/spring/productList.jpg"></a>
+	<figcaption>Sign</figcaption>
+  </figure>
+
+* Order
+  <figure class="half">
+	  <a href="/assets/img/posts/spring/order.jpg"><img src="/assets/img/posts/spring/order.jpg"></a>
+    <a href="/assets/img/posts/spring/orderList.jpg"><img src="/assets/img/posts/spring/orderList.jpg"></a>
+	<figcaption>Sign</figcaption>
+  </figure>
+
+
+## Demo Video
+* Member
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Member.mp4" frameborder="0"> </iframe>
+* Product
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Product.mp4" frameborder="0"> </iframe>
+* Order
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Order.mp4" frameborder="0"> </iframe>
+* Cancle
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Cancle.mp4" frameborder="0"> </iframe>
+* Search orders
+  <iframe width="560" height="315" src="/assets/video/posts/jpashop/Jpashop-Search.mp4" frameborder="0"> </iframe>
+
 
 
   
