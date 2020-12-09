@@ -57,4 +57,4 @@ Reference by <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%8
 
 
   
-[Download Bundes Report](https://github.com/leehuhlee/jpashop){: .btn}
+[Download Jpashop](https://github.com/leehuhlee/jpashop){: .btn}
