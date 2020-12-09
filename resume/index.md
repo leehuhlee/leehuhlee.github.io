@@ -16,7 +16,7 @@ comments: false
   - Intern, Yello Green
   - Mentor, Python course
   - LAB Manager, Enginerring Faculty
-  - Supporter, Youth Education center
+  - Tutor, Youth Education center
 
 ## Education
 * K-move (Germany) IT School
