@@ -27,43 +27,43 @@ comments: false
 ## Create room
 
 * Create floor, wall and ceiling 
-  - Create a cube and change name to `Floor`
-  - Create three walls and change name to `Wall1`, `Wall2` and `Wall3`
-  - Create a cube and change name to `Ceiling`
+  - Create Cube and change Name to `Floor`
+  - Create three walls and change Name to `Wall1`, `Wall2` and `Wall3`
+  - Create Cube and change Name to `Ceiling`
   - Add checker texture
-  - Decrease `Static Friction` and `Dynamic Friction` and increase `Bounciness`
+  - Decrease Static Friction and Dynamic Friction and increase Bounciness
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/room1.png"><img src="/assets/img/posts/unity_blockshooter/room1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
-* Deploy a light
-  - Create `point light` and change location to (0, 15, 0)
-  - Change `Range` to 25 and `Intensity` to 2.0 in Light Component
+* Deploy light
+  - Create Point Light and change Position to (0, 15, 0)
+  - Change Range to 25 and Intensity to 2.0 in Light Component
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/light1.png"><img src="/assets/img/posts/unity_blockshooter/light1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
 * Build hierarchy structure
-  - Create empty object and change location to (0, 0, 0)
+  - Create Empty Game Object and change Position to (0, 0, 0)
   - Input all elements
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/hierarchy1.png"><img src="/assets/img/posts/unity_blockshooter/hierarchy1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
-* Save scene
+* Save Scene
   - build Settings>Scenes In Build
-  - Create `Main` scene
+  - Create Main Scene
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/scene1.png"><img src="/assets/img/posts/unity_blockshooter/scene1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
-* Deploy camera
-  - Set `aspect ratio` to 16:9 in Game View
-  - Change `Camera` angle to 75
+* Deploy Camera
+  - Set Aspect Ratio to 16:9 in Game View
+  - Change Angle of Camera to 75
   <figure class="half">
 	  <a href="/assets/img/posts/unity_blockshooter/camera1.png"><img src="/assets/img/posts/unity_blockshooter/camera1.png"></a>
     <a href="/assets/img/posts/unity_blockshooter/camera2.png"><img src="/assets/img/posts/unity_blockshooter/camera2.png"></a>
@@ -74,14 +74,14 @@ comments: false
 ## Create box
 
 * Create box
-  - Create a cube and change scale to 2.5
-  - Add `Rigidbody` component
-  - Add Physical material and Tag `Box`
+  - Create Cube and change Scale to 2.5
+  - Add Rigidbody Component
+  - Add Physical Material and Tag Box
   - Copy the `Box`
-  - Change name each boxes to `Red Box` and `Blue Box`
-  - Create material for each boxes
+  - Change Name each boxes to `Red Box` and `Blue Box`
+  - Create Material for each boxes
   - Prefab each boxes
-  - Drag and drop prefabs to each boxes
+  - Drag and drop Prefabs to each boxes
     <figure class="half">
 	  <a href="/assets/img/posts/unity_blockshooter/box1.png"><img src="/assets/img/posts/unity_blockshooter/box1.png"></a>
     <a href="/assets/img/posts/unity_blockshooter/box2.png"><img src="/assets/img/posts/unity_blockshooter/box2.png"></a>
@@ -91,11 +91,11 @@ comments: false
 
 ## Create Gun
 
-* Create bullet prepeb
-  - Create a Sphere and change scale to 0.5
-  - Add `Rigidbody` component
-  - Set shader to Self-Illumin>diffuse
-  - Prefab and change the name to `Bullet`
+* Create bullet Prepeb
+  - Create Sphere and change Scale to 0.5
+  - Add `Rigidbody` Component
+  - Set Shader to Self-Illumin>diffuse
+  - Prefab and change Name to `Bullet`
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/bullet1.png"><img src="/assets/img/posts/unity_blockshooter/bullet1.png"></a>
 	  <figcaption>Block Shooter Gun</figcaption>
@@ -115,8 +115,8 @@ comments: false
     }
   {% endhighlight %}
   - Drag and drop to `Main Camera`
-  - Drag and drop `Bullet` Prefab to bulletPrefab in Inspector View
-  - Change initialVelocity to 50
+  - Drag and drop `Bullet` Prefab to `bulletPrefab` in Inspector View
+  - Change `initialVelocity` to 50
   <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v26ddOwsgIgV5wxuPVxY7iP@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 * `Gun.js`(change)
@@ -147,7 +147,7 @@ comments: false
       Destroy(gameObject);
     }
   {% endhighlight %}
-  - Drag and drop to `Bullet` prefab
+  - Drag and drop to `Bullet` Prefab
 
 * Introduce messaging
   - `Bullet.js`(change)
@@ -168,7 +168,7 @@ comments: false
   -  Drag and drop `Box.js` to `Red Box` Prefab and `Blue Box` Prefab
 
 * Improve visual presentation
-  - Create empty game object
+  - Create Empty Game Object
   - Component>Effects>Legacy Particles
   - Select `Ellipsoid Particle Emitter`, `Particle Animator` and `Particle Render`
   <figure>
@@ -195,7 +195,7 @@ comments: false
         Destroy(gameObject);
       }
     {% endhighlight %}
-  - Drag and drop `Explosion` Prefab to `explosionPrefab` parameter in Inspector View
+  - Drag and drop `Explosion` Prefab to `explosionPrefab` in Inspector View
 
 * Improve to delay of destroy
   - `Box.js`(change)
@@ -235,8 +235,8 @@ comments: false
   <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vd8c0131Eil163r6wlEBlpz@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
-## Box Generator
-  - Create empty game object and change name to `Box Generator`
+## Create Box Generator
+  - Create Empty Game Object and change Name to `Box Generator`
 
 * `BoxGenerator.js`
   {% highlight java %}
@@ -262,8 +262,8 @@ comments: false
         }
       }
     {% endhighlight %}
-  - Drag and drop `BoxGenerator.js` to `Box Generator` game object
-  - Change `Interval` to 0.5 and drag and drop each prefab to `Red Box Prefab` and `Blue Box Prefab` in Inspector View
+  - Drag and drop `BoxGenerator.js` to `Box Generator` Game Object
+  - Change `Interval` to 0.5 and drag and drop each Prefabs to `Red Box Prefab` and `Blue Box Prefab` in Inspector View
   - `BoxGenerator.js`(change)
   {% highlight java %}
       function Update(){
@@ -289,19 +289,19 @@ comments: false
 ## Create unvisible wall
 
 * Create univisible wall with normal wall
-  - Duplicate wall
+  - Duplicate `wall`
   - Locate to front of `room`
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/room2.png"><img src="/assets/img/posts/unity_blockshooter/room2.png"></a>
 	  <figcaption>Block Shooter Unvisible Wall</figcaption>
   </figure>
-  - Delete `Renderer` component
+  - Delete `Renderer` Component
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/room3.png"><img src="/assets/img/posts/unity_blockshooter/room3.png"></a>
 	  <figcaption>Block Shooter Unvisible Wall</figcaption>
   </figure>
 
-* Introduce layer and collision filtering
+* Introduce Layer and Collision filtering
   - Edit>Project Setting>Tags
   - Open `Tag Manager` in Inspector View
   - Set `Bullet` in `User Layer 8` and `Fence` in `User Layer 9`
@@ -311,7 +311,7 @@ comments: false
   </figure>
   - Click `Bullet` Prefab in Project View
   - Change `Layer` to `Bullet` in Inspector View
-  - Click unvisible wall game object
+  - Click unvisible wall Game Object
   - Change `Layer` to `Fence`
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/layer2.png"><img src="/assets/img/posts/unity_blockshooter/layer2.png"></a>
@@ -415,9 +415,9 @@ comments: false
       }
   {% endhighlight %}
 
-* Create `Game Controller` game object
-  - Create empty game object and change name to `Game Controller`
-  - Select `Game Controller` in `Tag` pull down menu in Top of Inspector View
+* Create `Game Controller` Game Object
+  - Create Empty Game Object and change Name to `Game Controller`
+  - Select `Game Controller` in `Tag` pull down menu in top of Inspector View
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/score2.png"><img src="/assets/img/posts/unity_blockshooter/score2.png"></a>
 	  <figcaption>Block Shooter Score</figcaption>
@@ -433,7 +433,7 @@ comments: false
 	  <a href="/assets/img/posts/unity_blockshooter/score4.png"><img src="/assets/img/posts/unity_blockshooter/score4.png"></a>
 	  <figcaption>Block Shooter Score</figcaption>
   </figure>
-  - Select `Red Box` Prefab in Project View and input `Red` in `Color name` of `Box` script component in Inspector View
+  - Select `Red Box` Prefab in Project View and input `Red` in `Color name` of `Box` Script Component in Inspector View
   - Same in `Blue Box`
   <figure class="half">
 	  <a href="/assets/img/posts/unity_blockshooter/score5.png"><img src="/assets/img/posts/unity_blockshooter/score5.png"></a>
@@ -447,23 +447,23 @@ comments: false
 
 * Create GUI skin
   - Create>GUI Skin
-  - Change name to `Game Skin`
-  - Open `Custom Styles`
-  - Change `Size` to 2
+  - Change Name to `Game Skin`
+  - Open Custom Styles
+  - Change Size to 2
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/GUI1.png"><img src="/assets/img/posts/unity_blockshooter/GUI1.png"></a>
 	  <figcaption>Block Shooter GUI</figcaption>
   </figure>
-  - Open `Element 0` and change `Name` to `score`
-  - Open `Normal` and change `Text Color` to white
-  - Change font
-  - Change `Font Size` to 25
+  - Open Element 0 and change Name to `score`
+  - Open Normal and change Text Color to white
+  - Change Font
+  - Change Font Size to 25
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/GUI2.png"><img src="/assets/img/posts/unity_blockshooter/GUI2.png"></a>
 	  <figcaption>Block Shooter GUI</figcaption>
   </figure>
- - Open `Element` and change `Name` to `message`
- - Change `Alignment` to `Middle Center`
+ - Open Element 1 and change Name to `message`
+ - Change Alignment to Middle Center
  - And same with `score`
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/GUI3.png"><img src="/assets/img/posts/unity_blockshooter/GUI3.png"></a>
@@ -472,37 +472,37 @@ comments: false
 
 * Apply GUI skin
   - `Scorekeeper.js`(change)<br>
-  Add this code in first line
+  Add code in first line
   {% highlight java %}
     var skin : GUISkin;
   {% endhighlight %}
-  Add this code in first line of `OnGUI` function
+  Add code in first line of `OnGUI` function
   {% highlight java %}
     GUI.skin = skin;
   {% endhighlight %}
-  change `GUI.Label` function
+  Change `GUI.Label` function
   {% highlight java %}
     GUI.Label(Rect(0, 0, sw/2, sh/4), scoreText, "score");
   {% endhighlight %}
-  - Drag and drop `Game Skin` to `Skin` in `Scoorekeeper` script component
+  - Drag and drop `Game Skin` to `Skin` in `Scoorekeeper` Script Component
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/GUI4.png"><img src="/assets/img/posts/unity_blockshooter/GUI4.png"></a>
 	  <figcaption>Block Shooter GUI</figcaption>
   </figure>
   - `Referee.js`(change)<br>
-  Add this code in first line
+  Add code in first line
   {% highlight java %}
     var skin : GUISkin;
   {% endhighlight %}
-  Add this code in first line of `OnGUI` function
+  Add code in first line of `OnGUI` function
   {% highlight java %}
     GUI.skin = skin;
   {% endhighlight %}
-  change `GUI.Label` function
+  Change `GUI.Label` function
   {% highlight java %}
     GUI.Label(Rect(0, 0, sw/2, sh/4), scoreText, "message");
   {% endhighlight %}
-  - Drag and drop `Game Skin` to `Skin` in `Referee` script component
+  - Drag and drop `Game Skin` to `Skin` in `Referee` Script Component
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/GUI5.png"><img src="/assets/img/posts/unity_blockshooter/GUI5.png"></a>
 	  <figcaption>Block Shooter GUI</figcaption>
@@ -513,7 +513,7 @@ comments: false
 ## Set time limitation
 
 * `Timekeeper.js`
-  - Add `Game Controller` game object
+  - Add `Game Controller` Game Object
   {% highlight java %}
     var gameLength : float;
 
@@ -528,7 +528,7 @@ comments: false
       }
     }
   {% endhighlight %}
-  - Set `Game Length` in `Timekeeper` script component
+  - Set `Game Length` in `Timekeeper` Script Component
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/timer1.png"><img src="/assets/img/posts/unity_blockshooter/timer1.png"></a>
 	  <figcaption>Block Shooter Timer</figcaption>
@@ -548,7 +548,7 @@ comments: false
 ## Create result scene
 
 * `ReulstScreen.js`
-  - Add `Game Controller` game object
+  - Add `Game Controller` Game Object
   - Structure
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/result1.png"><img src="/assets/img/posts/unity_blockshooter/result1.png"></a>
@@ -590,13 +590,13 @@ comments: false
       }
     }
   {% endhighlight %}
-  - Drag and drop `Game Skin` in `skin` in `ResultScreen` script
+  - Drag and drop `Game Skin` in `skin` in `ResultScreen` Script
 
 
 ## Create start scene
 
 * `GameStarter.js`
-  - Add `Game Controller` object
+  - Add `Game Controller` Object
   {% highlight java %}
     var skin : GUISkin;
 
@@ -636,7 +636,7 @@ comments: false
   {% endhighlight %}
 
 * Set GUI and check action
-  - Drag and drop `Game Skin` in `skin` in `GameStarter` script
+  - Drag and drop `Game Skin` in `skin` in `GameStarter` Script
   - Uncheck `Referee.js`, `Timekeeper.js` and `BoxGenerator.js` in Inspector View
   <figure class="half">
 	  <a href="/assets/img/posts/unity_blockshooter/start1.png"><img src="/assets/img/posts/unity_blockshooter/start1.png"></a>
@@ -646,20 +646,20 @@ comments: false
   <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v44a9x5aU2AaARSyAURSA5a@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
-## Create title scene
+## Create Title Scene
 
-* Create `Title ` scene
-  - Save `Main` scene first
+* Create `Title ` Scene
+  - Save `Main` Scene first
   - File>Save Scene as
-  - Save name to `Title`
-  - Add `Title` by Press `Add Current` to add in `Scene In Build`
-  - Put `Title` in the Top
+  - Save Name to `Title`
+  - Add `Title` by press `Add Current` to add in `Scene In Build`
+  - Put `Title` in the top
   <figure>
 	  <a href="/assets/img/posts/unity_blockshooter/title1.png"><img src="/assets/img/posts/unity_blockshooter/title1.png"></a>
 	  <figcaption>Block Shooter Title Scene</figcaption>
   </figure>
-  - Delete `Game Controller` game object
-  - Delete `Gun.js` in `Main Camera` game object
+  - Delete `Game Controller` Game Object
+  - Delete `Gun.js` in `Main Camera` Game Object
 
 * `TitleScreen.js`
 {% highlight java %}
@@ -679,9 +679,9 @@ comments: false
     GUI.Label(Rect(0, sh/2, sw, sh/2), "Click to Start", "message");
   }
 {% endhighlight %}
-  - Create empty game object
-  - Change name to `Title`
-  - Add `Title.js` and change `skin` to `Game Skin`
+  - Create Empty Game Object
+  - Change Name to `Title`
+  - Add `Title.js` and change skin to `Game Skin`
   - `ResultScreen.js`(change)
   {% highlight java %}
     //here
