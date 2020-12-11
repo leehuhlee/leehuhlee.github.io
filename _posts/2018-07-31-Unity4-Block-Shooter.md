@@ -32,7 +32,7 @@ comments: false
   - Add checker texture
   - Decrease `Static Friction` and `Dynamic Friction` and increase `Bounciness`
   <figure>
-	  <a href="/assets/img/posts/unity/room1.jpg"><img src="/assets/img/posts/unity_blockshooter/room1.jpg"></a>
+	  <a href="/assets/img/posts/unity/room1.png"><img src="/assets/img/posts/unity_blockshooter/room1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -40,7 +40,7 @@ comments: false
   - Create `point light` and change location to (0, 15, 0)
   - Change `Range` to 25 and `Intensity` to 2.0 in Light Component
   <figure>
-	  <a href="/assets/img/posts/unity/light1.jpg"><img src="/assets/img/posts/unity_blockshooter/light1.jpg"></a>
+	  <a href="/assets/img/posts/unity/light1.png"><img src="/assets/img/posts/unity_blockshooter/light1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -48,7 +48,7 @@ comments: false
   - Create empty object and change location to (0, 0, 0)
   - Input all elements
   <figure>
-	  <a href="/assets/img/posts/unity/hierarchy1.jpg"><img src="/assets/img/posts/unity_blockshooter/hierarchy1.jpg"></a>
+	  <a href="/assets/img/posts/unity/hierarchy1.png"><img src="/assets/img/posts/unity_blockshooter/hierarchy1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -56,7 +56,7 @@ comments: false
   - [build Settings]-[Scenes In Build]
   - Create `Main` scene
   <figure>
-	  <a href="/assets/img/posts/unity/scene1.jpg"><img src="/assets/img/posts/unity_blockshooter/scene1.jpg"></a>
+	  <a href="/assets/img/posts/unity/scene1.png"><img src="/assets/img/posts/unity_blockshooter/scene1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -64,8 +64,8 @@ comments: false
   - Set `aspect ratio` to 16:9 in Game View
   - Change `Camera` angle to 75
   <figure class="half">
-	  <a href="/assets/img/posts/unity/camera1.jpg"><img src="/assets/img/posts/unity_blockshooter/camera1.jpg"></a>
-    <a href="/assets/img/posts/unity/camera2.jpg"><img src="/assets/img/posts/unity_blockshooter/camera2.jpg"></a>
+	  <a href="/assets/img/posts/unity/camera1.png"><img src="/assets/img/posts/unity_blockshooter/camera1.png"></a>
+    <a href="/assets/img/posts/unity/camera2.png"><img src="/assets/img/posts/unity_blockshooter/camera2.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -82,8 +82,8 @@ comments: false
   - Prefeb each boxes
   - Drag and drop prefebs to each boxes
     <figure class="half">
-	  <a href="/assets/img/posts/unity/box1.jpg"><img src="/assets/img/posts/unity_blockshooter/box1.jpg"></a>
-    <a href="/assets/img/posts/unity/box2.jpg"><img src="/assets/img/posts/unity_blockshooter/box2.jpg"></a>
+	  <a href="/assets/img/posts/unity/box1.png"><img src="/assets/img/posts/unity_blockshooter/box1.png"></a>
+    <a href="/assets/img/posts/unity/box2.png"><img src="/assets/img/posts/unity_blockshooter/box2.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
@@ -96,7 +96,7 @@ comments: false
   - Set shader to Self-Illumin>diffuse
   - Prefeb and change the name to `Bullet`
   <figure>
-	  <a href="/assets/img/posts/unity/bullet1.jpg"><img src="/assets/img/posts/unity_blockshooter/bullet1.jpg"></a>
+	  <a href="/assets/img/posts/unity/bullet1.png"><img src="/assets/img/posts/unity_blockshooter/bullet1.png"></a>
 	  <figcaption>Block Shooter Room</figcaption>
   </figure>
 
