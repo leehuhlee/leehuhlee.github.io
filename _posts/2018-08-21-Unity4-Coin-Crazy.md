@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Unity4 - Character Action"
+title: "Unity4 - Coin Crazy"
 date: 2018-08-21
-excerpt: "Character Action"
+excerpt: "Character Action Game"
 tags: [Unity, JavaScript]
 comments: false
 ---
@@ -11,6 +11,12 @@ comments: false
 
 ## Game design
 
+* Player character
+* Stage
+* Coin
+* Obstacle
+* Generator for coin and obstacle
+* Game Controller
 
 
 [Download Game](https://github.com/leehuhlee/Unity){: .btn}
