@@ -3,7 +3,7 @@ layout: post
 title: "Unity4 - Block Shooter"
 date: 2018-12-25
 excerpt: "Block Shooter"
-tags: [Unity, Java]
+tags: [Unity, JavaScript]
 comments: false
 ---
 
@@ -552,7 +552,7 @@ comments: false
   - Structure
   <figure>
 	  <a href="/assets/img/posts/unity/result1.png"><img src="/assets/img/posts/unity_blockshooter/result1.png"></a>
-	  <figcaption>Block Shooter Result Screen</figcaption>
+	  <figcaption>Block Shooter Result Scene</figcaption>
   </figure>
   {% highlight java %}
     @script RequireComponent(Scorekeeper)
@@ -641,7 +641,7 @@ comments: false
   <figure class="half">
 	  <a href="/assets/img/posts/unity/start1.png"><img src="/assets/img/posts/unity_blockshooter/start1.png"></a>
     <a href="/assets/img/posts/unity/start2.png"><img src="/assets/img/posts/unity_blockshooter/start2.png"></a>
-	  <figcaption>Block Shooter Result Screen</figcaption>
+	  <figcaption>Block Shooter Start Scene</figcaption>
   </figure>
   <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v44a9x5aU2AaARSyAURSA5a@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
@@ -656,7 +656,7 @@ comments: false
   - Put `Title` in the Top
   <figure>
 	  <a href="/assets/img/posts/unity/title1.png"><img src="/assets/img/posts/unity_blockshooter/title1.png"></a>
-	  <figcaption>Block Shooter Result Screen</figcaption>
+	  <figcaption>Block Shooter Title Scene</figcaption>
   </figure>
   - Delete `Game Controller` game object
   - Delete `Gun.js` in `Main Camera` game object
