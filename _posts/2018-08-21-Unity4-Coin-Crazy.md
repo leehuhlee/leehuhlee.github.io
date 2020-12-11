@@ -9,6 +9,7 @@ comments: false
 
 <center>See <a href="https://github.com/leehuhlee/Unity"><b>this unity4 games</b></a> in github.</center>
 
+
 ## Game design
 
 * Player character
@@ -17,6 +18,8 @@ comments: false
 * Obstacle
 * Generator for coin and obstacle
 * Game Controller
+
+
 
 
 [Download Game](https://github.com/leehuhlee/Unity){: .btn}
