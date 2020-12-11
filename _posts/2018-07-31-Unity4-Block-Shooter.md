@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Unity4 - Block Shooter"
-date: 2018-12-25
+date: 2018-07-31
 excerpt: "Block Shooter"
 tags: [Unity, JavaScript]
 comments: false
@@ -9,7 +9,7 @@ comments: false
 
 <center>See <a href="https://github.com/leehuhlee/Unity"><b>this unity4 games</b></a> in github.</center>
 
-## Maze game design
+## Game design
 
 * Room
 * Box
@@ -695,4 +695,4 @@ comments: false
 
 <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v8a7ctypNLLNK718rNBVOKO@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
-[Download block shooter](https://github.com/leehuhlee/Unity){: .btn}
+[Download Game](https://github.com/leehuhlee/Unity){: .btn}
