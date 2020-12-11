@@ -53,7 +53,7 @@ comments: false
   </figure>
 
 * Save scene
-  - [build Settings]-[Scenes In Build]
+  - build Settings>Scenes In Build
   - Create `Main` scene
   <figure>
 	  <a href="/assets/img/posts/unity/scene1.png"><img src="/assets/img/posts/unity_blockshooter/scene1.png"></a>
@@ -168,7 +168,7 @@ comments: false
 
 * Improve visual presentation
   - Create empty game object
-  - `Component`>`Effects`>`Legacy Particles`
+  - Component>Effects>Legacy Particles
   - Select `Ellipsoid Particle Emitter`, `Particle Animator`, and `Particle Render`
   <figure>
 	  <a href="/assets/img/posts/unity/particle1.png"><img src="/assets/img/posts/unity_blockshooter/particle1.png"></a>
@@ -209,6 +209,7 @@ comments: false
           killTimer = 0.4;
         }
       }
+
       function Update(){
         if (!damaged) return;
         killTimer -= Time.deltaTime;
@@ -299,7 +300,145 @@ comments: false
 	  <figcaption>Block Shooter Unvisible Wall</figcaption>
   </figure>
 
-* 
+* Introduce layer and collision filtering
+  - Edit>Project Setting>Tags
+  - Open `Tag Manager` in Inspector View
+  - Set `Bullet` in `User Layer 8` and `Fence` in `User Layer 9`
+  <figure>
+	  <a href="/assets/img/posts/unity/layer1.png"><img src="/assets/img/posts/unity_blockshooter/layer1.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  - Click `Bullet` Prefab in Project View
+  - Change `Layer` to `Bullet` in Inspector View
+  - Click unvisible wall game object
+  - Change `Layer` to `Fence`
+  <figure>
+	  <a href="/assets/img/posts/unity/layer2.png"><img src="/assets/img/posts/unity_blockshooter/layer2.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  - Edit>Project Settings>Physics
+  - Open `Physics Manager` in Inspector View
+  - Open `Layer Collision Matrix`
+  - Uncheck where is crossing `Bullet` and `Fence`
+  <figure>
+	  <a href="/assets/img/posts/unity/layer3.png"><img src="/assets/img/posts/unity_blockshooter/layer3.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vf9d9X1umk6JX8CHmn62XH6@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
-[Download maze game](https://github.com/leehuhlee/Unity){: .btn}
+## Count score
+
+* Structure
+  <figure>
+	  <a href="/assets/img/posts/unity/score1.png"><img src="/assets/img/posts/unity_blockshooter/score1.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+
+* `Scorekeeper.js`: Manage score by number
+  {% highlight java %}
+    @HideInInspector
+    var score : int;
+    function OnGUI(){
+      var sw : int = Screen.width;
+      var sh : int = Screen.height;
+      var scoreText : String = "SCORE: " + score.ToString();
+      GUI.Label(Rect(0, 0, sw/2, sh/4), scoreText);
+    }    
+  {% endhighlight %}
+
+* `Referee.js`: Process to manage rule and change target
+  {% highlight java %}
+    @script RequireComponent(Scorekeeper)
+    var switchInterval : int;
+    var rewardPoint : int;
+    var penaltyPoint : int;
+
+    private var scorekeeper : Scorekeeper;
+    private var targetIsRed : boolean;
+    private var switchTimer : float;
+
+    private function GetRatgetColorName() : String{
+      return targetIsRed ? "Red" : "Blue";
+    }   
+
+    function Start(){
+      scorekeeper = GetComponent(Scorekeeper) as Scorekeeper;
+      targetIsRed = true;
+      switchTimer = switchInterval;
+    }
+
+    function Update(){
+      switchTimer -= Time.deltaTime;
+      if(switchTimer < 0.0){
+        targetIsRed = !targetIsRed;
+        switchTimer = switchInterval;
+      }
+    }
+
+    function OnDestroyBox(boxColorName : String){
+      If (boxColorName == GetTargetColorName()){
+        scorekeeper.score += rewardPoint;
+      } else {
+        scorekeeper.score -= penaltyPoint;
+      }
+    }
+
+    function OnGUI(){
+      If (switchTimer < 1.5) return;
+      var sw : int = Screen.width;
+      var sh : int = Screen.height;
+      var message : String "Shoot" + GetTargetColorName() + " Boxes";
+      GUI.color = targetIsRed ? Color.red : Color.blue;
+      GUI.Label(Rect(0, sh/4, sw, sh/2), message);
+    }
+  {% endhighlight %}
+
+* `Box.js`(change): Save which box is desproyed<br>
+  - Add this code first line
+  {% highlight java %}
+    var colorName : String;
+  {% endhighlight %}
+  - Change `Update()`
+  {% highlight java %}
+    function Update(){
+      if (!damaged) return;
+      killTimer -= Time.deltaTime;
+      if(killTimer <= 0.0){
+        // here
+        var gameController : GameObject = GameObject.FindWithTag("GameController");
+        gameController.SendMessage("OnDestroyBox", colorName);
+        //
+        Instantiate(explosionPrefab, transform.position, transform.rotation);
+        Destroy(gameObject);
+      }
+  {% endhighlight %}
+
+* Create `Game Controller` game object
+  - Create empty game object and change name to `Game Controller`
+  - Select `Game Controller` in `Tag` pull down menu in Top of Inspector View
+  <figure>
+	  <a href="/assets/img/posts/unity/score2.png"><img src="/assets/img/posts/unity_blockshooter/score2.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  - Add `Referee.js`
+  - change `Reward Point` to 10 and `Penalty Point` to 7
+  <figure>
+	  <a href="/assets/img/posts/unity/score3.png"><img src="/assets/img/posts/unity_blockshooter/score3.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  - Put `Box Generator` under the `Game controller`
+  <figure>
+	  <a href="/assets/img/posts/unity/score4.png"><img src="/assets/img/posts/unity_blockshooter/score4.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  - Select `Red Box` Prefab in Project View and input `Red` in `Color name` of `Box` script component in Inspector View
+  - Same in `Blue Box`
+  <figure class="half">
+	  <a href="/assets/img/posts/unity/score5.png"><img src="/assets/img/posts/unity_blockshooter/score5.png"></a>
+    <a href="/assets/img/posts/unity/score6.png"><img src="/assets/img/posts/unity_blockshooter/score6.png"></a>
+	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+  </figure>
+  <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v7284OKdeTY9erAWEyTYeyY@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+[Download block shooter game](https://github.com/leehuhlee/Unity){: .btn}
