@@ -20,14 +20,15 @@ comments: false
 * Score
 * GUI Skin
 * Time Limitation
+* Result Scene
 * Start Scene
 * Title Scene
 
 ## Create room
 
-* Create floor, wall, and ceiling 
+* Create floor, wall and ceiling 
   - Create a cube and change name to `Floor`
-  - Create three walls and change name to `Wall1`, `Wall2`, and `Wall3`
+  - Create three walls and change name to `Wall1`, `Wall2` and `Wall3`
   - Create a cube and change name to `Ceiling`
   - Add checker texture
   - Decrease `Static Friction` and `Dynamic Friction` and increase `Bounciness`
@@ -169,7 +170,7 @@ comments: false
 * Improve visual presentation
   - Create empty game object
   - Component>Effects>Legacy Particles
-  - Select `Ellipsoid Particle Emitter`, `Particle Animator`, and `Particle Render`
+  - Select `Ellipsoid Particle Emitter`, `Particle Animator` and `Particle Render`
   <figure>
 	  <a href="/assets/img/posts/unity/particle1.png"><img src="/assets/img/posts/unity_blockshooter/particle1.png"></a>
 	  <figcaption>Block Shooter Gun</figcaption>
@@ -179,7 +180,7 @@ comments: false
     `Max Size`: 5<br>
     `Min Energy` and `Max Energy`: 0.5<br>
     `Min Emission` and `Max Emission`: 30<br>
-    `x`, `y`, and `z` of `Rnd Velocity`: 25<br>
+    `x`, `y` and `z` of `Rnd Velocity`: 25<br>
     `Rnd Angular Velocity`: 360<br>
     `Rnd Rotation`: On<br>
     `One Shot`: On<br>
@@ -332,7 +333,7 @@ comments: false
 * Structure
   <figure>
 	  <a href="/assets/img/posts/unity/score1.png"><img src="/assets/img/posts/unity_blockshooter/score1.png"></a>
-	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+	  <figcaption>Block Shooter Score</figcaption>
   </figure>
 
 * `Scorekeeper.js`: Manage score by number
@@ -419,26 +420,279 @@ comments: false
   - Select `Game Controller` in `Tag` pull down menu in Top of Inspector View
   <figure>
 	  <a href="/assets/img/posts/unity/score2.png"><img src="/assets/img/posts/unity_blockshooter/score2.png"></a>
-	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+	  <figcaption>Block Shooter Score</figcaption>
   </figure>
   - Add `Referee.js`
   - change `Reward Point` to 10 and `Penalty Point` to 7
   <figure>
 	  <a href="/assets/img/posts/unity/score3.png"><img src="/assets/img/posts/unity_blockshooter/score3.png"></a>
-	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+	  <figcaption>Block Shooter Score</figcaption>
   </figure>
   - Put `Box Generator` under the `Game controller`
   <figure>
 	  <a href="/assets/img/posts/unity/score4.png"><img src="/assets/img/posts/unity_blockshooter/score4.png"></a>
-	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+	  <figcaption>Block Shooter Score</figcaption>
   </figure>
   - Select `Red Box` Prefab in Project View and input `Red` in `Color name` of `Box` script component in Inspector View
   - Same in `Blue Box`
   <figure class="half">
 	  <a href="/assets/img/posts/unity/score5.png"><img src="/assets/img/posts/unity_blockshooter/score5.png"></a>
     <a href="/assets/img/posts/unity/score6.png"><img src="/assets/img/posts/unity_blockshooter/score6.png"></a>
-	  <figcaption>Block Shooter Unvisible Wall</figcaption>
+	  <figcaption>Block Shooter Score</figcaption>
   </figure>
   <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v7284OKdeTY9erAWEyTYeyY@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+
+## Set GUI skin
+
+* Create GUI skin
+  - Create>GUI Skin
+  - Change name to `Game Skin`
+  - Open `Custom Styles`
+  - Change `Size` to 2
+  <figure>
+	  <a href="/assets/img/posts/unity/GUI1.png"><img src="/assets/img/posts/unity_blockshooter/GUI1.png"></a>
+	  <figcaption>Block Shooter GUI</figcaption>
+  </figure>
+  - Open `Element 0` and change `Name` to `score`
+  - Open `Normal` and change `Text Color` to white
+  - Change font
+  - Change `Font Size` to 25
+  <figure>
+	  <a href="/assets/img/posts/unity/GUI2.png"><img src="/assets/img/posts/unity_blockshooter/GUI2.png"></a>
+	  <figcaption>Block Shooter GUI</figcaption>
+  </figure>
+ - Open `Element` and change `Name` to `message`
+ - Change `Alignment` to `Middle Center`
+ - And same with `score`
+  <figure>
+	  <a href="/assets/img/posts/unity/GUI3.png"><img src="/assets/img/posts/unity_blockshooter/GUI3.png"></a>
+	  <figcaption>Block Shooter GUI</figcaption>
+  </figure>
+
+* Apply GUI skin
+  - `Scorekeeper.js`(change)<br>
+  Add this code in first line
+  {% highlight java %}
+    var skin : GUISkin;
+  {% endhighlight %}
+  Add this code in first line of `OnGUI` function
+  {% highlight java %}
+    GUI.skin = skin;
+  {% endhighlight %}
+  change `GUI.Label` function
+  {% highlight java %}
+    GUI.Label(Rect(0, 0, sw/2, sh/4), scoreText, "score");
+  {% endhighlight %}
+  - Drag and drop `Game Skin` to `Skin` in `Scoorekeeper` script component
+  <figure>
+	  <a href="/assets/img/posts/unity/GUI4.png"><img src="/assets/img/posts/unity_blockshooter/GUI4.png"></a>
+	  <figcaption>Block Shooter GUI</figcaption>
+  </figure>
+  - `Referee.js`(change)<br>
+  Add this code in first line
+  {% highlight java %}
+    var skin : GUISkin;
+  {% endhighlight %}
+  Add this code in first line of `OnGUI` function
+  {% highlight java %}
+    GUI.skin = skin;
+  {% endhighlight %}
+  change `GUI.Label` function
+  {% highlight java %}
+    GUI.Label(Rect(0, 0, sw/2, sh/4), scoreText, "message");
+  {% endhighlight %}
+  - Drag and drop `Game Skin` to `Skin` in `Referee` script component
+  <figure>
+	  <a href="/assets/img/posts/unity/GUI5.png"><img src="/assets/img/posts/unity_blockshooter/GUI5.png"></a>
+	  <figcaption>Block Shooter GUI</figcaption>
+  </figure>
+  <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v83bfgRuu8C8uC0TE2ZK8EI@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+
+## Set time limitation
+
+* `Timekeeper.js`
+  - Add `Game Controller` game object
+  {% highlight java %}
+    var gameLength : float;
+
+    private var elapsed : float;
+
+    function Update(){
+      elapsed += Time.deltaTime;
+      if(elapsed >= gameLength){
+        BroadcastMessage("TimeUp");
+        GameObject.FindWithTag("MainCamera").SendMessage("TimeUp");
+        enabled = false;
+      }
+    }
+  {% endhighlight %}
+  - Set `Game Length` in `Timekeeper` script component
+  <figure>
+	  <a href="/assets/img/posts/unity/timer1.png"><img src="/assets/img/posts/unity_blockshooter/timer1.png"></a>
+	  <figcaption>Block Shooter Timer</figcaption>
+  </figure>
+
+* Add "TimeUp" message processing
+  - `Gun.js`(change), `Referee.js`(change) and `Box Generator.js`(change)<br>
+  Add this code in last line
+  {% highlight java %}
+    function TimeUp(){
+      enabled = false;
+    }
+  {% endhighlight %}
+  <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vcdd2OjOySOyiwujXouOoXO@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+
+## Create result scene
+
+* `ReulstScreen.js`
+  - Add `Game Controller` game object
+  - Structure
+  <figure>
+	  <a href="/assets/img/posts/unity/result1.png"><img src="/assets/img/posts/unity_blockshooter/result1.png"></a>
+	  <figcaption>Block Shooter Result Screen</figcaption>
+  </figure>
+  {% highlight java %}
+    @script RequireComponent(Scorekeeper)
+
+    var skin : GUISkin;
+
+    private var scorekeeper : Scorekeeper;
+    private var state : String;
+
+    function Start(){
+      scorekeeper = GetComponenet(Scorekeeper) as Scorekeeper;
+    }
+
+    function TimeUp(){
+      state = "Time Up";
+      yield WaitForSeconds(3.0);
+      state = "";
+      yield WaitForSeconds(0.5);
+      state = "Show Score";
+      while (!Input.GetButtonDown("Fire1")) yield;
+      Application.LoadLevel("Main");
+    }
+
+    function OnGUI(){
+      var sw : int = Screen.width;
+      var sh : int = Screen.height;
+      GUI.skin = skin;
+      If (state == "Time Up"){
+        GUI.Label(Rect(0, 0, sw, sh), "Time Up!!", "message");
+      }
+      else if (state == "Show Score"){
+        var scoreText : String = "Your score is " + scorekeeper.score.ToString();
+        GUI.Label(Rect(0, sh/4, sw, sh/4), scoreText, "message");
+        GUI.Label(Rect(0, sh/2, sw, sh/4), "Click to Exit", "message");
+      }
+    }
+  {% endhighlight %}
+  - Drag and drop `Game Skin` in `skin` in `ResultScreen` script
+
+
+## Create start scene
+
+* `GameStarter.js`
+  - Add `Game Controller` object
+  {% highlight java %}
+    var skin : GUISkin;
+
+    private var timer : float;
+
+    function Start(){
+      timer = 3.5;
+    }
+
+    function Update(){
+      timer -= Time.deltaTime;
+      if(timer <= 0.0){
+        BroadcastMessage("StartGame");
+        enabled = false;
+      }
+    }
+
+    function OnGUI(){
+      If (timer > 3.0 || timer <= 0.0) return;
+
+      var sw : int = Screen.width;
+      var sh : int = Screen.height;
+      var text : String = Mathf.CeilToInt(timer).ToString();
+      GUI.skin = skin;
+      GUI.color = Color(1, 1, 1, timer - Mathf.FloorToInt(timer));
+      GUI.Label(Rect(0, sh/4, sw, sh/2), text, "message");
+    }
+  {% endhighlight %}
+
+* Create `StartGame` message processing
+  - `Referee.js`(change), `Timekeeper.js`(change) and `BoxGenerator`(change)<br>
+  Add this code in last line
+  {% highlight java %}
+    function StartGame(){
+      enabled = true;
+    }
+  {% endhighlight %}
+
+* Set GUI and check action
+  - Drag and drop `Game Skin` in `skin` in `GameStarter` script
+  - Uncheck `Referee.js`, `Timekeeper.js` and `BoxGenerator.js` in Inspector View
+  <figure class="half">
+	  <a href="/assets/img/posts/unity/start1.png"><img src="/assets/img/posts/unity_blockshooter/start1.png"></a>
+    <a href="/assets/img/posts/unity/start2.png"><img src="/assets/img/posts/unity_blockshooter/start2.png"></a>
+	  <figcaption>Block Shooter Result Screen</figcaption>
+  </figure>
+  <iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v44a9x5aU2AaARSyAURSA5a@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+
+## Create title scene
+
+* Create `Title ` scene
+  - Save `Main` scene first
+  - File>Save Scene as
+  - Save name to `Title`
+  - Add `Title` by Press `Add Current` to add in `Scene In Build`
+  - Put `Title` in the Top
+  <figure>
+	  <a href="/assets/img/posts/unity/title1.png"><img src="/assets/img/posts/unity_blockshooter/title1.png"></a>
+	  <figcaption>Block Shooter Result Screen</figcaption>
+  </figure>
+  - Delete `Game Controller` game object
+  - Delete `Gun.js` in `Main Camera` game object
+
+* `TitleScreen.js`
+{% highlight java %}
+  var skin : GUISkin;
+
+  function Update(){
+    if (Input.GetButtonDown("Fire1")){
+      Application.LoadLevel("Main");
+    }
+  }
+
+  function OnGUI(){
+    var sw : int = Screen.width;
+    var sh : int = Screen.height;
+    GUI.skin = skin;
+    GUI.Label(Rect(0, 0, sw, sh), "B L O C K S H O O T E R", "message");
+    GUI.Label(Rect(0, sh/2, sw, sh/2), "Click to Start", "message");
+  }
+{% endhighlight %}
+  - Create empty game object
+  - Change name to `Title`
+  - Add `Title.js` and change `skin` to `Game Skin`
+  - `ResultScreen.js`(change)
+  {% highlight java %}
+    //here
+    Application.LoadLevel("Title");
+    //
+  {% endhighlight %}
+<iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v53b4xVt46V56cmgnxYmYno@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+
+## Demo Video
+
+<iframe title="유니티 입문 5장 블록 슈터 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v8a7ctypNLLNK718rNBVOKO@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 [Download block shooter game](https://github.com/leehuhlee/Unity){: .btn}
