@@ -42,9 +42,9 @@ comments: false
 	  void Start () {	}
 	
 	  void Update () {
-      float xrot_rate = 120 * Time.deltaTime; //회전
+      float xrot_rate = 120 * Time.deltaTime;
       float zmoverate = 5 * Time.deltaTime;
-      float dirx = Input.GetAxis("Horizontal"); // 키입력을받는다.
+      float dirx = Input.GetAxis("Horizontal");
       float dirz = Input.GetAxis("Vertical");
       
       this.transform.Translate(Vector3.forward * zmoverate * dirz);
