@@ -60,7 +60,7 @@ comments: false
 
 * Organize name and hierarchy
   <figure>
-	  <a href="/assets/img/posts/unity_coincrazy/stage4.png"><img src="/assets/img/posts/unity_coincrazy/stage34.png"></a>
+	  <a href="/assets/img/posts/unity_coincrazy/stage4.png"><img src="/assets/img/posts/unity_coincrazy/stage4.png"></a>
 	  <figcaption>Coin Crazy Stage</figcaption>
   </figure>
 
@@ -170,6 +170,7 @@ comments: false
     <a href="/assets/img/posts/unity_coincrazy/generator1.png"><img src="/assets/img/posts/unity_coincrazy/generator1.png"></a>
 	  <figcaption>
   </figure>
+
   <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/ve068FTEeNAFTdmT8emANmF@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
@@ -231,6 +232,7 @@ comments: false
       GUI.Label(rect, "LIFE: " + life.ToString() + " / SCORE: " + score.ToString());
     }
   {% endhighlight %}
+
   <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v21af74Zbm3Z11Asb7NNibh@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
@@ -258,7 +260,8 @@ comments: false
     renderer.material.color = originalColor;
   }
 {% endhighlight %}
-  - Drag and drop `DamageEffector.js` to character Game Object
+  - Drag and drop `DamageEffector.js` to character Game Object<br>
+
   <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v9a3c6l6FYSHllPqSHhFagS@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 ## Apply sound
@@ -278,7 +281,8 @@ comments: false
     audio.Play();
   }
 {% endhighlight %}
-  - Drag and drop `PlayerSoundEffector.js` to character Game Object
+  - Drag and drop `PlayerSoundEffector.js` to character Game Object<br>
+
   <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/ve639zTmdr7mx3kNfh76rdf@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 * `PlayerSoundEffector.js`(change)
@@ -295,6 +299,7 @@ comments: false
   }
 {% endhighlight %}
   - Change demage sound<br>
+  
   <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vb852slnsW4k9miKonn4kJk@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 [Download Game](https://github.com/leehuhlee/Unity){: .btn}
