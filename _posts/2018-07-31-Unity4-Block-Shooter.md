@@ -627,7 +627,7 @@ comments: false
   {% endhighlight %}
 
 * Create `StartGame` message processing
-  - `Referee.js`(change), `Timekeeper.js`(change) and `BoxGenerator`(change)<br>
+  - `Referee.js`(change), `Timekeeper.js`(change) and `BoxGenerator.js`(change)<br>
   Add this code in last line
   {% highlight java %}
     function StartGame(){
