@@ -175,17 +175,17 @@ comments: false
 	  <figcaption>Block Shooter Gun</figcaption>
   </figure>
   - Set `Ellipsoid Particle Emitter`<br>
-    `Min Size`: 3<br>
-    `Max Size`: 5<br>
-    `Min Energy` and `Max Energy`: 0.5<br>
-    `Min Emission` and `Max Emission`: 30<br>
-    `x`, `y` and `z` of `Rnd Velocity`: 25<br>
-    `Rnd Angular Velocity`: 360<br>
-    `Rnd Rotation`: On<br>
-    `One Shot`: On<br>
-  - Set `Particle Animator`<br>
-    `Damping`: 0.01<br>
-    `Autodestruct`: On
+    Min Size: 3<br>
+    Max Size: 5<br>
+    Min Energy and Max Energy: 0.5<br>
+    Min Emission and Max Emission: 30<br>
+    X, Y and Z of Rnd Velocity: 25<br>
+    Rnd Angular Velocity: 360<br>
+    Rnd Rotation: On<br>
+    One Shot: On<br>
+  - Set Particle Animator<br>
+    Damping: 0.01<br>
+    Autodestruct: On
   - Create `Explosion` Prefab and drag and drop this particle effect
   - `Box.js`(change)
     {% highlight java %}
