@@ -109,9 +109,9 @@ comments: false
   - Open Material folder and change Color to yellow in Inspertor in Coin Object
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/coin2.png"><img src="/assets/img/posts/unity_coincrazy/coin2.png"></a>
-	  <figcaption>
+	  <figcaption>Coin Crazy Obstacle</figcaption>
   </figure>
-  
+
   - Open `Ball Pack`
   - copy `SpikeBall` and paste to game Scene
   - Change Scale and Position
