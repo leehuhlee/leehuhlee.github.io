@@ -86,7 +86,8 @@ comments: false
 	  <figcaption>Coin Crazy Character</figcaption>
   </figure>
   - Set Bounce Combine to minimum
-  - Change Jump Force to 6
+  - Change Jump Force to 6<br>
+  
   <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v318eeEieuEapY0ziupXzXE@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
