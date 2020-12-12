@@ -87,7 +87,7 @@ comments: false
   </figure>
   - Set Bounce Combine to minimum
   - Change Jump Force to 6<br>
-  
+
   <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v318eeEieuEapY0ziupXzXE@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
@@ -137,7 +137,8 @@ comments: false
   }
 {% endhighlight %}
   - Add `ShortMoveController.js` to `Coin`, `SpikeBall`
-  - Change Tag of character to Player
+  - Change Tag of character to Player<br>
+
   <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v55d4Ofe9KG9XZsYGe9hXfG@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
@@ -170,7 +171,7 @@ comments: false
   - Drag and drop each prefabs to `coinPrefab` and `spikePrefab` in `Generator.js`
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/generator1.png"><img src="/assets/img/posts/unity_coincrazy/generator1.png"></a>
-	  <figcaption>
+	  <figcaption>Coin Crazy Generator</figcaption>
   </figure>
 
   <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/ve068FTEeNAFTdmT8emANmF@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
