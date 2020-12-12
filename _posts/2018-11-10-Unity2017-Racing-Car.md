@@ -116,8 +116,8 @@ comments: false
 
 ## UI
 <figure class="half">
-  <a href="/assets/img/posts/unity_racingcar/racingcar1.jpg"><img src="/assets/img/posts/unity_coincrazy/racingcar1.jpg"></a>
-  <a href="/assets/img/posts/unity_racingcar/racingcar2.jpg"><img src="/assets/img/posts/unity_coincrazy/racingcar2.jpg"></a>
+  <a href="/assets/img/posts/unity_racingcar/racingcar1.jpg"><img src="/assets/img/posts/unity_racingcar/racingcar1.jpg"></a>
+  <a href="/assets/img/posts/unity_racingcar/racingcar2.jpg"><img src="/assets/img/posts/unity_racingcar/racingcar2.jpg"></a>
 	<figcaption>Racing Car</figcaption>
 </figure>
 
