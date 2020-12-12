@@ -116,7 +116,7 @@ comments: false
 	  }
   }
 {% endhighlight %}
-  - Targer: Car
+  - Target: Car
   - Distance: 3
   - Rotation Damping: 10
   - Height Damping: 10

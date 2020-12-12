@@ -74,6 +74,7 @@ In Joy stick, we don't know what is key value of buttons sometimes. This is to c
 	  }
   }
 {% endhighlight %}
+  - Keytext: Text2
 
 
 ## UI
