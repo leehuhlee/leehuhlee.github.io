@@ -85,9 +85,6 @@ comments: false
   - Freeze Rotation: Y
 * Camera
   - Put under Car in Hierarchy to follow car
-  - Field of View: 60
-  - Near: 0.3
-  - Far: 1000
 
 
 ## Wall
@@ -125,4 +122,4 @@ comments: false
 ## Demo Video
 <iframe width="560" height="315" src="/assets/video/posts/racing_car/Unity-Racing-Car.mp4" frameborder="0"> </iframe>
 
-[Download Game](https://github.com/leehuhlee/Unity){: .btn}
+[Download](https://github.com/leehuhlee/Unity){: .btn}
