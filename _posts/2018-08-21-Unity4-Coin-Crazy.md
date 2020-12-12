@@ -165,13 +165,136 @@ comments: false
   - Create Empty Game Object and change Name to `Generator`
   - Drag and drop `Generator.js` to `Generator`
   - Prefab `Coin` and `SpikeBall`
+  - Drag and drop each prefabs to `coinPrefab` and `spikePrefab` in `Generator.js`
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/generator1.png"><img src="/assets/img/posts/unity_coincrazy/generator1.png"></a>
 	  <figcaption>
   </figure>
+  <iframe title="제 6장 Coin Crazy" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/ve068FTEeNAFTdmT8emANmF@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
+## Messaging for getting coin and demage
+
+* Set layer
+  - Create layer and change Name to `Character` and `Moving Object`
+  <figure>
+    <a href="/assets/img/posts/unity_coincrazy/message1.png"><img src="/assets/img/posts/unity_coincrazy/message1.png"></a>
+	  <figcaption>
+  </figure>
+  - Set Layer of character Game Object to `Character`
+  - Set Layer of `Coin` and `SpikeBall` Prefab to `Moving Object`
+  - Set Matrix to not collide `Charater` Layer and `Moving Objects` Layer
+  <figure>
+    <a href="/assets/img/posts/unity_coincrazy/message2.png"><img src="/assets/img/posts/unity_coincrazy/message2.png"></a>
+	  <figcaption>
+  </figure>
+  - Check `Is Trigger` in Inspector of `C_man_1_FBX2013` Game Object of character
+
+* Create sender script
+  - `Coin.js`
+  {% highlight java %}
+    function OnTriggerEnter(other : Collider){
+      other.gameObject.SendMessage("CatchCoin", 1);
+      Destroy(gmaeObject);
+    }
+  {% endhighlight %}
+  - Drag and drop `Coin.js` to `Coin` Prefab
+  - `SpikeBall.js`
+  {% highlight java %}
+    function OnTriggerEnter(other : Collider){
+      other.gameObject.SendMessage("ApplyDamage", 10);
+      Destroy(gmaeObject);
+    }
+  {% endhighlight %}
+  - Drag and drop `SpikeBall.js` to `SpikeBall` Prefab
+
+* Create receiver script
+  - `PlayerStatus.js`
+  {% highlight java %}
+    private var life : int = 100;
+    private var score : int = 0;
+
+    function CatchCoin(amount : int){
+      score += amount;
+    }
+
+    function ApplyDamage(amount : int){
+      life -= amount;
+
+      if (life <= 0){
+        Destroy(transform.parent.gameObject);
+      }
+    }
+
+    function OnGUI(){
+      var rect : Rect = Rect(0, 0, Screen.width, Screen.height);
+      GUI.Label(rect, "LIFE: " + life.ToString() + " / SCORE: " + score.ToString());
+    }
+  {% endhighlight %}
+  <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v21af74Zbm3Z11Asb7NNibh@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 
+## Improve visual presentation
+
+* `DamageEffector.js`
+{% highlight java %}
+  private var effectFlag : boolean;
+  private var originalColor : Color;
+
+  function Start(){
+    originalColor = render.material.color;
+  }
+
+  function Update(){
+    if(effectFlag){
+      renderer.material.color = Color.red * Mathf.Abs(Mathf.Sin(40.0 * Time.time));
+    }
+  }
+
+  function ApplyDamage(amount : int){
+    effectFlag = true;
+    yield WaitForSeconds(0.3);
+    effectFlag = false;
+    renderer.material.color = originalColor;
+  }
+{% endhighlight %}
+  - Drag and drop `DamageEffector.js` to character Game Object
+  <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/v9a3c6l6FYSHllPqSHhFagS@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+## Apply sound
+
+* Import sound file
+  - Download `Sound Pack Free Pack` in Asset Store
+  <figure>
+    <a href="/assets/img/posts/unity_coincrazy/sound1.png"><img src="/assets/img/posts/unity_coincrazy/sound1.png"></a>
+	  <figcaption>
+  </figure>
+- Click `C_man_1_FBX2013` Game Object and click Component>Audio>Audio Source
+- Change Audio Clip to `buy` and uncheck `Play On Awake` in Audio Source in Inspector
+
+* `PlayerSoundEffector.js`
+{% highlight java %}
+  function CatchCoin(amount : int){
+    audio.Play();
+  }
+{% endhighlight %}
+  - Drag and drop `PlayerSoundEffector.js` to character Game Object
+  <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/ve639zTmdr7mx3kNfh76rdf@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
+
+* `PlayerSoundEffector.js`(change)
+{% highlight java %}
+  var coinSE : AudioClip;
+  var damageSE : AudioClip;
+
+  function CatchCoin(amount : int){
+    audio.PlayOneShot(coinSE);
+  }
+
+  function ApplyDamage(amount : int){
+    audio.PlayOneShot(damageSE);
+  }
+{% endhighlight %}
+  - Change demage sound
+  <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vb852slnsW4k9miKonn4kJk@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
 
 [Download Game](https://github.com/leehuhlee/Unity){: .btn}
