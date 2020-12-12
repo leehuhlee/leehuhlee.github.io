@@ -8,9 +8,9 @@ reading_time:       true
 words_per_minute:   200
 logo:               'assets/img/logo.png'
 background:         'assets/img/fabian-albert--yePUylDPJQ-unsplash.jpg'
-tiled_bg:           false   # Set this true if you want to tile your background image, otherwise it will be covered
+tiled_bg:           false   
 locale:             en_US
-url:                "https://leehuhlee.github.io" # the base hostname & protocol for your site e.g. "https://taylantatli.github.io/Moon"
+url:                "https://leehuhlee.github.io"
 
 # Jekyll
 permalink:          /:title/
@@ -39,7 +39,7 @@ disqus_shortname:   taylantatli
   #ad-client:
   #ad-slot:
 #bing-verify:
-email:              ph4020@hanmail.net
+email:              jihyunlee.hanna@gmail.com
 #twitter:            leehuhlee
 #facebook:           leehuhlee
 github-url:         leehuhlee
