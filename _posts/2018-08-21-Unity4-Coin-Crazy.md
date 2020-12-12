@@ -183,14 +183,14 @@ comments: false
   - Create layer and change Name to `Character` and `Moving Object`
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/message1.png"><img src="/assets/img/posts/unity_coincrazy/message1.png"></a>
-	  <figcaption>
+	  <figcaption>Coin Crazy Message</figcaption>
   </figure>
   - Set Layer of character Game Object to `Character`
   - Set Layer of `Coin` and `SpikeBall` Prefab to `Moving Object`
   - Set Matrix to not collide `Charater` Layer and `Moving Objects` Layer
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/message2.png"><img src="/assets/img/posts/unity_coincrazy/message2.png"></a>
-	  <figcaption>
+	  <figcaption>Coin Crazy Message</figcaption>
   </figure>
   - Check `Is Trigger` in Inspector of `C_man_1_FBX2013` Game Object of character
 
@@ -273,7 +273,7 @@ comments: false
   - Download `Sound Pack Free Pack` in Asset Store
   <figure>
     <a href="/assets/img/posts/unity_coincrazy/sound1.png"><img src="/assets/img/posts/unity_coincrazy/sound1.png"></a>
-	  <figcaption>
+	  <figcaption>Coin Crazy Sound</figcaption>
   </figure>
 - Click `C_man_1_FBX2013` Game Object and click Component>Audio>Audio Source
 - Change Audio Clip to `buy` and uncheck `Play On Awake` in Audio Source in Inspector
