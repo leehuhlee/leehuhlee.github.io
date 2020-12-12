@@ -3,7 +3,7 @@ layout: post
 title: "Unity 4 - Coin Crazy"
 date: 2018-08-21
 excerpt: "Character Action Game"
-tags: [Unity, JavaScript]
+tags: [Unity, JavaScript, Game]
 comments: false
 ---
 

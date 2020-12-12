@@ -3,7 +3,7 @@ layout: post
 title: "Unity 4 - Block Shooter"
 date: 2018-07-31
 excerpt: "Block Shooter"
-tags: [Unity, JavaScript]
+tags: [Unity, JavaScript, Game]
 comments: false
 ---
 
