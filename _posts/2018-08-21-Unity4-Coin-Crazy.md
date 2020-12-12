@@ -7,8 +7,6 @@ tags: [Unity, JavaScript]
 comments: false
 ---
 
-<center>See <a href="https://github.com/leehuhlee/Unity"><b>this unity4 games</b></a> in github.</center>
-
 
 ## Game design
 
@@ -304,5 +302,3 @@ comments: false
   - Change demage sound<br>
 
   <iframe title="제 6장 캐릭터 액션 게임" width="640" height="360" src="https://play-tv.kakao.com/embed/player/cliplink/vb852slnsW4k9miKonn4kJk@my?service=player_share" allowfullscreen frameborder="0" scrolling="no" allow="autoplay"></iframe>
-
-[Download Game](https://github.com/leehuhlee/Unity){: .btn}
