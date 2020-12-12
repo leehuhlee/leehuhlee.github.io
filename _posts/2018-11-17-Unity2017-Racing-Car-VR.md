@@ -130,8 +130,8 @@ comments: false
 
 ## UI
 <figure class="half">
-  <a href="/assets/img/posts/unity_racingcarvr/racingcarvr1.jpg"><img src="/assets/img/posts/unity_racingcarvr/racingcarvr1.jpg"></a>
-  <a href="/assets/img/posts/unity_racingcarvr/racingcarvr2.jpg"><img src="/assets/img/posts/unity_racingcarvr/racingcarvr2.jpg"></a>
+  <a href="/assets/img/posts/unity_racingcar_vr/racingcarvr1.jpg"><img src="/assets/img/posts/unity_racingcar_vr/racingcarvr1.jpg"></a>
+  <a href="/assets/img/posts/unity_racingcar_vr/racingcarvr2.jpg"><img src="/assets/img/posts/unity_racingcar_vr/racingcarvr2.jpg"></a>
 	<figcaption>Racing Car VR</figcaption>
 </figure>
 
