@@ -3,7 +3,7 @@ layout: post
 title: "Unity 2017 - Check Key Value"
 date: 2018-11-17
 excerpt: "Giic AR/VR Hackerway in Hansung University"
-tags: [Unity, JavaScript, AR, VR, Game]
+tags: [Unity, C#, AR, VR, Game]
 comments: false
 ---
 
@@ -18,8 +18,8 @@ In Joy stick, we don't know what is key value of buttons sometimes. This is to c
 * Camera
 * Light
 * Canvas
-* EventSystem
-* KeyLogic
+* Event System
+* Key Logic
 
 
 ## Camera
@@ -42,14 +42,14 @@ In Joy stick, we don't know what is key value of buttons sometimes. This is to c
   - To show key value
 
 
-## EventSystem
+## Event System
 * Event System
   - To detect input
 
 
-## KeyLogic
+## Key Logic
 * Empty Object
-* `Key Text.js`
+* `Key Text.cs`
 {% highlight java %}
   using System.Collections;
   using System.Collections.Generic;

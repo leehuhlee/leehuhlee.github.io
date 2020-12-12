@@ -3,7 +3,7 @@ layout: post
 title: "Unity 2017 - Racing Car"
 date: 2018-11-10
 excerpt: "Giic AR/VR Hackerway in Hansung University"
-tags: [Unity, JavaScript, AR, VR, Game]
+tags: [Unity, C#, AR, VR, Game]
 comments: false
 ---
 
@@ -30,7 +30,7 @@ comments: false
 
 ## Craft
 * Empty Game Object
-* `Move_craft.js`
+* `Move_craft.cs`
 {% highlight java %}
   using System.Collections;
   using System.Collections.Generic;
@@ -38,8 +38,7 @@ comments: false
 
   public class move_craft : MonoBehaviour {
 
-	  void Start () {
-	  }
+	  void Start () {  }
 	
 	  void Update () {
       float xrot_rate = 120 * Time.deltaTime;
