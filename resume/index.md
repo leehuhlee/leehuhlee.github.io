@@ -35,7 +35,7 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
   - Korean &nbsp;&nbsp;&nbsp;■■■■■
   - English &nbsp;&nbsp;&nbsp;■■■■□
   - German &nbsp;&nbsp;■■■□□
-  - Japanese &nbsp;&nbsp;&nbsp;■■■■□
+  - Japanese &nbsp;&nbsp;&nbsp;■■□□□
 
 * IT Skills
   - Programming Language: <br>
