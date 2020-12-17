@@ -132,11 +132,42 @@ comments: false
 
 ## Type Casting
 {% highlight java %}
-  (int)Choice.Rock
+  int choice = Convert.ToInt32(Console.ReadLine());
+{% endhighlight %}
+* String -> Int
+  - Convert.ToInt32(String string)
+  - If string is null, then 0
+{% highlight java %}
+  switch (choice)
+  {
+    case (int)Choice.Rock:
+      Console.WriteLine("Your choice is rock.");
+      break;
+    case (int)Choice.Scissors:
+      Console.WriteLine("Your choice is scissors.");
+      break;
+    case (int)Choice.Paper:
+      Console.WriteLine("Your choice is paper.");
+      break;
+  }
 {% endhighlight %}
 * enum -> int
-  - (Type)
+  - (Type)enumClass.enumObject
   - Be Careful when you change type bigger to small
+
+
+## Console.ReadLine()
+{% highlight java %}
+  int choice = Convert.ToInt32(Console.ReadLine());
+{% endhighlight %}
+* Input string from console
+
+
+## Console.WriteLine()
+{% highlight java %}
+  Console.WriteLine("Your choice is rock.");
+{% endhighlight %}
+* Print string on console
 
 
 ## Result
