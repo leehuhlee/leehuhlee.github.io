@@ -17,49 +17,54 @@ comments: false
 
   namespace RockScissorsPaper
   {
+    enum Choice
+    {
+      Rock = 0,
+      Scissors = 1,
+      Paper = 2
+    }
+
     class Program
     {
       static void Main(string[] args)
       {
-        // 0: Rock 1: Scissors 2: Paper
         Random rand = new Random();
-        int aiChoice = rand.Next(0, 3); // 0 ~ 2
+        int aiChoice = rand.Next(0, 3);
         int choice = Convert.ToInt32(Console.ReadLine());
 
         switch (choice)
         {
-          case 0:
+          case (int)Choice.Rock:
             Console.WriteLine("Your choice is rock.");
             break;
-          case 1:
+          case (int)Choice.Scissors:
             Console.WriteLine("Your choice is scissors.");
             break;
-          case 2:
+          case (int)Choice.Paper:
             Console.WriteLine("Your choice is paper.");
             break;
         }
 
         switch (aiChoice)
         {
-          case 0:
+          case (int)Choice.Rock:
             Console.WriteLine("AI choice is rock.");
-            break;
-          case 1:
+              break;
+          case (int)Choice.Scissors:
             Console.WriteLine("AI choice is scissors.");
             break;
-          case 2:
+          case (int)Choice.Paper:
             Console.WriteLine("AI choice is paper.");
             break;
         }
 
-        //Result of Game
-        if(choice == 0)
+        if(choice == (int)Choice.Rock)
         {
-          if(aiChoice == 0)
+          if(aiChoice == (int)Choice.Rock)
           {
             Console.WriteLine("Draw :|");
           }
-          else if(aiChoice == 1)
+          else if(aiChoice == (int)Choice.Scissors)
           {
             Console.WriteLine("Win :)");
           }
@@ -68,13 +73,13 @@ comments: false
             Console.WriteLine("Lose :(");
           }
         }
-        else if(choice == 1)
+        else if(choice == (int)Choice.Scissors)
         {
-          if (aiChoice == 0)
+          if (aiChoice == (int)Choice.Rock)
           {
             Console.WriteLine("Lose :(");
           }
-          else if (aiChoice == 1)
+          else if (aiChoice == (int)Choice.Scissors)
           {
             Console.WriteLine("Draw :|");
           }
@@ -85,11 +90,11 @@ comments: false
         }
         else
         {
-          if (aiChoice == 0)
+          if (aiChoice == (int)Choice.Rock)
           {
             Console.WriteLine("Win :)");
           }
-          else if (aiChoice == 1)
+          else if (aiChoice == (int)Choice.Scissors)
           {
             Console.WriteLine("Lose :(");
           }
@@ -115,11 +120,23 @@ comments: false
 
 
 ## Next() Method
-- Return Integer(n>=0)
+{% highlight java %}
+  int aiChoice = rand.Next(0,3);
+{% endhighlight %}
 * Next(int minValue, int maxValue)
   - minValue ~ maxValue-1
+  - Return Integer(n>=0)
 * Next(int maxValue)
   - 0 ~ maxValue-1
+
+
+## Type Casting
+{% highlight java %}
+  (int)Choice.Rock
+{% endhighlight %}
+* enum -> int
+  - (Type)
+  - Be Careful when you change type bigger to small
 
 
 ## Result
