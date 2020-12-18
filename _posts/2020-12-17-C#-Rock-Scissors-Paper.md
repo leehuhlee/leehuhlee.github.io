@@ -172,9 +172,9 @@ comments: false
 
 ## Result
 <figure class="third">
+  <a href="/assets/img/posts/cshap_rockscissorspaper/0.jpg"><img src="/assets/img/posts/cshap_rockscissorspaper/0.jpg"></a>
   <a href="/assets/img/posts/cshap_rockscissorspaper/1.jpg"><img src="/assets/img/posts/cshap_rockscissorspaper/1.jpg"></a>
   <a href="/assets/img/posts/cshap_rockscissorspaper/2.jpg"><img src="/assets/img/posts/cshap_rockscissorspaper/2.jpg"></a>
-  <a href="/assets/img/posts/cshap_rockscissorspaper/3.jpg"><img src="/assets/img/posts/cshap_rockscissorspaper/3.jpg"></a>
 	<figcaption>C# Rock, Scissors, Paper</figcaption>
 </figure>
 
