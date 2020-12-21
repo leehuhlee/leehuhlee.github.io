@@ -109,14 +109,32 @@ comments: false
 {% endhighlight %}
 
 
+## Static
+{% highlight java %}
+  static void Main(string[] args)
+{% endhighlight %}
+* static
+  - Can be used without invoking an instance
+  - Stack Memory
+
+
+
+## new className()
+{% highlight java %}
+  Random rand = new Random();
+{% endhighlight %}
+* new Operator
+  - Create an object and call a constructor
+  - Heap Memory
+
+
 ## Random
 {% highlight java %}
   Random rand = new Random();
-  int aiChoice = rand.Next(0,3);
 {% endhighlight %}
 * Exist in System Namespace
-* Random Generator
-  - Use `new` keyword and Generator to create Random type object
+* Random Constructor
+  - Use `new` keyword and the constructor to create Random type object
 
 
 ## Next() Method
