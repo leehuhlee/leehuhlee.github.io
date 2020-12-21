@@ -110,37 +110,33 @@ comments: false
 
 
 ## Static
-{% highlight java %}
-  static void Main(string[] args)
-{% endhighlight %}
 * static
   - Can be used without invoking an instance
   - Stack Memory
-
+{% highlight java %}
+  static void Main(string[] args)
+{% endhighlight %}
 
 
 ## new className()
-{% highlight java %}
-  Random rand = new Random();
-{% endhighlight %}
 * new Operator
   - Create an object and call a constructor
   - Heap Memory
-
-
-## Random
 {% highlight java %}
   Random rand = new Random();
 {% endhighlight %}
+
+
+## Random
 * Exist in System Namespace
 * Random Constructor
   - Use `new` keyword and the constructor to create Random type object
+{% highlight java %}
+  Random rand = new Random();
+{% endhighlight %}
 
 
 ## Next() Method
-{% highlight java %}
-  int aiChoice = rand.Next(0,3);
-{% endhighlight %}
 * Next(int minValue, int maxValue)
   - minValue ~ maxValue-1
   - Return Integer(n>=0)
@@ -148,13 +144,18 @@ comments: false
   - 0 ~ maxValue-1
 
 
+
 ## Type Casting
-{% highlight java %}
-  int choice = Convert.ToInt32(Console.ReadLine());
-{% endhighlight %}
 * String -> Int
   - Convert.ToInt32(String string)
   - If string is null, then 0
+{% highlight java %}
+  int choice = Convert.ToInt32(Console.ReadLine());
+{% endhighlight %}
+
+* enum -> int
+  - (Type)enumClass.enumObject
+  - Be Careful when you change type bigger to small
 {% highlight java %}
   switch (choice)
   {
@@ -169,23 +170,20 @@ comments: false
       break;
   }
 {% endhighlight %}
-* enum -> int
-  - (Type)enumClass.enumObject
-  - Be Careful when you change type bigger to small
 
 
 ## Console.ReadLine()
+* Input string from console
 {% highlight java %}
   int choice = Convert.ToInt32(Console.ReadLine());
 {% endhighlight %}
-* Input string from console
 
 
 ## Console.WriteLine()
+* Print string on console
 {% highlight java %}
   Console.WriteLine("Your choice is rock.");
 {% endhighlight %}
-* Print string on console
 
 
 ## Result
