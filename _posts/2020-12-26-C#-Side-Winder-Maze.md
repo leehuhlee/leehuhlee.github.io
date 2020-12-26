@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "C# Binary Tree Maze"
-date: 2020-12-25
-excerpt: "Binary Tree Maze Algorithm"
+title: "C# Side Winder Maze"
+date: 2020-12-26
+excerpt: "Side Winder Maze Algorithm"
 tags: [C#, Game, Algorithm]
 comments: false
 ---
@@ -23,7 +23,7 @@ comments: false
       static void Main(string[] args)
       {
         Board board = new Board();
-        board.Initialize(25);
+        board.GeneratedBySideWinder(25);
 
         Console.CursorVisible = false;
 
@@ -58,7 +58,7 @@ comments: false
         Wall,
       }
 
-      public void Initialize(int size)
+      public void GeneratedByBinaryTree(int size)
       {
         if (size % 2 == 0)
         return;
@@ -90,7 +90,7 @@ comments: false
               continue;
 
             // Pass in [size - 2, size - 2]
-            if (y == _size - 2 && x == _size - 2)
+            if (x == _size - 2 && y == _size - 2)
               continue;
 
             // Change only right direction
@@ -108,10 +108,16 @@ comments: false
             }
 
             if (rand.Next(0, 2) == 0)
+            {
               _tile[y, x + 1] = TileType.Empty;
+              count++;
+            }
             else
-              _tile[y + 1, x] = TileType.Empty;
-
+            {
+              int randomIndex = rand.Next(0, count);
+              _tile[y + 1, x - randomIndex * 2] = TileType.Empty;
+              count = 1;
+            }
           }
         }
       }
@@ -152,28 +158,16 @@ comments: false
   - Make first row and column and last row and column to wall
   - Make every enum-th row and column to wall
   
-* Binary Tree Maze
-  - Change next row and column of enum-th to empty randomly
-  - If 2nd last row, change only right direction
-  - If 2nd last column, change only bottom direction
+* Side Winder Maze
+  - Change next row of enum-th to empty randomly
+  - If next random is wall, choose one of previous empty block
+  - Make that empty block's bottom to empty
 
-
-## Console
-* CursorVisible
-  - Can show/hide cursor
-{% highlight java %}
-  Console.CursorVisible = false;
-{% endhighlight %}
-* SetCursorPosition
-  - Set position of cursor with number;
-{% highlight java %}
-  Console.SetCursorPosition(0, 0);
-{% endhighlight %}
 
 ## Result
 <figure>
-  <a href="/assets/img/posts/cshap_binarytreemaze/0.jpg"><img src="/assets/img/posts/cshap_binarytreemaze/0.jpg"></a>
-	<figcaption>C# Binary Tree Maze</figcaption>
+  <a href="/assets/img/posts/cshap_sidewindermaze/0.jpg"><img src="/assets/img/posts/cshap_sidewindermaze/0.jpg"></a>
+	<figcaption>C# Side Winder Maze</figcaption>
 </figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
