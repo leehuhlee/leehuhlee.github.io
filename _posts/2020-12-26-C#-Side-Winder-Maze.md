@@ -433,6 +433,6 @@ comments: false
 </figure>
 
 ## Demo Video
-<iframe width="560" height="315" src="/assets/video/posts/cshap_sidewindermase/Cshap-Side-Winder-Maze.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/cshap_sidewindermaze/Cshap-Side-Winder-Maze.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
