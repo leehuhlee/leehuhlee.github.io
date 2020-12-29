@@ -2,12 +2,12 @@ remote_theme : TaylanTatli/Moon
 
 # Site
 title:              Hanna's Blog
-bio:                'Games Go Global'
-description:        "I wanna be global game developer."
+bio:                'I wanna be global developer'
+description:        "I wanna be global developer."
 reading_time:       true
 words_per_minute:   200
 logo:               'assets/img/logo.png'
-background:         'assets/img/fabian-albert--yePUylDPJQ-unsplash.jpg'
+background:         'assets/img/maxwell-nelson-Se9ufo2dO_g-unsplash.jpg'
 tiled_bg:           false   
 locale:             en_US
 url:                "https://leehuhlee.github.io"
