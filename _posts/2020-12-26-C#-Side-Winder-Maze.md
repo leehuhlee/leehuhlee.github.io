@@ -8,7 +8,7 @@ comments: false
 ---
 
 
-<center>See <a href="https://github.com/leehuhlee/CShap"><b>this C# games</b></a> in github.</center>
+<center>See <a href="https://github.com/leehuhlee/CShap"><b>this C# codes</b></a> in github.</center>
 
 
 ## Code
