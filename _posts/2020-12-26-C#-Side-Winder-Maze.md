@@ -221,7 +221,7 @@ comments: false
       int _dir = (int)Dir.Up;
       List<Pos> _points = new List<Pos>();
 
-      public void Initionalize(int posY, int posX, Board board)
+      public void Initialize(int posY, int posX, Board board)
       {
         PosY = posY;
         PosX = posX;
@@ -425,14 +425,6 @@ comments: false
 
 
 ## Result
-<figure class = "third">
-  <a href="/assets/img/posts/cshap_sidewindermaze/0.jpg"><img src="/assets/img/posts/cshap_sidewindermaze/0.jpg"></a>
-  <a href="/assets/img/posts/cshap_sidewindermaze/1.jpg"><img src="/assets/img/posts/cshap_sidewindermaze/1.jpg"></a>
-  <a href="/assets/img/posts/cshap_sidewindermaze/2.jpg"><img src="/assets/img/posts/cshap_sidewindermaze/2.jpg"></a>
-	<figcaption>C# Side Winder Maze</figcaption>
-</figure>
-
-## Demo Video
 <iframe width="560" height="315" src="/assets/video/posts/cshap_sidewindermaze/Cshap-Side-Winder-Maze.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
