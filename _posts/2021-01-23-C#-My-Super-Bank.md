@@ -2,7 +2,7 @@
 layout: post
 title: "C# My Super Bank"
 date: 2021-01-23
-excerpt: ".Net Framework"
+excerpt: ".Net Core"
 tags: [C#, DotNet]
 comments: false
 ---
