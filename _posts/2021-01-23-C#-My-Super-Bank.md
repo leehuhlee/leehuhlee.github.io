@@ -279,8 +279,9 @@ When you need them to reference, right click [Dependency]
 
 
 ## Result
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/cshap_mysuperbank/0.jpg"><img src="/assets/img/posts/cshap_mysuperbank/0.jpg"></a>
+  <a href="/assets/img/posts/cshap_mysuperbank/4.jpg"><img src="/assets/img/posts/cshap_mysuperbank/4.jpg"></a>
 	<figcaption>C# My Super Bank</figcaption>
 </figure>
 
