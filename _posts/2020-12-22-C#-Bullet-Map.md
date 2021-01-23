@@ -12,7 +12,7 @@ comments: false
 
 
 ## Code
-{% highlight java %}
+{% highlight C# %}
   using System;
 
   namespace Bullet_Map
@@ -63,7 +63,7 @@ comments: false
 ## Multidimensional Arrays
   - An array of more than two dimensions
   - Has another array as an array element
-{% highlight java %}
+{% highlight C# %}
   int[,] tiles = {
           { 1, 1, 1, 1, 1},
           { 1, 0, 0, 0, 1},
@@ -77,14 +77,14 @@ comments: false
 ## ConsoleColor
 * ConsoleColor
   - Specifies a constant that defines the foreground and background colors of the console
-{% highlight java %}
+{% highlight C# %}
   ConsoleColor defaultColor = Console.ForegroundColor;
   ...
   Console.ForegroundColor = ConsoleColor.Red;
 {% endhighlight %}
 * Console.ForegroundColor
   - Gets or sets the foreground color of the console
-{% highlight java %}
+{% highlight C# %}
   ConsoleColor defaultColor = Console.ForegroundColor;
 {% endhighlight %}
 

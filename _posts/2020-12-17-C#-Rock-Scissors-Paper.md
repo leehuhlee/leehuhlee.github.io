@@ -12,7 +12,7 @@ comments: false
 
 
 ## Code
-{% highlight java %}
+{% highlight C# %}
   using System;
 
   namespace RockScissorsPaper
@@ -113,7 +113,7 @@ comments: false
 * static
   - Can be used without invoking an instance
   - Stack Memory
-{% highlight java %}
+{% highlight C# %}
   static void Main(string[] args)
 {% endhighlight %}
 
@@ -122,7 +122,7 @@ comments: false
 * new Operator
   - Create an object and call a constructor
   - Heap Memory
-{% highlight java %}
+{% highlight C# %}
   Random rand = new Random();
 {% endhighlight %}
 
@@ -131,7 +131,7 @@ comments: false
 * Exist in System Namespace
 * Random Constructor
   - Use `new` keyword and the constructor to create Random type object
-{% highlight java %}
+{% highlight C# %}
   Random rand = new Random();
 {% endhighlight %}
 
@@ -149,14 +149,14 @@ comments: false
 * String -> Int
   - Convert.ToInt32(String string)
   - If string is null, then 0
-{% highlight java %}
+{% highlight C# %}
   int choice = Convert.ToInt32(Console.ReadLine());
 {% endhighlight %}
 
 * enum -> int
   - (Type)enumClass.enumObject
   - Be Careful when you change type bigger to small
-{% highlight java %}
+{% highlight C# %}
   switch (choice)
   {
     case (int)Choice.Rock:
@@ -174,14 +174,14 @@ comments: false
 
 ## Console.ReadLine()
 * Input string from console
-{% highlight java %}
+{% highlight C# %}
   int choice = Convert.ToInt32(Console.ReadLine());
 {% endhighlight %}
 
 
 ## Console.WriteLine()
 * Print string on console
-{% highlight java %}
+{% highlight C# %}
   Console.WriteLine("Your choice is rock.");
 {% endhighlight %}
 

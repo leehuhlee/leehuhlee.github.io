@@ -13,7 +13,7 @@ comments: false
 
 ## Code
 * Program.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
 
@@ -104,7 +104,7 @@ comments: false
   - Visit adjacent node first
 * SearchAll
   - If the graph is not only one, search unlinked node
-{% highlight java %}
+{% highlight C# %}
   int[,] adj = new int[6, 6]
   {
     { 0, 1, 0, 1, 0, 0 },

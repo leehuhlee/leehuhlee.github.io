@@ -13,7 +13,7 @@ comments: false
 
 ## Code
 * Program.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
 
@@ -114,7 +114,7 @@ comments: false
 * `-1`
   - `0` can be distance cost
   - `-1` means two nodes are not linked
-{% highlight java %}
+{% highlight C# %}
   int[,] adj = new int[6, 6]
   {
     { -1, 15, -1, 35, -1, -1 },
@@ -128,7 +128,7 @@ comments: false
 * Int32.MaxValue
   - Every unvisited nodes has `Int32.MaxValue`
   - For updating minimum distance cost
-{% highlight java %}
+{% highlight C# %}
   Array.Fill(distance, Int32.MaxValue);
 {% endhighlight %}
 
@@ -136,7 +136,7 @@ comments: false
 ## Array
 * Array.Fill(Array arrayName, int value)
   - Fill all array to value
-{% highlight java %}
+{% highlight C# %}
   Array.Fill(distance, Int32.MaxValue);
 {% endhighlight %}
 
@@ -144,7 +144,7 @@ comments: false
 ## Int32
 * MaxValue
   - Max value of Int32
-{% highlight java %}
+{% highlight C# %}
   Array.Fill(distance, Int32.MaxValue);
 {% endhighlight %}
 

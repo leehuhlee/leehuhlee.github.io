@@ -13,7 +13,7 @@ comments: false
 
 ## Code
 * Program.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
 
   namespace Maze
@@ -38,7 +38,7 @@ comments: false
 {% endhighlight %}
 
 * Board.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
   using System.Text;
@@ -161,12 +161,12 @@ comments: false
 ## Console
 * CursorVisible
   - Can show/hide cursor
-{% highlight java %}
+{% highlight C# %}
   Console.CursorVisible = false;
 {% endhighlight %}
 * SetCursorPosition
   - Set position of cursor with number;
-{% highlight java %}
+{% highlight C# %}
   Console.SetCursorPosition(0, 0);
 {% endhighlight %}
 

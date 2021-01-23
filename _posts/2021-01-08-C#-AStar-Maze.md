@@ -12,7 +12,7 @@ comments: false
 
 ## Code
 * PriorityQueue.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
   using System.Diagnostics.CodeAnalysis;
@@ -98,7 +98,7 @@ comments: false
 {% endhighlight %}
 
 * Player.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
   using System.Text;
@@ -291,12 +291,12 @@ comments: false
 ## Interface
 * IComparable
   - Make a condition on type
-{% highlight java %}
+{% highlight C# %}
   class PriorityQueue<T> where T: IComparable<T>
 {% endhighlight %}
 * CompareTo
   - Compare two values and return result<br>
-{% highlight java %}
+{% highlight C# %}
   if (_heap[now].CompareTo(_heap[next]) < 0)
 {% endhighlight %}
 
@@ -306,7 +306,7 @@ comments: false
   - a composite data type
   - defines a physically grouped list of variables under one name in a block of memory, allowing the different variables to be accessed via a single pointer or by the struct declared name which returns the same address
   - contain other data types so is used for mixed-data-type records such as a hard-drive directory entry (file length, name, extension, physical address, etc.), or other mixed-type records (name, address, telephone, balance, etc.).
-{% highlight java %}
+{% highlight C# %}
    struct PQNode : IComparable<PQNode>
 		  {
 		  	public int F;

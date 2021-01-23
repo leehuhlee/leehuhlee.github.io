@@ -13,7 +13,7 @@ comments: false
 
 ## Code
 * Program.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
 
   namespace SideWinderMaze
@@ -55,7 +55,7 @@ comments: false
 {% endhighlight %}
 
 * Board.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
   using System.Text;
@@ -189,7 +189,7 @@ comments: false
 {% endhighlight %}
 
 * Player.cs
-{% highlight java %}
+{% highlight C# %}
   using System;
   using System.Collections.Generic;
   using System.Text;
@@ -312,7 +312,7 @@ comments: false
   - currentTick: System Timer
   - lasTick: last checked Time
   - deltaTick: duration of Tick
-{% highlight java %}
+{% highlight C# %}
   const int WAIT_TICK = 1000 / 30;
   int lastTick = 0;
 
@@ -330,7 +330,7 @@ comments: false
 {% endhighlight %}
 * Move_TICK
   - Move player in every Move_TICK
-{% highlight java %}
+{% highlight C# %}
   _sumTick += deltaTick;
   if(_sumTick >= MOVE_TICK)
   {
@@ -345,7 +345,7 @@ comments: false
 * Setter
   - Change value
   - If value should not be changed in other classes, use private set
-{% highlight java %}
+{% highlight C# %}
   public TileType[,] Tile { get; private set; }
 {% endhighlight %}
 
@@ -355,7 +355,7 @@ comments: false
   - Allocate memory 1.5 - 2 times more then real using memory to minimize cost of resizing
   - Pros: flexible and continuous
   - Cos: cost of resizing
-{% highlight java %}
+{% highlight C# %}
   List<Pos> _points = new List<Pos>();
   ...
   _points.Add(new Pos(PosY, PosX));
@@ -368,14 +368,14 @@ comments: false
 * List<T>
   - To facilitate the reuse of code and algorithms
   - Specifies types when classes are used instead of when designing existing classes
-{% highlight java %}
+{% highlight C# %}
   List<Pos> _points = new List<Pos>();
 {% endhighlight %}
 
 
 ## Calculate rotation
 * Set direction to number
-{% highlight java %}
+{% highlight C# %}
   enum Dir
   {
     Up = 0,
@@ -388,13 +388,13 @@ comments: false
   - For example, if player face up, then player direction must be changed to right
   - 0 -> 3, 1 -> 0, 2 -> 1, 3 -> 2
   - +4 is for positive number
-{% highlight java %}
+{% highlight C# %}
   _dir = (_dir - 1 + 4) % 4;
 {% endhighlight %}
 * Turn Left
   - For example, if player face up, then player direction must be changed to left
   - 0 -> 1, 1 -> 2, 2 -> 3, 3 -> 0
-{% highlight java %}
+{% highlight C# %}
   _dir = (_dir + 1 + 4) % 4;
 {% endhighlight %}
 
@@ -403,23 +403,23 @@ comments: false
 * Front direction
   - If player faces up, decrese row
   - If player faces down, increse row 
-{% highlight java %}
+{% highlight C# %}
   int[] frontY = new int[] { -1, 0, 1, 0 };
 {% endhighlight %}
   - If player faces left, decrese column
   - If player faces right, increse column 
-{% highlight java %}
+{% highlight C# %}
   int[] frontX = new int[] { 0, -1, 0, 1 };
 {% endhighlight %}
 * Right direction
   - If player faces left, decrese row
   - If player faces right, increse row 
-{% highlight java %}
+{% highlight C# %}
   int[] rightY = new int[] { 0, -1, 0, 1 };
 {% endhighlight %}
   - If player faces up, increase column
   - If player faces down, decrease coloum
-{% highlight java %}
+{% highlight C# %}
   int[] rightX = new int[] { 1, 0, -1, 0 };
 {% endhighlight %}
 
