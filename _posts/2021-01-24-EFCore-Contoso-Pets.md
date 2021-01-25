@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "[Entity Framework Core] Contoso Pets"
-date: 2021-01-25
+date: 2021-01-24
 excerpt: "Entity Famework Core"
 tags: [C#, DotNet, Entity Framework Core]
 comments: false
