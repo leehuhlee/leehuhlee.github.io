@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# Bullet Map"
+title: "[C#] Bullet Map"
 date: 2020-12-22
 excerpt: "Color in C#"
 tags: [C#, Game]

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# Side Winder Maze and Right Hand Rule"
+title: "[C#] Side Winder Maze and Right Hand Rule"
 date: 2020-12-26
 excerpt: "Side Winder Maze  and Right Hand Rule Algorithm"
 tags: [C#, Game, Algorithm]

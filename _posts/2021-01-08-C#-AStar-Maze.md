@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# A* Maze"
+title: "[C#] A* Maze"
 date: 2021-01-08
 excerpt: "A* and Priority Queue Algorithm"
 tags: [C#, Game, Algorithm]

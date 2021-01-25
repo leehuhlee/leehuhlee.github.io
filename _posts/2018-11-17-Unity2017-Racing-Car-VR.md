@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Unity 2017 - Racing Car VR"
+title: "[Unity 2017] Racing Car VR"
 date: 2018-11-17
 excerpt: "Giic AR/VR Hackerway in Hansung University"
 tags: [Unity, C#, AR, VR, Game]

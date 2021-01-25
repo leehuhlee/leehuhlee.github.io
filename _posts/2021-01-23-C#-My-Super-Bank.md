@@ -1,13 +1,13 @@
 ---
 layout: post
-title: "C# My Super Bank"
+title: "[C#] My Super Bank"
 date: 2021-01-23
 excerpt: ".Net Core"
 tags: [C#, DotNet]
 comments: false
 ---
 
-<center>Reference by <a href="https://channel9.msdn.com/Series/CSharp-101">[Microsoft Tutorial] C# 101</a></center>
+<center>Reference by <a href="https://channel9.msdn.com/Series/CSharp-101">C# 101</a>and <a href="https://channel9.msdn.com/Series/NET-Core-101">.Net Core 101</a></center>
 
 
 ## Code

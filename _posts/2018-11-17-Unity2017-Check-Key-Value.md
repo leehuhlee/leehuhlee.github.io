@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Unity 2017 - Check Key Value"
+title: "[Unity 2017] Check Key Value"
 date: 2018-11-17
 excerpt: "Giic AR/VR Hackerway in Hansung University"
 tags: [Unity, C#, AR, VR, Game]

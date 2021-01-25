@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# Binary Tree Maze"
+title: "[C#] Binary Tree Maze"
 date: 2020-12-25
 excerpt: "Binary Tree Maze Algorithm"
 tags: [C#, Game, Algorithm]

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# Rock, Scissors, Paper"
+title: "[C#] Rock, Scissors, Paper"
 date: 2020-12-17
 excerpt: "Random and ReadLine"
 tags: [C#, Game]

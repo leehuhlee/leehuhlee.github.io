@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Unity 2017 - Basket Ball AR"
+title: "[Unity 2017] Basket Ball AR"
 date: 2018-11-24
 excerpt: "Giic AR/VR Hackerway in Hansung University"
 tags: [Unity, C#, AR, VR, Game]

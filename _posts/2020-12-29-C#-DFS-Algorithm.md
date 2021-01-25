@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# DFS Algorithm"
+title: "[C#] DFS Algorithm"
 date: 2020-12-29
 excerpt: "DFS Algorithm"
 tags: [C#, Game, Algorithm]

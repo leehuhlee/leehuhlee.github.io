@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "C# Dijkstra Algorithm"
+title: "[C#] Dijkstra Algorithm"
 date: 2020-12-28
 excerpt: "Dijkstra Algorithm"
 tags: [C#, Game, Algorithm]
