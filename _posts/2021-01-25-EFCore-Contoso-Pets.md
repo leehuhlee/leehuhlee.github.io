@@ -320,6 +320,7 @@ comments: false
 
 
 ## UseSqlServer
+* UseSqlServer
   - Configures the context to connect to a Microsoft SQL Server database, but without initially setting any DbConnection or connection string.
   - The connection or connection string must be set before the DbContext is used to connect to a database. 
 {% highlight C# %}
@@ -331,6 +332,56 @@ comments: false
                                         "TrustServerCertificate=False;" +
                                         "ApplicationIntent=ReadWrite;" +
                                         "MultiSubnetFailover=False");
+{% endhighlight %}
+
+
+## Connection String Syntax
+* Data Source
+  - To connect to a named instance of SQL Server, use the `server name\instance` name syntax.
+  - You can also set the DataSource property of the `SqlConnectionStringBuilder` to the instance name when building a connection string. 
+  - The `DataSource` property of a `SqlConnection` object is read-only.
+{% highlight C# %}
+  "Data Source=(localdb)\\MSSQLLocalDB;"
+{% endhighlight %}
+* Initial Catalog
+  - If the user name that is in the connection string has access to more then one database, you have to specify the database you want the connection string to connect to.
+{% highlight C# %}
+  "Initial Catalog=ContosoPets;"
+{% endhighlight %}
+* Intergrated Security
+  - When `false`, User ID and Password are specified in the connection. 
+  - When `true`, the current Windows account credentials are used for authentication.
+{% highlight C# %}
+  "Integrated Security=True;"
+{% endhighlight %}
+* Connect Timeout
+  - The length of time (in seconds) to wait for a connection to the server before terminating the attempt and generating an error.
+{% highlight C# %}
+  "Connect Timeout=30;"
+{% endhighlight %}
+* Encrypt
+  - When true, SQL Server uses SSL encryption for all data sent between the client and server if the server has a certificate installed. 
+{% highlight C# %}
+  "Encrypt=False;"
+{% endhighlight %}
+* TrustServerCertificate
+  - The `TrustServerCertificate` keyword is valid only when connecting to a `SQL Server instance` with a valid certificate. 
+  - When `TrustServerCertificate` is set to `true`, the transport layer will use `SSL` to encrypt the channel and bypass walking the certificate chain to validate trust.
+{% highlight C# %}
+  "TrustServerCertificate=False;"
+{% endhighlight %}
+* ApplicationIntent
+  - The keyword ApplicationIntent can be specified in your connection string. The assignable values are ReadWrite or ReadOnly. The default is ReadWrite.
+  - When ApplicationIntent=ReadOnly, the client requests a read workload when connecting. The server enforces the intent at connection time, and during a USE database statement.
+  - The ApplicationIntent keyword does not work with legacy read-only databases.
+{% highlight C# %}
+  "ApplicationIntent=ReadWrite;"
+{% endhighlight %}
+* MultiSubnetFailover
+  - Always specify `MultiSubnetFailover=Yes` when connecting to a SQL Server 2012 availability group listener or SQL Server 2012 Failover Cluster Instance. MultiSubnetFailover enables faster failover for all Availability Groups and failover cluster instance in SQL Server 2012 and will significantly reduce failover time for single and multi-subnet Always On topologies. During a multi-subnet failover, the client will attempt connections in parallel. During a subnet failover, SQL Server Native Client will aggressively retry the TCP connection.
+  - The MultiSubnetFailover connection property indicates that the application is being deployed in an availability group or Failover Cluster Instance, and that SQL Server Native Client will try to connect to the database on the primary SQL Server instance by trying to connect to all the IP addresses. When `MultiSubnetFailover=Yes` is specified for a connection, the client retries TCP connection attempts faster than the operating system's default TCP retransmit intervals. This enables faster reconnection after failover of either an Always On Availability Group or an Always On Failover Cluster Instance, and is applicable to both single- and multi-subnet Availability Groups and Failover Cluster Instances.
+{% highlight C# %}
+  "MultiSubnetFailover=False"
 {% endhighlight %}
 
 
