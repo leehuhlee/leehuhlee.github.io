@@ -112,10 +112,18 @@ comments: false
   <a href="/assets/img/posts/efcore_contosopets_dbprovider/2.jpg"><img src="/assets/img/posts/efcore_contosopets_dbprovider/2.jpg"></a>
   <a href="/assets/img/posts/efcore_contosopets_dbprovider/3.jpg"><img src="/assets/img/posts/efcore_contosopets_dbprovider/3.jpg"></a>
 	<figcaption>Entity Framework Core Contoso Pets Database Provider</figcaption>
-</figure>>
+</figure>
 
 
 ## Sqlite 
+{% highlight C# %}
+  public void ConfigureServices(IServiceCollection services)
+  {
+  services.AddRazorPages();
+  services.AddDbContext<ContosoPetsContext>(options =>
+    options.UseSqlite("Data Source=ContosoPets.db"));
+  }
+{% endhighlight %}
 <figure class="half">
   <a href="/assets/img/posts/efcore_contosopets_dbprovider/5.jpg"><img src="/assets/img/posts/efcore_contosopets_dbprovider/5.jpg"></a>
   <a href="/assets/img/posts/efcore_contosopets_dbprovider/4.jpg"><img src="/assets/img/posts/efcore_contosopets_dbprovider/4.jpg"></a>
