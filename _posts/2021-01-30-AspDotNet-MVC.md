@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "[ASP.Net] MVC"
+title: "[ASP.Net] Razor MVC"
 date: 2021-01-30
-excerpt: "LINQ"
+excerpt: "Razor MVC"
 tags: [C#, DotNet, ASP.Net]
 comments: false
 ---
@@ -66,7 +66,7 @@ comments: false
   using System.Linq;
   using System.Threading.Tasks;
 
-  namespace HelloEmpty.Models
+  namespace HelloEmptyMVC.Models
   {
     public class HelloMessage
     {
@@ -77,7 +77,7 @@ comments: false
 
 * Views\Home\Index.cshtml
 {% highlight C# %}
-  @model HelloEmpty.Models.HelloMessage
+  @model HelloEmptyMVC.Models.HelloMessage
   <html>
   <head>
     <title>Hello MVC!</title>
@@ -100,8 +100,8 @@ comments: false
 
 * Views\_ViewImports.cshtml
 {% highlight C# %}
-  @using HelloEmpty
-  @using HelloEmpty.Models
+  @using HelloEmptyMVC
+  @using HelloEmptyMVC.Models
   @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 {% endhighlight %}
 
@@ -117,7 +117,7 @@ comments: false
   using System.Linq;
   using System.Threading.Tasks;
 
-  namespace HelloEmpty
+  namespace HelloEmptyMVC
   {
     public class Startup
     {
