@@ -2,7 +2,7 @@
 layout: post
 title: "[ASP.Net] Blazor Server App(3)"
 date: 2021-01-31
-excerpt: "Cascating Parameter"
+excerpt: "Cascading Parameter"
 tags: [C#, DotNet, ASP.Net, Blazor]
 comments: false
 ---
@@ -166,7 +166,7 @@ comments: false
 {% endhighlight %}
 
 
-## Cascating Parameter
+## Cascading Parameter
 * CascadingValue
   - You can assign parameter for children
   - be applied in children's children
@@ -205,6 +205,6 @@ comments: false
 
 
 ## Result
-<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-Cascating-Parameter.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-Cascading-Parameter.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
