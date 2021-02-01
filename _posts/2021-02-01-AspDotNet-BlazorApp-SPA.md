@@ -59,6 +59,7 @@ comments: false
 {% endhighlight %}
 
 ## App.razor
+  - define layout in `DefaultLayout`
   - Call `MainLayout.razor`
 {% highlight C# %}
   <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -129,7 +130,7 @@ comments: false
 # Rout
 
 ## URI
-* Pages\_Host.cshtml
+* Pages\ _Host.cshtml
   - define how to rout 
 {% highlight C# %}
   <base href="~/" />
@@ -165,7 +166,7 @@ comments: false
 {% endhighlight %}
 
 
-<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-NavigationManager.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorspa/BlazorSPA-NavigationManager.mp4" frameborder="0"> </iframe>
 
 ## URI Utilizing
 * @page
@@ -190,8 +191,8 @@ comments: false
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/aspdotnet_blazorapp/3.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/6.jpg"></a>
-	<figcaption>ASP.NET Blazor App</figcaption>
+  <a href="/assets/img/posts/aspdotnet_blazorspa/0.jpg"><img src="/assets/img/posts/aspdotnet_blazorspa/0.jpg"></a>
+	<figcaption>ASP.NET Blazor SPA</figcaption>
 </figure>
 
 
@@ -237,10 +238,10 @@ comments: false
 {% endhighlight %}
 
 <figure class="third">
-  <a href="/assets/img/posts/aspdotnet_blazorapp/7.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/7.jpg"></a>
-  <a href="/assets/img/posts/aspdotnet_blazorapp/8.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/8.jpg"></a>
-  <a href="/assets/img/posts/aspdotnet_blazorapp/9.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/9.jpg"></a>
-	<figcaption>ASP.NET Blazor App</figcaption>
+  <a href="/assets/img/posts/aspdotnet_blazorspa/1.jpg"><img src="/assets/img/posts/aspdotnet_blazorspa/1.jpg"></a>
+  <a href="/assets/img/posts/aspdotnet_blazorspa/2.jpg"><img src="/assets/img/posts/aspdotnet_blazorspa/2.jpg"></a>
+  <a href="/assets/img/posts/aspdotnet_blazorspa/3.jpg"><img src="/assets/img/posts/aspdotnet_blazorspa/3.jpg"></a>
+	<figcaption>ASP.NET Blazor SPA</figcaption>
 </figure>
 
 
