@@ -17,7 +17,7 @@ comments: false
   - After first Loading, request by Signal(ex. AJAX) with no-reloading
 <figure>
   <a href="/assets/img/posts/aspdotnet_blazorapp/0.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/0.jpg"></a>
-	<figcaption>ASP.NET Web API</figcaption>
+	<figcaption>ASP.NET Blazor App</figcaption>
 </figure>
 
 * .cshtml and .razor
