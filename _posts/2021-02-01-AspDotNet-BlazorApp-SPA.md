@@ -10,342 +10,238 @@ comments: false
 <center>Reference by <a href="https://www.inflearn.com/course/%EC%9C%A0%EB%8B%88%ED%8B%B0-MMORPG-%EA%B0%9C%EB%B0%9C-part6/dashboard">[C#과 유니티로 만드는 MMORPG 게임 개발 시리즈]Part6: 웹 서버</a></center>
 
 
-## Code
-* Data\FoodService.razor
+# SPA Layout
+
+## Program.cs
+* Main
+  - Call CreateHostBuilder
 {% highlight C# %}
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Threading.Tasks;
-
-  namespace BlazorApp.Data
+  public static void Main(string[] args)
   {
-    public class Food
-    {
-      public string Name { get; set; }
-      public int Price { get; set; }
-    }
-
-    public interface IFoodService
-    {
-      IEnumerable<Food> GetFoods();
-    }
-
-    public class FoodService : IFoodService
-    {
-      public IEnumerable<Food> GetFoods()
-      {
-        List<Food> foods = new List<Food>()
-        {
-          new Food(){Name = "Bibimbap", Price=7000},
-          new Food(){Name = "Kimbap", Price=3000},
-          new Food(){Name = "Bossam", Price=9000}
-        };
-
-        return foods;
-      }
-    }
-    
-    public class FastFoodService : IFoodService
-    {
-      public IEnumerable<Food> GetFoods()
-      {
-        List<Food> foods = new List<Food>()
-        {
-          new Food(){Name = "Hamburger", Price=5000},
-          new Food(){Name = "Fries", Price=2000},
-        };
-
-        return foods;
-      }
-    }
-
-    public class PaymentService
-    {
-      IFoodService _service;
-
-      public PaymentService(IFoodService service)
-      {
-        _service = service;
-      }
-    }
-
-    public class SingletonService : IDisposable
-    {
-        public Guid ID { get; set; }
-        public SingletonService()
-        {
-          ID = Guid.NewGuid();
-        }
-
-        public void Dispose()
-        {
-          Console.WriteLine("SingletonService Disposed");
-        }
-    }
-    
-    public class TransientService : IDisposable
-    {
-      public Guid ID { get; set; }
-      public TransientService()
-      {
-        ID = Guid.NewGuid();
-      }
-
-      public void Dispose()
-      {
-        Console.WriteLine("SingletonService Disposed");
-      }
-    }
-    
-    public class ScopeService : IDisposable
-    {
-      public Guid ID { get; set; }
-      public ScopeService()
-      {
-        ID = Guid.NewGuid();
-      }
-
-      public void Dispose()
-      {
-        Console.WriteLine("SingletonService Disposed");
-      }
-    }
+    CreateHostBuilder(args).Build().Run();
   }
 {% endhighlight %}
 
-* Pages\Index.razor
+* CreateHostBuilder
+  - Call Startup class
 {% highlight C# %}
-  @page "/"
+  public static IHostBuilder CreateHostBuilder(string[] args) =>
+    Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+          webBuilder.UseStartup<Startup>();
+        });
+{% endhighlight %}
 
-  @using BlazorApp.Data 
-  @inject IFoodService foodService
-  @inject PaymentService  paymentService
 
-  @inject SingletonService singleton
-  @inject TransientService transient
-  @inject ScopeService scoped
-
-  <div>
-    @foreach (var food in foodService.GetFoods())
+## Startup.cs
+* Startup
+  - Call `_Host.cshtml`
+{% highlight C# %}  
+  public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+  {
+    ...
+    app.UseEndpoints(endpoints =>
     {
-      <div>@food.Name</div>
-      <div>@food.Price</div>
-    }
+      endpoints.MapBlazorHub();
+      endpoints.MapFallbackToPage("/_Host");
+    });
+  }
+{% endhighlight %}
+
+
+## _Host.cshtml
+  - Call `App.razor`
+{% highlight C# %}
+  <app>
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
+  </app>
+{% endhighlight %}
+
+## App.razor
+  - Call `MainLayout.razor`
+{% highlight C# %}
+  <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+{% endhighlight %}
+
+* Router Componenet
+  - AppAssembly: Gets or sets the assembly that should be searched for components matching the URI.
+  - Found: Gets or sets the content to display when a match is found for the requested route.
+  - NotFound: Gets or sets the content to display when no match is found for the requested route.
+{% highlight C# %}
+  public class Router : IComponent, IHandleAfterRender, IDisposable
+  {
+    public Router();
+
+    ...
+
+    [Parameter]
+    public Assembly AppAssembly { get; set; }
+
+    [Parameter]
+    public RenderFragment<RouteData> Found { get; set; }
+
+    [Parameter]
+    public RenderFragment NotFound { get; set; }
+
+    public void Attach(RenderHandle renderHandle);
+    public void Dispose();
+    public Task SetParametersAsync(ParameterView parameters);
+  }
+{% endhighlight %}
+
+
+## MainLayout.razor
+  - Call `NavMenu.razor`
+{% highlight C# %}
+  <div class="sidebar">
+    <NavMenu />
   </div>
+{% endhighlight %}
 
-  <div>
-    <h1>Singleton</h1>
-    Guid: @singleton.ID
-    <h1>Transient</h1>
-    Guid: @transient.ID
-    <h1>Scoped</h1>
-    Guid: @scoped.ID
+  - Call `Body`
+{% highlight C# %}
+  <div class="content px-4">
+    @Body
   </div>
-
-  @code{      
-    protected override void OnInitialized(){ }
-  }
 {% endhighlight %}
 
-* Startup.razor
+* Body Property
+  - Gets the content to be rendered inside the layout.
 {% highlight C# %}
+  public RenderFragment Body { get; set; }
+{% endhighlight %}
+
+
+## NavMenu.razor
+* Redirect Web
+  - For mobile, side Menu can be a toggle
+{% highlight C# %}
+  <div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">BlazorSPA</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+{% endhighlight %}
+
+
+# Rout
+
+## URI
+* Pages\_Host.cshtml
+  - define how to rout 
+{% highlight C# %}
+  <base href="~/" />
+{% endhighlight %}
+
+## Navigation
+* NavigationManager
+  - You can use not only `<a>`Tag, but also `NavigationManager`
+  - Navigates to the specified URI
+{% highlight C# %}
+  public void NavigateTo(string uri, bool forceLoad = false);
+{% endhighlight %}
+
+* Pages\Counter.razor
+  - Use `Defendency Injection`
+{% highlight C# %}
+  @page "/counter"
   ...
-  public void ConfigureServices(IServiceCollection services)
-  {
-    services.AddRazorPages();
-    services.AddServerSideBlazor();
-    services.AddSingleton<WeatherForecastService>();
-
-    services.AddSingleton<IFoodService, FastFoodService>();
-    services.AddSingleton<PaymentService>();
-
-    services.AddSingleton<SingletonService>();
-    services.AddTransient<TransientService>();
-    services.AddScoped<ScopeService>();
-  }
+  @inject NavigationManager navManager
   ...
-{% endhighlight %}
 
+  <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+  <a class="btn btn-primaty" href="FetchData">Go FetchData</a>
 
-## Dependency Injection
-* Dependency
-  - In OOP, the lower the dependence, the better
-  - Rather than entering the class directly into the code, injecting dependencies using Startup.cs can reduce dependencies
-* cs
-  - Create Interface
-  - Create Class that inherit the interface
-{% highlight C# %}
-  public interface IFoodService
-  {
-    IEnumerable<Food> GetFoods();
-  }
-
-  public class FoodService : IFoodService
-  {
-    public IEnumerable<Food> GetFoods()
+  @code {
+    private void IncrementCount()
     {
-      List<Food> foods = new List<Food>()
-      {
-        new Food(){Name = "Bibimbap", Price=7000},
-        new Food(){Name = "Kimbap", Price=3000},
-        new Food(){Name = "Bossam", Price=9000}
-      };
-
-      return foods;
+      CurrentCount++;
+      navManager.NavigateTo("FetchData");
     }
+    ...
   }
 {% endhighlight %}
 
-* Startup.cs
-  - Start service in `ConfigureServices`
+
+<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-NavigationManager.mp4" frameborder="0"> </iframe>
+
+## URI Utilizing
+* @page
+  - You can use URI components value
 {% highlight C# %}
-  public void ConfigureServices(IServiceCollection services)
-  {
-    services.AddSingleton<IFoodService, FastFoodService>();
+  @page "/counter"
+  @page "/counter/{CurrentCount:int}"
+  ...
+  <p>Current count: @CurrentCount</p>
+  ...
+
+  @code {
+    private void IncrementCount()
+    {
+        CurrentCount++;
+        navManager.NavigateTo("FetchData");
+    }
+
+    [Parameter]
+    public int CurrentCount { get; set; }
   }
-{% endhighlight %}  
+{% endhighlight %}
 
-* cshtml
-  - Inject the interface to use
-{% highlight C# %}
-  @inject IFoodService foodService
-{% endhighlight %}   
-
-* Difference with C++
-  - When you use same interfacein different class, you don't need to service the interface again
-  - Asp.Net will connect it atomatically
-{% highlight C# %}
-  public class PaymentService
-  {
-    IFoodService _service;
-
-    public PaymentService(IFoodService service)
-    {
-      _service = service;
-    }
-  }
-{% endhighlight %} 
-
-{% highlight C# %}
-  services.AddSingleton<PaymentService>();
-{% endhighlight %} 
-
-{% highlight C# %}
-  @inject PaymentService  paymentService
-{% endhighlight %} 
-
-
-# Service lifetimes
-
-## Singleton
-  - Update every time server restart
-{% highlight C# %}
-  public class SingletonService : IDisposable
-  {
-    public Guid ID { get; set; }
-    public SingletonService()
-    {
-      ID = Guid.NewGuid();
-    }
-
-    public void Dispose()
-    {
-      Console.WriteLine("SingletonService Disposed");
-    }
-  }
-{% endhighlight %} 
-
-{% highlight C# %}
-  services.AddSingleton<SingletonService>();
-{% endhighlight %} 
-
-{% highlight C# %}
-  @inject SingletonService singleton
-
-  <h1>Singleton</h1>
-  Guid: @singleton.ID
-{% endhighlight %} 
-
-## Transient
-  - Update every time the page is requested
-{% highlight C# %}
-  public class TransientService : IDisposable
-  {
-    public Guid ID { get; set; }
-    public TransientService()
-    {
-      ID = Guid.NewGuid();
-    }
-
-    public void Dispose()
-    {
-      Console.WriteLine("SingletonService Disposed");
-    }
-  }
-{% endhighlight %} 
-
-{% highlight C# %}
-  services.AddTransient<TransientService>();
-{% endhighlight %} 
-
-{% highlight C# %}
-  @inject TransientService transient
-
-  <h1>Transient</h1>
-  Guid: @transient.ID
-{% endhighlight %} 
-
-## Scoped
-  - Update every time web connect
-{% highlight C# %}
-  public class ScopeService : IDisposable
-  {
-    public Guid ID { get; set; }
-    public ScopeService()
-    {
-      ID = Guid.NewGuid();
-    }
-
-    public void Dispose()
-    {
-      Console.WriteLine("SingletonService Disposed");
-    }
-  }
-{% endhighlight %} 
-
-{% highlight C# %}
-  services.AddScoped<ScopeService>();
-{% endhighlight %} 
-
-{% highlight C# %}
-  @inject ScopeService scoped
-  
-  <h1>Scoped</h1>
-  Guid: @scoped.ID
-{% endhighlight %} 
-
-
-# Result
-
-## Defendency Injection
 <figure>
-  <a href="/assets/img/posts/aspdotnet_blazorapp/3.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/3.jpg"></a>
+  <a href="/assets/img/posts/aspdotnet_blazorapp/3.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/6.jpg"></a>
 	<figcaption>ASP.NET Blazor App</figcaption>
 </figure>
 
-## Singleton
-<figure class="half">
-  <a href="/assets/img/posts/aspdotnet_blazorapp/4.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/4.jpg"></a>
-  <a href="/assets/img/posts/aspdotnet_blazorapp/5.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/5.jpg"></a>
+
+# Page Layout
+
+## MainLayout.razor
+  - Base Layout in Blazor
+{% highlight C# %}
+  @inherits LayoutComponentBase
+{% endhighlight %}
+
+* LayoutComponentBase
+  - Optional base class for components that represent a layout. 
+  - Alternatively, components may implement Microsoft.AspNetCore.Components.IComponent directly and declare their own parameter named Microsoft.AspNetCore.Components.LayoutComponentBase.Body.
+{% highlight C# %}    
+  public abstract class LayoutComponentBase : ComponentBase
+{% endhighlight %}
+
+## Layout Customizing
+* Shared
+  - Create new layout by razor component
+  - link this layout in razor component of `Pages` by `@layout`
+  - Shared\MainLayout2.razor
+{% highlight C# %} 
+  ...
+  <a href="https://docs.microsoft.com/aspnet/" target="_blank">Layout2</a>
+  ...
+{% endhighlight %}
+
+  - Pages\Counter.razor
+{% highlight C# %} 
+  ...
+  @layout MainLayout2 
+  ...
+{% endhighlight %}
+
+* Pages
+  - link this layout in `[folder]\_imports.razor` by `@layout`
+  - It changes all layout of the folder
+  - Pages\_imports.razor
+{% highlight C# %} 
+  @layout MainLayout2
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/aspdotnet_blazorapp/7.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/7.jpg"></a>
+  <a href="/assets/img/posts/aspdotnet_blazorapp/8.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/8.jpg"></a>
+  <a href="/assets/img/posts/aspdotnet_blazorapp/9.jpg"><img src="/assets/img/posts/aspdotnet_blazorapp/9.jpg"></a>
 	<figcaption>ASP.NET Blazor App</figcaption>
 </figure>
-
-## Transient
-<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-Transient.mp4" frameborder="0"> </iframe>
-
-## Scoped
-<iframe width="560" height="315" src="/assets/video/posts/aspdotnet_blazorapp/BlazorApp-Scoped.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
