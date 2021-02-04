@@ -235,30 +235,6 @@ comments: false
 </figure>
 
 
-## FromResult
-* FormResult method
-  - Creates a System.Threading.Tasks.Task`1 that's completed successfully with the specified result.
-{% highlight C# %}
-  return Task.FromResult(results);
-{% endhighlight %}
-
-
-## Entity Framework ORM Syntax
-* OrderByDescending(object)
-  - Order by descending with object
-* ToList
-  - return to list
-{% highlight C# %}
-  public Task<List<GameResult>> GetGameResultsAsync()
-  {
-    List<GameResult> results = _context.GameResults
-      .OrderByDescending(item => item.Score)
-      .ToList();
-    return Task.FromResult(results);
-  }
-{% endhighlight %}
-
-
 ## Database Version Management
 * Up()
   - Builds operations that will migrate the database `up`
@@ -282,5 +258,93 @@ comments: false
   }
 {% endhighlight %}
 
+
+## Authorization
+* AuthorizeView
+  - Displays differing content depending on the user's authorization status
+* Authorized
+  - The content that will be displayed if the user is authorized.
+* NotAuthorized
+  - The content that will be displayed if the user is not authorized.
+{% highlight C# %}
+  <AuthorizeView>
+    <Authorized>
+      ...
+    </Authorized>
+    <NotAuthorized>
+      ...
+    </NotAuthorized>
+  </AuthorizeView>
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/20.jpg"><img src="/assets/img/posts/blazor_rankingapp/20.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/21.jpg"><img src="/assets/img/posts/blazor_rankingapp/21.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+# CRUD
+* FormResult Method
+  - Creates a System.Threading.Tasks.Task`1 that's completed successfully with the specified result.
+
+## CREATE
+{% highlight C# %}
+  public Task<GameResult> AddGameResult(GameResult gameResult)
+  {
+    _context.GameResults.Add(gameResult);
+    _context.SaveChanges();
+
+    return Task.FromResult(gameResult);
+  }
+{% endhighlight %}
+
+* SaveChanges Method
+  - Saves all changes made in this context to the database.
+  - This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges to discover any changes to entity instances before saving to the underlying database.
+  - This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+
+
+## READ
+{% highlight C# %}
+  public Task<List<GameResult>> GetGameResultsAsync()
+  {
+    List<GameResult> results = _context.GameResults
+      .OrderByDescending(item => item.Score)
+      .ToList();
+    
+    return Task.FromResult(results);
+  }
+{% endhighlight %}
+
+* OrderByDescending(object) Method
+  - Order by descending with object
+* ToList Method
+  - return to list
+
+
+## UPDATE
+{% highlight C# %}
+
+{% endhighlight %}
+
+
+## DELETE
+{% highlight C# %}
+{% endhighlight %}
+
+
+# Result
+
+## Create
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Create.mp4" frameborder="0"> </iframe>
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/22.jpg"><img src="/assets/img/posts/blazor_rankingapp/22.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+
+## UPDATE
+
+## DELETE
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
