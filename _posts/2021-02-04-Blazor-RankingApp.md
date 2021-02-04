@@ -101,9 +101,8 @@ comments: false
 
 
 ## Migration
-* Models and Services
+* Models
   - Create `Data\Models` folder
-  - Create `Data\Services` folder
 <figure>
   <a href="/assets/img/posts/blazor_rankingapp/18.jpg"><img src="/assets/img/posts/blazor_rankingapp/18.jpg"></a>
 	<figcaption>Blazor Ranking App</figcaption>
@@ -120,7 +119,7 @@ comments: false
   {
     public class GameResult
     {
-      public int id { get; set; }
+      public int Id { get; set; }
       public int UserId { get; set; }
       public string UserName { get; set; }
       public int Score { get; set; }
@@ -129,95 +128,9 @@ comments: false
   }
 {% endhighlight %}
 
-* Data\Services\RankingServices.cs
-{% highlight C# %}
-  using RankingApp.Data.Models;
-  using System;
-  using System.Collections.Generic;
-  using System.Linq;
-  using System.Threading.Tasks;
-
-  namespace RankingApp.Data.Services
-  {
-    public class RankingService
-    {
-      ApplicationDbContext _context;
-      public RankingService(ApplicationDbContext context)
-      {
-        _context = context;
-      }
-
-      public Task<List<GameResult>> GetGameResultsAsync()
-      {
-        List<GameResult> results = _context.GameResults
-          .OrderByDescending(item => item.Score)
-          .ToList();
-        return Task.FromResult(results);
-      }
-    }
-  }
-{% endhighlight %}
-
 * Data\ApplicationDbContext.cs
 {% highlight C# %}
   public DbSet<GameResult> GameResults { get; set; }
-{% endhighlight %}
-
-* Startup.cs
-{% highlight C# %}
-  public void ConfigureServices(IServiceCollection services)
-  {
-    ...
-    services.AddScoped<RankingService>();
-  }
-{% endhighlight %}
-
-* Pages\Ranking.razor
-{% highlight C# %}
-  @page "/ranking" 
-  @using RankingApp.Data.Models 
-  @using RankingApp.Data.Services
-
-  @inject RankingService RankingService  
-
-  <h3>Ranking</h3>
-
-  @if(_gameResults == null)
-  {
-    <p><em>Loading...</em></p>
-  }
-  else
-  {
-    <table class="table">
-      <thead>
-        <tr>
-          <th>UserName</th>
-          <th>Score</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach(var gameResult in _gameResults)
-        {
-          <tr>
-            <td>@gameResult.UserName</td>
-            <td>@gameResult.Score</td>
-            <td>@gameResult.Date</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
-
-  @code {
-
-    List<GameResult> _gameResults;
-
-    protected override async Task OnInitializedAsync()
-    {
-      _gameResults = await RankingService.GetGameResultsAsync();
-    }
-  }
 {% endhighlight %}
 
 <figure class="half">
@@ -303,6 +216,26 @@ comments: false
   - This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges to discover any changes to entity instances before saving to the underlying database.
   - This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
 
+{% highlight C# %}
+  void AddGameResult()
+  {
+    _showPopup = true;
+    _gameResult = new GameResult() { id = 0 };
+  }
+
+  async Task SaveGameResult()
+  {
+    if (_gameResult.id == 0)
+    {
+      _gameResult.Date = DateTime.Now;
+      var result = RankingService.AddGameResult(_gameResult);
+    }
+    ...
+    _gameResults = await RankingService.GetGameResultsAsync();
+    _showPopup = false;
+  }
+{% endhighlight %}
+
 
 ## READ
 {% highlight C# %}
@@ -316,20 +249,79 @@ comments: false
   }
 {% endhighlight %}
 
-* OrderByDescending(object) Method
-  - Order by descending with object
-* ToList Method
-  - return to list
+{% highlight C# %}
+  protected override async Task OnInitializedAsync()
+  {
+    _gameResults = await RankingService.GetGameResultsAsync();
+  }
+{% endhighlight %}
 
 
 ## UPDATE
 {% highlight C# %}
+  public Task<bool> UpdateGameResult(GameResult gameResult)
+  {
+    var findResult = _context.GameResults
+      .Where(x => x.Id == gameResult.Id)
+      .FirstOrDefault();
 
+    if (findResult == null)
+      return Task.FromResult(false) ;
+
+    findResult.UserName = gameResult.UserName;
+    findResult.Score = gameResult.Score;
+    _context.SaveChanges();
+
+    return Task.FromResult(true);
+  }
+{% endhighlight %}
+
+{% highlight C# %}
+  void UpdateGameResult(GameResult gameResult)
+  {
+    _showPopup = true;
+    _gameResult = gameResult;
+  }
+
+  async Task SaveGameResult()
+  {
+    if (_gameResult.Id == 0)
+    ...
+    else
+    {
+      var result = RankingService.UpdateGameResult(_gameResult);
+    }
+
+    _gameResults = await RankingService.GetGameResultsAsync();
+    _showPopup = false;
+  }
 {% endhighlight %}
 
 
 ## DELETE
 {% highlight C# %}
+  public Task<bool> DeleteGameResult(GameResult gameResult)
+  {
+    var findResult = _context.GameResults
+      .Where(x => x.Id == gameResult.Id)
+      .FirstOrDefault();
+
+    if (findResult == null)
+      return Task.FromResult(false);
+
+    _context.GameResults.Remove(gameResult);
+    _context.SaveChanges();
+
+    return Task.FromResult(true);
+  }
+{% endhighlight %}
+
+{% highlight C# %}
+  async Task DeleteGameResult(GameResult gameResult)
+  {
+    var result = RankingService.DeleteGameResult(gameResult);
+    _gameResults = await RankingService.GetGameResultsAsync();
+  }
 {% endhighlight %}
 
 
@@ -344,7 +336,11 @@ comments: false
 
 
 ## UPDATE
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Update.mp4" frameborder="0"> </iframe>
+
 
 ## DELETE
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Delete.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
