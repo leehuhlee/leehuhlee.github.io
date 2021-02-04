@@ -88,9 +88,13 @@ comments: false
 * Check User in Database
   - Open `dbo.AspNetUsers` Data
   - You can check your registed account
-<figure class="third">
+<figure class="half">
   <a href="/assets/img/posts/blazor_rankingapp/9.jpg"><img src="/assets/img/posts/blazor_rankingapp/9.jpg"></a>
   <a href="/assets/img/posts/blazor_rankingapp/13.jpg"><img src="/assets/img/posts/blazor_rankingapp/13.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+<figure>
   <a href="/assets/img/posts/blazor_rankingapp/10.jpg"><img src="/assets/img/posts/blazor_rankingapp/10.jpg"></a>
 	<figcaption>Blazor Ranking App</figcaption>
 </figure>
