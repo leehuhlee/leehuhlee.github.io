@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[Blazor] Ranking APP(1)"
+title: "[Blazor] Ranking APP"
 date: 2021-02-04
 excerpt: "Database in Entity Framework"
 tags: [C#, DotNet, ASP.Net, Blazor, Entity Framework]
@@ -98,6 +98,189 @@ comments: false
   <a href="/assets/img/posts/blazor_rankingapp/10.jpg"><img src="/assets/img/posts/blazor_rankingapp/10.jpg"></a>
 	<figcaption>Blazor Ranking App</figcaption>
 </figure>
+
+
+## Migration
+* Models and Services
+  - Create `Data\Models` folder
+  - Create `Data\Services` folder
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/18.jpg"><img src="/assets/img/posts/blazor_rankingapp/18.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Data\Models\GameResult.cs
+{% highlight C# %}
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Threading.Tasks;
+
+  namespace RankingApp.Data.Models
+  {
+    public class GameResult
+    {
+      public int id { get; set; }
+      public int UserId { get; set; }
+      public string UserName { get; set; }
+      public int Score { get; set; }
+      public DateTime Date { get; set; }
+    }
+  }
+{% endhighlight %}
+
+* Data\Services\RankingServices.cs
+{% highlight C# %}
+  using RankingApp.Data.Models;
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Threading.Tasks;
+
+  namespace RankingApp.Data.Services
+  {
+    public class RankingService
+    {
+      ApplicationDbContext _context;
+      public RankingService(ApplicationDbContext context)
+      {
+        _context = context;
+      }
+
+      public Task<List<GameResult>> GetGameResultsAsync()
+      {
+        List<GameResult> results = _context.GameResults
+          .OrderByDescending(item => item.Score)
+          .ToList();
+        return Task.FromResult(results);
+      }
+    }
+  }
+{% endhighlight %}
+
+* Data\ApplicationDbContext.cs
+{% highlight C# %}
+  public DbSet<GameResult> GameResults { get; set; }
+{% endhighlight %}
+
+* Startup.cs
+{% highlight C# %}
+  public void ConfigureServices(IServiceCollection services)
+  {
+    ...
+    services.AddScoped<RankingService>();
+  }
+{% endhighlight %}
+
+* Pages\Ranking.razor
+{% highlight C# %}
+  @page "/ranking" 
+  @using RankingApp.Data.Models 
+  @using RankingApp.Data.Services
+
+  @inject RankingService RankingService  
+
+  <h3>Ranking</h3>
+
+  @if(_gameResults == null)
+  {
+    <p><em>Loading...</em></p>
+  }
+  else
+  {
+    <table class="table">
+      <thead>
+        <tr>
+          <th>UserName</th>
+          <th>Score</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach(var gameResult in _gameResults)
+        {
+          <tr>
+            <td>@gameResult.UserName</td>
+            <td>@gameResult.Score</td>
+            <td>@gameResult.Date</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @code {
+
+    List<GameResult> _gameResults;
+
+    protected override async Task OnInitializedAsync()
+    {
+      _gameResults = await RankingService.GetGameResultsAsync();
+    }
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/14.jpg"><img src="/assets/img/posts/blazor_rankingapp/14.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/15.jpg"><img src="/assets/img/posts/blazor_rankingapp/15.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Input Data in Database directly
+<figure class="third">
+  <a href="/assets/img/posts/blazor_rankingapp/16.jpg"><img src="/assets/img/posts/blazor_rankingapp/16.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/19.jpg"><img src="/assets/img/posts/blazor_rankingapp/19.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/17.jpg"><img src="/assets/img/posts/blazor_rankingapp/17.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+
+## FromResult
+* FormResult method
+  - Creates a System.Threading.Tasks.Task`1 that's completed successfully with the specified result.
+{% highlight C# %}
+  return Task.FromResult(results);
+{% endhighlight %}
+
+
+## Entity Framework ORM Syntax
+* OrderByDescending(object)
+  - Order by descending with object
+* ToList
+  - return to list
+{% highlight C# %}
+  public Task<List<GameResult>> GetGameResultsAsync()
+  {
+    List<GameResult> results = _context.GameResults
+      .OrderByDescending(item => item.Score)
+      .ToList();
+    return Task.FromResult(results);
+  }
+{% endhighlight %}
+
+
+## Database Version Management
+* Up()
+  - Builds operations that will migrate the database `up`
+  - That is, builds the operations that will take the database from the state left in by the previous migration so that it is up-to-date with regard to migartion
+  - This method must to be overridden in each class the inherits from `Migration`
+{% highlight C# %}
+  protected override void Up(MigrationBuilder migrationBuilder)
+  {
+    ...
+  }
+{% endhighlight %}
+
+* Down()
+  - Builds operations that will migrate the database `down`
+  - That is, builds the operations that will take the database from the state left in by the this migration so that it returns to the state that it was in before this migration was applied.
+  - This method must to be overridden in each class the inherits from `Migration` if both `up` and `down` migrations are to be supported. If it is not overridden, then calling it will throw and it will not to be possible to migrate in the `down` direction.
+{% highlight C# %}
+  protected override void Down(MigrationBuilder migrationBuilder)
+  {
+    ...
+  }
+{% endhighlight %}
 
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
