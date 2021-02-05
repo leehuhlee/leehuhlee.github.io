@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server App(3)"
+title: "[ASP.Net] Blazor Server App"
 date: 2021-01-31
 excerpt: "Cascading Parameter"
 tags: [C#, DotNet, ASP.Net, Blazor]

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server App(2)"
+title: "[ASP.Net] Blazor Server App"
 date: 2021-01-31
 excerpt: "Parameter, ref, EventCallBack"
 tags: [C#, DotNet, ASP.Net, Blazor]

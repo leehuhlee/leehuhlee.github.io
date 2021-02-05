@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server App(5)"
+title: "[ASP.Net] Blazor Server App"
 date: 2021-02-01
 excerpt: "Dependency Injection"
 tags: [C#, DotNet, ASP.Net, Blazor]

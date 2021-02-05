@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server APP(7)"
+title: "[ASP.Net] Blazor Server APP"
 date: 2021-02-03
 excerpt: "State Management"
 tags: [C#, DotNet, ASP.Net, Blazor]

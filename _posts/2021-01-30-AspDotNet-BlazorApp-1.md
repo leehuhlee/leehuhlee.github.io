@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server App(1)"
+title: "[ASP.Net] Blazor Server App"
 date: 2021-01-30
 excerpt: "Binding"
 tags: [C#, DotNet, ASP.Net, Blazor]

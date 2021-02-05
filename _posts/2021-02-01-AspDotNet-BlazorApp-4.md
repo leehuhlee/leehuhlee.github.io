@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server App(4)"
+title: "[ASP.Net] Blazor Server App"
 date: 2021-02-01
 excerpt: "Templated Component"
 tags: [C#, DotNet, ASP.Net, Blazor]

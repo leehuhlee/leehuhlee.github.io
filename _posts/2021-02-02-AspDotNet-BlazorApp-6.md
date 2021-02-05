@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server APP(6)"
+title: "[ASP.Net] Blazor Server APP"
 date: 2021-02-02
 excerpt: "Form, Validation"
 tags: [C#, DotNet, ASP.Net, Blazor]

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[ASP.Net] Blazor Server APP(8)"
+title: "[ASP.Net] Blazor Server APP"
 date: 2021-02-04
 excerpt: "JavaScript"
 tags: [C#, DotNet, ASP.Net, Blazor, JavaScript]
