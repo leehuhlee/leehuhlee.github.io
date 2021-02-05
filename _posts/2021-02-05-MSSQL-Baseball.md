@@ -92,7 +92,7 @@ SELECT nameFirst, nameLast, birthYear, birthCountry
  SELECT *
    FROM players
   WHERE birthCity LIKE 'New%' or  birthCity LIKE 'New Your_';
-{% enghighlight %}
+{% endhighlight %}
 
 
 ## ORDER BY
