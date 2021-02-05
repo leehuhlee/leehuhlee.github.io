@@ -76,23 +76,55 @@ comments: false
   - `=` is `equal`
   - `AND` is `&&` and `OR` is `||`
   - `%` means every length word, and `_` is only one character
-  - `IS NULL` means this data can be null, and `IS NOT NULL` is vice versa.
+  - `IS NULL` means this data can be null, and `IS NOT NULL` is vice versa.<br>
+    <b>Don't use `=` when you want to `null` check, it's always null!</b>
 
 * Compile order
   - `FROM` → `WHERE` → `SELECT`
+
 {% highlight SQL %}
 SELECT *
   FROM players
  WHERE deathYear IS NULL;
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/10.jpg"><img src="/assets/img/posts/mssql_baseball/10.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT nameFirst, nameLast, birthYear, birthCountry
   FROM players
  WHERE birthYear = 1974 AND birthCountry != 'USA' AND weight > 185;
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/11.jpg"><img src="/assets/img/posts/mssql_baseball/11.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
  SELECT *
    FROM players
-  WHERE birthCity LIKE 'New%' or  birthCity LIKE 'New Your_';
+  WHERE birthCity LIKE 'New%';
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/12.jpg"><img src="/assets/img/posts/mssql_baseball/12.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+ SELECT *
+   FROM players
+  WHERE birthCity LIKE 'New Yor_';
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/13.jpg"><img src="/assets/img/posts/mssql_baseball/13.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
 
 
 ## ORDER BY
@@ -109,23 +141,43 @@ SELECT nameFirst, nameLast, birthYear, birthCountry
 * OFFSET # ROWS FETCH NEXT # ROWS ONLY
   - `OFFSET` defines how many rows to read
   - `FETCH NEXT` means read rows after #th rows
+
 {% highlight SQL %}
 SELECT TOP 10 *
 FROM players
 WHERE birthYear IS NOT NULL
 ORDER BY birthYear DESC, birthMonth DESC, birthDay DESC;
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/14.jpg"><img src="/assets/img/posts/mssql_baseball/14.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT TOP 10 PERCENT *
 FROM players
 WHERE birthYear IS NOT NULL
 ORDER BY birthYear DESC, birthMonth DESC, birthDay DESC;
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/15.jpg"><img src="/assets/img/posts/mssql_baseball/15.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT *
 FROM players
 WHERE birthYear IS NOT NULL
 ORDER BY birthYear DESC, birthMonth DESC, birthDay DESC
 OFFSET 100 ROWS FETCH NEXT 100 ROWS ONLY;
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/16.jpg"><img src="/assets/img/posts/mssql_baseball/16.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
 
 
 ## Calculate and String
@@ -138,30 +190,325 @@ SELECT 2021 - birthYear As KoreanAge
 FROM players
 WHERE deathYear IS NULL AND birthYear IS NOT NULL AND 2021 - birthYear <= 80
 ORDER BY KoreanAge;
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/17.jpg"><img src="/assets/img/posts/mssql_baseball/17.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT ROUND(3.141592, 3);
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/18.jpg"><img src="/assets/img/posts/mssql_baseball/18.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT COS(0);
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/19.jpg"><img src="/assets/img/posts/mssql_baseball/19.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
 
 * String
   - To read string that each character is 2-Byte, you should input `N` in front of the string
   - `SUBSTRING` slices the string, but start point is `1`
   - `TRIM` erases blank in the string
   - You can link several strings by `+`
+
+* SELECT # AS
+  - define column name by context after the `AS`
+
 {% highlight SQL %}
 SELECT N'안녕하세요';
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/20.jpg"><img src="/assets/img/posts/mssql_baseball/20.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT SUBSTRING('20200425', 1, 4);
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/21.jpg"><img src="/assets/img/posts/mssql_baseball/21.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT TRIM('          HelloWorld');
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/22.jpg"><img src="/assets/img/posts/mssql_baseball/22.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
 SELECT nameFirst + ' ' + nameLast AS fullName
 From players
 WHERE nameFirst IS NOT NULL AND nameLast IS NOT NULL;
 {% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/23.jpg"><img src="/assets/img/posts/mssql_baseball/23.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
 ## DATETIME
+* Create new table in GUI
+  - Save table name `DateTimeTest`
+
+* INSERT in GUI
+  - Right click the table and click [Table Scripting]-[INSERT]-[New Query editor window]
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/9.jpg"><img src="/assets/img/posts/mssql_baseball/9.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* Date Syntax
+  - YYYYMMDD
+  - YYYYMMDD hh:mm
+  - YYYYMMDD hh:mm:ss
+  - YYYYMMDD hh:mm:ss.nnn
+
+* GETUTCDATE
+  - Get time by UCT Criteria
+
+* CAST(# AS DATETIME)
+  - You can change type of string to `DATETIME`
+
+* DATEADD
+  - Adds date between DATETIME values
+
+* DATEDIFF
+  - Sub date between DATETIME values
+
+* DATEPART
+  - Extract value by type in DATETIME value
+  - You can just write type what you want to extract
+  
+{% highlight SQL %}
+SELECT GETUTCDATE();
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/24.jpg"><img src="/assets/img/posts/mssql_baseball/24.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM DateTimeTest
+WHERE time >= CAST('20100101' AS DATETIME);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/25.jpg"><img src="/assets/img/posts/mssql_baseball/25.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DATEADD(YEAR, 1, '20200426');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/26.jpg"><img src="/assets/img/posts/mssql_baseball/26.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DATEADD(DAY, 5, '20200426');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/27.jpg"><img src="/assets/img/posts/mssql_baseball/27.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DATEADD(SECOND, -121323, '20200426');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/28.jpg"><img src="/assets/img/posts/mssql_baseball/28.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DATEDIFF(DAY, '20200826', '20200503');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/29.jpg"><img src="/assets/img/posts/mssql_baseball/29.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DATEPART(DAY, '20200826');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/30.jpg"><img src="/assets/img/posts/mssql_baseball/30.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT YEAR('20200826');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/31.jpg"><img src="/assets/img/posts/mssql_baseball/31.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## CASE
+* CASE WHEN ELSE END
+  - smillar with switch
+  - `WHEN` defines condition and `THEN` defines result
+  - `ELSE` specifies result when there is not match condition with this value
+
+{% highlight SQL %}
+SELECT
+	CASE birthMonth
+		WHEN 1 THEN 'Winter'
+		WHEN 2 THEN 'Winter'
+		WHEN 3 THEN 'Spring'
+		WHEN 4 THEN 'Spring'
+		WHEN 5 THEN 'Spring'
+		WHEN 6 THEN 'Summer'
+		WHEN 7 THEN 'Summer'
+		WHEN 8 THEN 'Summer'
+		WHEN 9 THEN 'Autumn'
+		WHEN 10 THEN 'Autumn'
+		WHEN 11 THEN 'Autumn'
+		WHEN 12 THEN 'Winter'
+		ELSE 'NONE'
+	END AS birthSeason
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/32.jpg"><img src="/assets/img/posts/mssql_baseball/32.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT
+	CASE
+		WHEN birthMonth <= 2 THEN 'Witer'
+		WHEN birthMonth <= 5 THEN 'Spring'
+		WHEN birthMonth <= 8 THEN 'Summer'
+		WHEN birthMonth <= 11 THEN 'Autumn'
+		ELSE 'NONE'
+	END AS birthSeason
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/33.jpg"><img src="/assets/img/posts/mssql_baseball/33.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+
+## Aggregation function
+{% highlight SQL %}
+SELECT COUNT(*)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/34.jpg"><img src="/assets/img/posts/mssql_baseball/34.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT COUNT(birthYear)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/35.jpg"><img src="/assets/img/posts/mssql_baseball/35.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DISTINCT birthCity
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/36.jpg"><img src="/assets/img/posts/mssql_baseball/36.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DISTINCT birthYear, birthMonth, birthDay
+FROM players
+ORDER BY birthYear;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/37.jpg"><img src="/assets/img/posts/mssql_baseball/37.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT COUNT(DISTINCT(birthCity))
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/38.jpg"><img src="/assets/img/posts/mssql_baseball/38.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT AVG(weight)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/39.jpg"><img src="/assets/img/posts/mssql_baseball/39.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT SUM(weight) / COUNT(weight)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/40.jpg"><img src="/assets/img/posts/mssql_baseball/40.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT AVG(CASE WHEN weight IS NULL THEN 0 ELSE weight END)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/41.jpg"><img src="/assets/img/posts/mssql_baseball/41.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT MIN(weight), MAX(weight)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/42.jpg"><img src="/assets/img/posts/mssql_baseball/42.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
 
 
 
