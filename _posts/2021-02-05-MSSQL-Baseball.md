@@ -510,6 +510,140 @@ FROM players;
 	<figcaption>MSSQL Baseball</figcaption>
 </figure>
 
+## GROUP BY
+* GROUP BY
+  - makes group by specified column
+  - You can make group by several columns
+
+* HAVING
+  - define condition in `GROUP BY`
+
+{% highlight SQL %}
+SELECT teamID, COUNT(teamID) AS playerCount, SUM(HR) AS homeRuns
+FROM batting
+WHERE yearID=2004
+GROUP BY teamID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/43.jpg"><img src="/assets/img/posts/mssql_baseball/43.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT TOP 1 teamID, SUM(HR) AS homeRuns
+FROM batting
+WHERE yearID=2004
+GROUP BY teamID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/44.jpg"><img src="/assets/img/posts/mssql_baseball/44.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT teamID, SUM(HR) AS homeRuns
+FROM batting
+WHERE yearID=2004
+GROUP BY teamID
+HAVING SUM(HR) >= 200
+ORDER BY homeRuns DESC;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/45.jpg"><img src="/assets/img/posts/mssql_baseball/45.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT DISTINCT(teamID), yearID, SUM(HR) AS homeRuns
+FROM batting
+GROUP By teamID, yearID
+ORDER BY homeRuns DESC;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/46.jpg"><img src="/assets/img/posts/mssql_baseball/46.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## INSERT
+* INSERT
+  - Adds row in table
+  - in VALUE, You should put data that is not null
+  - if data can be null, you don't need to fill the data
+
+{% highlight SQL %}
+INSERT INTO salaries
+VALUES (2020, 'KOR', 'NL', 'Hanna', 99999);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/47.jpg"><img src="/assets/img/posts/mssql_baseball/47.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+INSERT INTO salaries(yearID, teamID, playerID, lgID, salary)
+VALUES (2020, 'KOR', 'Hanna2', 'NL', 88888);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/48.jpg"><img src="/assets/img/posts/mssql_baseball/48.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+INSERT INTO salaries(yearID, teamID, playerID, lgID)
+VALUES (2020, 'KOR', 'Hanna2', 'NL');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/49.jpg"><img src="/assets/img/posts/mssql_baseball/49.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/50.jpg"><img src="/assets/img/posts/mssql_baseball/50.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## DELETE
+* DELETE
+  - deletes specified row
+
+{% highlight SQL %}
+DELETE FROM salaries
+WHERE playerID='Hanna2'
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/51.jpg"><img src="/assets/img/posts/mssql_baseball/51.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+DELETE FROM salaries
+WHERE yearID >= 2020;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/53.jpg"><img src="/assets/img/posts/mssql_baseball/53.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## UPDATE
+* UPDATE
+  - changes specified data in `SET`
+  - `SET` defines how to change the data
+
+{% highlight SQL %}
+UPDATE salaries
+SET salary = salary * 2, yearID = yearID + 1
+WHERE teamID='KOR';
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/52.jpg"><img src="/assets/img/posts/mssql_baseball/52.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
 
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
