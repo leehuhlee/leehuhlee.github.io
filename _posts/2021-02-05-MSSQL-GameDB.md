@@ -201,6 +201,8 @@ CREATE CLUSTERED INDEX i4 ON accounts(accountName);
 </figure>
 
 ## JOIN
+* JOIN
+  - join all elements of each table
 {% highlight SQL %}
 SELECT *
 FROM testA
