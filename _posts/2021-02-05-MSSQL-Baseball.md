@@ -646,4 +646,222 @@ WHERE teamID='KOR';
 </figure>
 
 
+## SUBQUERY
+* Double SELECT statement
+  - Select query from the select
+
+{% highlight SQL %}
+SELECT playerID
+FROM players
+WHERE playerID = (SELECT TOP 1 playerID FROM salaries ORDER BY salary DESC);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/54.jpg"><img src="/assets/img/posts/mssql_baseball/54.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT playerID
+FROM players
+WHERE playerID IN (SELECT TOP 20 playerID FROM salaries ORDER BY salary DESC);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/55.jpg"><img src="/assets/img/posts/mssql_baseball/55.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT(SELECT COUNT(*) FROM players) AS playerCount, (SELECT COUNT(*) FROM batting) AS battingCount;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/56.jpg"><img src="/assets/img/posts/mssql_baseball/56.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - You can make input value from SELECT statement
+
+{% highlight SQL %}
+INSERT INTO salaries
+VALUES(2020, 'KOR', 'NL', 'Hanna', (SELECT MAX(salary) FROM salaries));
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/57.jpg"><img src="/assets/img/posts/mssql_baseball/57.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - You can use `SELECT` instead of `VALUES`
+
+{% highlight SQL %}
+INSERT INTO salaries
+SELECT 2020, 'KOR', 'NL', 'Hanna2', (SELECT MAX(salary) FROM salaries);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/58.jpg"><img src="/assets/img/posts/mssql_baseball/58.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - IN: It substitutes the result value of the subquery to the main query and output the result after the condition comparison.(Sub query → MAIN query)
+
+{% highlight SQL %}
+SELECT playerID
+FROM players
+WHERE playerID IN(SELECT playerID FROM battingpost);
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/61.jpg"><img src="/assets/img/posts/mssql_baseball/61.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/64.jpg"><img src="/assets/img/posts/mssql_baseball/64.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+  
+  - EXISTS: The results of the main query are substituted to the subquery to output the results after the condition comparison(MAIN query → Sub query)
+
+{% highlight SQL %}
+SELECT playerID
+FROM players
+WHERE EXISTS (SELECT playerID FROM battingpost WHERE players.playerID = battingpost.playerID);
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/62.jpg"><img src="/assets/img/posts/mssql_baseball/62.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/65.jpg"><img src="/assets/img/posts/mssql_baseball/65.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* Make new table with `INSERT INTO`
+  - seems like copy context and pate to the table
+{% highlight SQL %}
+INSERT INTO salaries_temp
+SELECT yearID, playerID, salary FROM salaries;
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/59.jpg"><img src="/assets/img/posts/mssql_baseball/59.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/60.jpg"><img src="/assets/img/posts/mssql_baseball/60.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## CREATE DATABASE
+* CREATE DATABASE
+  - creates a new database
+{% highlight SQL %}
+CREATE DATABASE GameDB;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/63.jpg"><img src="/assets/img/posts/mssql_baseball/63.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* CREATE TABLE
+  - creates a new table
+  - defines column and constraints
+{% highlight SQL %}
+CREATE TABLE accounts(
+	accountId INTEGER NOT NULL,
+	accountName VARCHAR(10) NOT NULL,
+	coins INTEGER DEFAULT 0,
+	createdTime DATETIME
+);
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/mssql_baseball/66.jpg"><img src="/assets/img/posts/mssql_baseball/66.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/67.jpg"><img src="/assets/img/posts/mssql_baseball/67.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/68.jpg"><img src="/assets/img/posts/mssql_baseball/68.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* DROP TABLE
+  - removes the table
+{% highlight SQL %}
+DROP TABLE accounts;
+{% endhighlight %}
+
+* ALTER TABLE
+  - changes the table
+  - ADD: add new column
+
+{% highlight SQL %}
+ALTER TABLE accounts
+ADD lastEnterTime DATETIME;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/69.jpg"><img src="/assets/img/posts/mssql_baseball/69.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - DROP COLUMN: removes the column
+{% highlight SQL %}
+ALTER TABLE accounts
+DROP COLUMN lastEnterTime;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/70.jpg"><img src="/assets/img/posts/mssql_baseball/70.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - ALTER COLUMN: changes the column
+{% highlight SQL %}
+ALTER TABLE accounts
+ALTER COLUMN accountName VARCHAR(20) NOT NULL;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/71.jpg"><img src="/assets/img/posts/mssql_baseball/71.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* RIMARY KEY
+  - assigns the column to primary key
+
+{% highlight SQL %}
+ALTER TABLE accounts
+ADD PRIMARY KEY (accountId);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/72.jpg"><img src="/assets/img/posts/mssql_baseball/72.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - You can assign primary key in GUI
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/73.jpg"><img src="/assets/img/posts/mssql_baseball/73.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/74.jpg"><img src="/assets/img/posts/mssql_baseball/74.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - `PRIMARY KEY` improves the performance of database
+  <figure>
+  <a href="/assets/img/posts/mssql_baseball/75.jpg"><img src="/assets/img/posts/mssql_baseball/75.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/76.jpg"><img src="/assets/img/posts/mssql_baseball/76.jpg"></a>
+	<figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* CONSTRAINT
+  - defines the name of constraint
+  - it makes easier to remove the contraint
+
+{% highlight SQL %}
+ALTER TABLE accounts
+ADD CONSTRAINT PK_Account PRIMARY KEY(accountId);
+{% endhighlight %}
+
+{% highlight SQL %}
+ALTER TABLE accounts
+DROP CONSTRAINT PK_Account;
+{% endhighlight %}
+
+
+
+
 [Download](https://github.com/leehuhlee/Database){: .btn}
