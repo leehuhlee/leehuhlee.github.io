@@ -18,7 +18,7 @@ CREATE DATABASE GameDB;
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/0.jpg"><img src="/assets/img/posts/mssql_baseball/0.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/0.jpg"><img src="/assets/img/posts/mssql_gamedb/0.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -35,9 +35,9 @@ CREATE TABLE accounts(
 {% endhighlight %}
 
 <figure class="third">
-  <a href="/assets/img/posts/mssql_baseball/1.jpg"><img src="/assets/img/posts/mssql_baseball/1.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/2.jpg"><img src="/assets/img/posts/mssql_baseball/2.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/3.jpg"><img src="/assets/img/posts/mssql_baseball/3.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/1.jpg"><img src="/assets/img/posts/mssql_gamedb/1.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/2.jpg"><img src="/assets/img/posts/mssql_gamedb/2.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/3.jpg"><img src="/assets/img/posts/mssql_gamedb/3.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -57,7 +57,7 @@ ADD lastEnterTime DATETIME;
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/4.jpg"><img src="/assets/img/posts/mssql_baseball/4.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/4.jpg"><img src="/assets/img/posts/mssql_gamedb/4.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -70,7 +70,7 @@ DROP COLUMN lastEnterTime;
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/5.jpg"><img src="/assets/img/posts/mssql_baseball/5.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/5.jpg"><img src="/assets/img/posts/mssql_gamedb/5.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -83,7 +83,7 @@ ALTER COLUMN accountName VARCHAR(20) NOT NULL;
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/6.jpg"><img src="/assets/img/posts/mssql_baseball/6.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/6.jpg"><img src="/assets/img/posts/mssql_gamedb/6.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -96,23 +96,23 @@ ADD PRIMARY KEY (accountId);
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/7.jpg"><img src="/assets/img/posts/mssql_baseball/7.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/7.jpg"><img src="/assets/img/posts/mssql_gamedb/7.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
   - You can assign primary key in GUI
 
 <figure class="half">
-  <a href="/assets/img/posts/mssql_baseball/8.jpg"><img src="/assets/img/posts/mssql_baseball/8.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/9.jpg"><img src="/assets/img/posts/mssql_baseball/9.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/8.jpg"><img src="/assets/img/posts/mssql_gamedb/8.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/9.jpg"><img src="/assets/img/posts/mssql_gamedb/9.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
   - `PRIMARY KEY` improves the performance of database
 
   <figure class="half">
-  <a href="/assets/img/posts/mssql_baseball/10.jpg"><img src="/assets/img/posts/mssql_baseball/10.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/11.jpg"><img src="/assets/img/posts/mssql_baseball/11.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/10.jpg"><img src="/assets/img/posts/mssql_gamedb/10.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/11.jpg"><img src="/assets/img/posts/mssql_gamedb/11.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -148,7 +148,7 @@ CREATE INDEX i1 ON accounts(accountNAme);
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/12.jpg"><img src="/assets/img/posts/mssql_baseball/12.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/12.jpg"><img src="/assets/img/posts/mssql_gamedb/12.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -159,7 +159,7 @@ CREATE UNIQUE INDEX i3 ON accounts(accountName, coins);
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/15.jpg"><img src="/assets/img/posts/mssql_baseball/15.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/15.jpg"><img src="/assets/img/posts/mssql_gamedb/15.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -172,7 +172,7 @@ CREATE UNIQUE INDEX i2 ON accounts(accountName);
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/13.jpg"><img src="/assets/img/posts/mssql_baseball/13.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/13.jpg"><img src="/assets/img/posts/mssql_gamedb/13.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -184,7 +184,7 @@ DROP INDEX accounts.i1;
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/14.jpg"><img src="/assets/img/posts/mssql_baseball/14.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/14.jpg"><img src="/assets/img/posts/mssql_gamedb/14.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -196,7 +196,7 @@ CREATE CLUSTERED INDEX i4 ON accounts(accountName);
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/16.jpg"><img src="/assets/img/posts/mssql_baseball/16.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/16.jpg"><img src="/assets/img/posts/mssql_gamedb/16.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
@@ -208,7 +208,7 @@ FROM testA
 {% endhighlight %}
 
 <figure>
-  <a href="/assets/img/posts/mssql_baseball/17.jpg"><img src="/assets/img/posts/mssql_baseball/17.jpg"></a>
+  <a href="/assets/img/posts/mssql_gamedb/17.jpg"><img src="/assets/img/posts/mssql_gamedb/17.jpg"></a>
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
