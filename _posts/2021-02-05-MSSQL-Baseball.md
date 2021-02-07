@@ -705,7 +705,8 @@ SELECT 2020, 'KOR', 'NL', 'Hanna2', (SELECT MAX(salary) FROM salaries);
 	<figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-  - IN: It substitutes the result value of the subquery to the main query and output the result after the condition comparison.(Sub query → MAIN query)
+* IN
+  - substitutes the result value of the subquery to the main query and output the result after the condition comparison.(Sub query → MAIN query)
 
 {% highlight SQL %}
 SELECT playerID
@@ -718,8 +719,9 @@ WHERE playerID IN(SELECT playerID FROM battingpost);
   <a href="/assets/img/posts/mssql_baseball/64.jpg"><img src="/assets/img/posts/mssql_baseball/64.jpg"></a>
 	<figcaption>MSSQL Baseball</figcaption>
 </figure>
-  
-  - EXISTS: The results of the main query are substituted to the subquery to output the results after the condition comparison(MAIN query → Sub query)
+
+* EXISTS
+  - The results of the main query are substituted to the subquery to output the results after the condition comparison(MAIN query → Sub query)
 
 {% highlight SQL %}
 SELECT playerID
@@ -746,122 +748,142 @@ SELECT yearID, playerID, salary FROM salaries;
 	<figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-## CREATE DATABASE
-* CREATE DATABASE
-  - creates a new database
+## UNION
+* UNION
+  - merges two select
+  - Duplicate values are shown only once
+  - result columns are always same in `SELECT` statements
 {% highlight SQL %}
-CREATE DATABASE GameDB;
+SELECT playerId
+FROM salaries
+GROUP BY playerId
+HAVING AVG(salary) >= 3000000
+UNION
+SELECT playerID
+FROM players
+WHERE birthMonth = 12;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/66.jpg"><img src="/assets/img/posts/mssql_baseball/66.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* UNION ALL
+  - selects dulicate values
+
+{% highlight SQL %}
+SELECT playerId
+FROM salaries
+GROUP BY playerId
+HAVING AVG(salary) >= 3000000
+UNION ALL
+SELECT playerId
+FROM players
+WHERE birthMonth = 12
+ORDER BY playerId;
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/mssql_baseball/63.jpg"><img src="/assets/img/posts/mssql_baseball/63.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
+  <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-* CREATE TABLE
-  - creates a new table
-  - defines column and constraints
+* INTERSECT
+  - shows intersect results of two `SELECT` statements
+
 {% highlight SQL %}
-CREATE TABLE accounts(
-	accountId INTEGER NOT NULL,
-	accountName VARCHAR(10) NOT NULL,
-	coins INTEGER DEFAULT 0,
-	createdTime DATETIME
-);
+SELECT playerId
+FROM salaries
+GROUP BY playerId
+HAVING AVG(salary) >= 3000000
+INTERSECT
+SELECT playerId
+FROM players
+WHERE birthMonth = 12
+ORDER BY playerId;
 {% endhighlight %}
 
-<figure class="third">
-  <a href="/assets/img/posts/mssql_baseball/66.jpg"><img src="/assets/img/posts/mssql_baseball/66.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/67.jpg"><img src="/assets/img/posts/mssql_baseball/67.jpg"></a>
+<figure>
   <a href="/assets/img/posts/mssql_baseball/68.jpg"><img src="/assets/img/posts/mssql_baseball/68.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
+  <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-* DROP TABLE
-  - removes the table
+* EXCEPT
+  - shows the result of subtracting the second `SELECT` statement from the first `SELECT` statement
+  
 {% highlight SQL %}
-DROP TABLE accounts;
-{% endhighlight %}
-
-* ALTER TABLE
-  - changes the table
-  - ADD: add new column
-
-{% highlight SQL %}
-ALTER TABLE accounts
-ADD lastEnterTime DATETIME;
+SELECT playerId
+FROM salaries
+GROUP BY playerId
+HAVING AVG(salary)>=3000000
+EXCEPT
+SELECT playerId
+FROM players
+WHERE birthMonth=12
+ORDER BY playerId;
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/mssql_baseball/69.jpg"><img src="/assets/img/posts/mssql_baseball/69.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
+  <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-  - DROP COLUMN: removes the column
+## JOIN
+
+* `ON`
+  - specifies the condition of `JOIN`
+
+* INNER JOIN
+  - Combine two tables horizontally
+
 {% highlight SQL %}
-ALTER TABLE accounts
-DROP COLUMN lastEnterTime;
+SELECT p.playerID, s.salary
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/67.jpg"><img src="/assets/img/posts/mssql_baseball/67.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* OUTER JOIN
+  - Combine data even if it exists on either side
+  - LEFT JOIN
+  - RIGHT JOIN
+
+* LEFT JOIN
+  - If there is information on the left, show it no matter what
+  - If there is no information on the right, the right information is NULL
+
+{% highlight SQL %}
+SELECT p.playerID, s.salary
+FROM players AS p
+	LEFT JOIN salaries AS s
+	ON p.playerID = s.playerID;
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/mssql_baseball/70.jpg"><img src="/assets/img/posts/mssql_baseball/70.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
+  <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
-  - ALTER COLUMN: changes the column
+* RIGHT JOIN
+  - If there is information on the right, show it no matter what
+  - If there is no information on the left, the left information is NULL
+
 {% highlight SQL %}
-ALTER TABLE accounts
-ALTER COLUMN accountName VARCHAR(20) NOT NULL;
+SELECT p.playerID, s.salary
+FROM players AS p
+	RIGHT JOIN salaries AS s
+	ON p.playerID = s.playerID;
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/mssql_baseball/71.jpg"><img src="/assets/img/posts/mssql_baseball/71.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
+  <figcaption>MSSQL Baseball</figcaption>
 </figure>
-
-* RIMARY KEY
-  - assigns the column to primary key
-
-{% highlight SQL %}
-ALTER TABLE accounts
-ADD PRIMARY KEY (accountId);
-{% endhighlight %}
-
-<figure>
-  <a href="/assets/img/posts/mssql_baseball/72.jpg"><img src="/assets/img/posts/mssql_baseball/72.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
-</figure>
-
-  - You can assign primary key in GUI
-
-<figure>
-  <a href="/assets/img/posts/mssql_baseball/73.jpg"><img src="/assets/img/posts/mssql_baseball/73.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/74.jpg"><img src="/assets/img/posts/mssql_baseball/74.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
-</figure>
-
-  - `PRIMARY KEY` improves the performance of database
-  <figure>
-  <a href="/assets/img/posts/mssql_baseball/75.jpg"><img src="/assets/img/posts/mssql_baseball/75.jpg"></a>
-  <a href="/assets/img/posts/mssql_baseball/76.jpg"><img src="/assets/img/posts/mssql_baseball/76.jpg"></a>
-	<figcaption>MSSQL Baseball</figcaption>
-</figure>
-
-* CONSTRAINT
-  - defines the name of constraint
-  - it makes easier to remove the contraint
-
-{% highlight SQL %}
-ALTER TABLE accounts
-ADD CONSTRAINT PK_Account PRIMARY KEY(accountId);
-{% endhighlight %}
-
-{% highlight SQL %}
-ALTER TABLE accounts
-DROP CONSTRAINT PK_Account;
-{% endhighlight %}
-
-
-
 
 [Download](https://github.com/leehuhlee/Database){: .btn}
