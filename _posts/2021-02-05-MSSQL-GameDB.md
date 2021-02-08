@@ -214,4 +214,94 @@ FROM testA
 	<figcaption>MSSQL GameDB</figcaption>
 </figure>
 
+
+## TRANSACTION
+* TRANSACTION
+  - groups process into units
+  - You should write `ROLLBACK` or `COMMIT` at the end
+
+{% highlight SQL %}
+BEGIN TRAN;
+	INSERT INTO accounts VALUES(2, 'Hanna2', 100, GETUTCDATE());
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_gamedb/18.jpg"><img src="/assets/img/posts/mssql_gamedb/18.jpg"></a>
+	<figcaption>MSSQL GameDB</figcaption>
+</figure>
+
+* ROLLBACK
+  - returns the process to before status
+{% highlight SQL %}
+ROLLBACK;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_gamedb/19.jpg"><img src="/assets/img/posts/mssql_gamedb/19.jpg"></a>
+	<figcaption>MSSQL GameDB</figcaption>
+</figure>
+
+* COMMIT
+  - comfirm the process 
+{% highlight SQL %}
+BEGIN TRAN;
+	INSERT INTO accounts VALUES(2, 'Hanna2', 100, GETUTCDATE());
+COMMIT;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_gamedb/20.jpg"><img src="/assets/img/posts/mssql_gamedb/20.jpg"></a>
+	<figcaption>MSSQL GameDB</figcaption>
+</figure>
+
+* LOCK
+  - there is not `COMMIT` or `ROLLBACK` in `TRAN`, the process is in lock
+<iframe width="560" height="315" src="/assets/video/posts/mssql_gamedb/GameDB-TRANSACTION.mp4" frameborder="0"> </iframe>
+
+## TRY - CATCH
+* TRY - CATCH
+  - when the process has error or exception, tries `CATCH`
+  - if there is not error or exceiption in `TRY`, then process the process in `TRY`
+
+* @TRANCOUNT
+  - number of transaction
+  
+{% highlight SQL %}
+BEGIN TRY
+	BEGIN TRAN;
+		INSERT INTO accounts VALUES (1, 'Hanna', 100, GETUTCDATE());;
+		INSERT INTO accounts VALUES (2, 'Hanna2', 100, GETUTCDATE());;
+	COMMIT;
+END TRY
+BEGIN CATCH
+	IF @@TRANCOUNT>0
+		ROLLBACK
+	PRINT('ROLLBACK')
+END CATCH
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_gamedb/21.jpg"><img src="/assets/img/posts/mssql_gamedb/21.jpg"></a>
+	<figcaption>MSSQL GameDB</figcaption>
+</figure>
+
+{% highlight SQL %}
+BEGIN TRY
+	BEGIN TRAN;
+		INSERT INTO accounts VALUES (1, 'Hanna', 100, GETUTCDATE());;
+		INSERT INTO accounts VALUES (3, 'Hanna3', 100, GETUTCDATE());;
+	COMMIT;
+END TRY
+BEGIN CATCH
+	IF @@TRANCOUNT>0
+		ROLLBACK
+	PRINT('ROLLBACK')
+END CATCH
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_gamedb/22.jpg"><img src="/assets/img/posts/mssql_gamedb/22.jpg"></a>
+	<figcaption>MSSQL GameDB</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Database){: .btn}

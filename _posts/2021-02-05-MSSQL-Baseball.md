@@ -886,4 +886,272 @@ FROM players AS p
   <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
+## DECLARE
+* DECLARE
+  - declares variable
+
+{% highlight SQL%}
+DECLARE @i AS INT = 10;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/72.jpg"><img src="/assets/img/posts/mssql_baseball/72.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* DECLARE TABLE
+  - declares table
+
+{% highlight SQL%}
+DECLARE @test TABLE
+(
+	name VARCHAR(50) NOT NULL,
+	salary INT NOT NULL
+);
+
+INSERT INTO @test
+SELECT p.nameFirst + ' ' + p.nameLast, s.salary
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/72.jpg"><img src="/assets/img/posts/mssql_baseball/72.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* SET
+  - input value in variable
+
+{% highlight SQL %}
+DECLARE @j AS INT;
+SET @j = 10;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/73.jpg"><img src="/assets/img/posts/mssql_baseball/73.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - You can set value from `SELECT`
+
+{% highlight SQL %}
+DECLARE @firstName AS NVARCHAR(15);
+
+SET @firstName=(SELECT TOP 1 nameFirst
+				        FROM players AS p
+					        INNER JOIN salaries AS s
+					        ON p.playerID = s.playerID
+				        ORDER BY s.salary DESC);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/74.jpg"><img src="/assets/img/posts/mssql_baseball/74.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+DECLARE @firstName AS NVARCHAR(15);
+DECLARE @lastName AS NVARCHAR(15);
+
+SELECT TOP 1 @firstName = p.nameFirst, @lastName = p.nameLast
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID
+ORDER BY s.salary DESC;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/75.jpg"><img src="/assets/img/posts/mssql_baseball/75.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## GO
+* GO
+  - Set Valid Range for Variables
+  - A set of commands that are analyzed and executed in a single batch
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/76.jpg"><img src="/assets/img/posts/mssql_baseball/76.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/77.jpg"><img src="/assets/img/posts/mssql_baseball/77.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## IF-ELSE
+* IF-ELSE
+  - same with if-else statement in C#
+
+* PRINT
+  - prints content on console
+
+{% highlight SQL %}
+IF @i = 10
+	PRINT('BINGO');
+ELSE
+	PRINT('NO');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/78.jpg"><img src="/assets/img/posts/mssql_baseball/78.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* BEGIN-END
+  - You can several process in statement
+
+{% highlight SQL %}
+IF @i=10
+BEGIN
+	PRINT('BINGO');
+	PRINT('BINGO');
+END
+ELSE
+BEGIN
+	PRINT('NO');
+END
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/79.jpg"><img src="/assets/img/posts/mssql_baseball/79.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## WHILE
+* WHILE
+  - same with while statement in C#
+
+* BREAK
+  - same with break statement in C#
+
+* CONTINUE
+  - same with continue statement in C#
+
+{% highlight SQL %}
+DECLARE @i AS INT = 0;
+WHILE @i <=10
+BEGIN
+	SET @i = @i + 1;
+	IF @i = 9 BREAK;
+	IF @i = 6 CONTINUE;
+	PRINT @i
+END
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/80.jpg"><img src="/assets/img/posts/mssql_baseball/80.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## WINDOW FUNCTION
+* WINDOW FUNCTION
+  - always use with `OVER`
+
+* ROW_NUMBER
+  - shows number of row
+
+* RANK
+  - shows the ranking
+
+* DENSE_RANK
+  - shows rankings including ties
+
+* NTITLE
+  - show the percentage
+  
+{% highlight SQL %}
+SELECT *,
+	ROW_NUMBER() OVER (ORDER BY salary DESC),
+	RANK() OVER (ORDER BY salary DESC),
+	DENSE_RANK() OVER (ORDER BY salary DESC),
+	NTILE(100) OVER (ORDER BY salary DESC)
+FROM salaries;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/81.jpg"><img src="/assets/img/posts/mssql_baseball/81.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* PARTITION
+  - divide by reference value and process
+
+{% highlight SQL %}
+SELECT *,
+	RANK() OVER(PARTITION BY playerID ORDER BY salary DESC)
+FROM salaries
+ORDER BY playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/82.jpg"><img src="/assets/img/posts/mssql_baseball/82.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* LAG
+  - show previous value
+
+* LEAD
+  - show next value
+
+{% highlight SQL %}
+SELECT *,
+	RANK() OVER(PARTITION BY playerID ORDER BY salary DESC),
+	LAG(salary) OVER (PARTITION BY playerID ORDER BY salary DESC) AS prevSalary,
+	LEAD(salary) OVER (PARTITION BY playerID ORDER BY salary DESC) AS nextSAlary
+FROM salaries
+ORDER BY playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/83.jpg"><img src="/assets/img/posts/mssql_baseball/83.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* FIRST_VALUE
+  - show the biggest value between previous values and current value
+
+* LAST_VALUE
+  - show the smalliest value between previous values and current value
+
+{% highlight SQL%}
+SELECT *,
+	RANK() OVER (PARTITION BY playerID ORDER BY salary DESC),
+	FIRST_VALUE(salary) OVER (PARTITION BY playerID ORDER BY salary DESC) AS best,
+	LAST_VALUE(salary) OVER (PARTITION BY playerID ORDER BY salary DESC) AS worst
+FROM salaries
+ORDER BY playerID;
+{% endhighlight%}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/84.jpg"><img src="/assets/img/posts/mssql_baseball/84.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* ROWS BETWEEN AND
+  - specifies the range of rows to compare
+  - `UNBOUNDED PRECEDING`: from all previous row in partition
+  - `CURRENT ROW`: from/to current row
+  - `UNBOUNDED FOLLOWING`: to all previous row in partition
+
+{% highlight SQL %}
+SELECT *,
+	RANK() OVER (PARTITION BY playerID ORDER BY salary DESC),
+	FIRST_VALUE(salary) OVER (PARTITION BY playerID 
+								ORDER BY salary DESC
+								ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+								) AS best,
+	LAST_VALUE(salary) OVER (PARTITION BY playerID 
+								ORDER BY salary DESC
+								ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+								) AS worst
+FROM salaries
+ORDER BY playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/85.jpg"><img src="/assets/img/posts/mssql_baseball/85.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Database){: .btn}
