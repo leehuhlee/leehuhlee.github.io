@@ -144,7 +144,7 @@ DROP CONSTRAINT PK_Account;
   - makes new non-clustered index
 
 {% highlight SQL %}
-CREATE INDEX i1 ON accounts(accountNAme);
+CREATE INDEX i1 ON accounts(accountName);
 {% endhighlight %}
 
 <figure>
