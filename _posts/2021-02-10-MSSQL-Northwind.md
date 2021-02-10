@@ -534,7 +534,7 @@ SET STATISTICS PROFILE ON;
 SELECT *
 FROM TestOrders
 WHERE CustomerID = 'QUICK';
-{% endhiglight %}
+{% endhighlight %}
 
 <figure class="third">
   <a href="/assets/img/posts/mssql_northwind/40.jpg"><img src="/assets/img/posts/mssql_northwind/40.jpg"></a>
@@ -547,7 +547,7 @@ WHERE CustomerID = 'QUICK';
 SELECT *
 FROM TestOrders WITH(INDEX(Orders_Index01))
 WHERE CustomerID = 'QUICK';
-{% endhiglight %}
+{% endhighlight %}
 
 <figure class="third">
   <a href="/assets/img/posts/mssql_northwind/43.jpg"><img src="/assets/img/posts/mssql_northwind/43.jpg"></a>
