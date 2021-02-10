@@ -596,6 +596,4 @@ ON TestOrders(CustomerID) INCLUDE (ShipVia);
   - Only one column
   - it can put a load if there is Non-Clustred
 
-
-
 [Download](https://github.com/leehuhlee/Database){: .btn}
