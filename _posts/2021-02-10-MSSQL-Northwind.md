@@ -408,8 +408,10 @@ DBCC IND('Northwind', 'TestAccess', 2);
 </figure>
 
 ## SET STATISTICS
-* STATISTIC
-  - Logical Read
+* TIME
+  - Time for Logical read
+
+* IO
   - Number of pages read to find actual data
 
 {% highlight SQL %}
@@ -494,6 +496,105 @@ WHERE name = 'name5';
 	<figcaption>MSSQL Northwind</figcaption>
 </figure>
 
+# Bookmark Lookup
+
+## SET STATISTICS
+* PROFILE
+  - show the actual order in which it was executed
+
+{% highlight SQL %}
+SELECT *
+INTO TestOrders
+FROM Orders;
+
+SELECT *
+FROM TestOrders;
+
+CREATE NONCLUSTERED INDEX Orders_Index01
+ON TestOrders(CustomerID);
+
+SELECT index_id, name
+FROM sys.indexes
+WHERE object_id = object_id('TestOrders');
+
+DBCC IND('Northwind', 'TestOrders', 2);
+
+SET STATISTICS TIME ON;
+SET STATISTICS IO ON;
+SET STATISTICS PROFILE ON;
+{% endhighlight %}
+
+## WITH (INDEX())
+* WITH (INDEX())
+   - force index usage
+   - Database choose whether index usage or not
+   - if it is more better index not usage, database can choose `SCAN`
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders
+WHERE CustomerID = 'QUICK';
+{% endhiglight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/mssql_northwind/40.jpg"><img src="/assets/img/posts/mssql_northwind/40.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/41.jpg"><img src="/assets/img/posts/mssql_northwind/41.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/42.jpg"><img src="/assets/img/posts/mssql_northwind/42.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders WITH(INDEX(Orders_Index01))
+WHERE CustomerID = 'QUICK';
+{% endhiglight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/mssql_northwind/43.jpg"><img src="/assets/img/posts/mssql_northwind/43.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/44.jpg"><img src="/assets/img/posts/mssql_northwind/44.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/45.jpg"><img src="/assets/img/posts/mssql_northwind/45.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+## Decrease Lookup
+* Covered Index
+  - include all column to search in index
+  - but it can putsa load on the DML(CREATE, DELETE, UPDATE)
+
+{% highlight SQL %}
+CREATE NONCLUSTERED INDEX Orders_Index02
+ON TestOrders(CustomerID, ShipVia);
+
+SELECT *
+FROM TestOrders WITH(INDEX(Orders_Index02))
+WHERE CustomerID = 'QUICK' AND ShipVia = 3;
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/mssql_northwind/47.jpg"><img src="/assets/img/posts/mssql_northwind/47.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/48.jpg"><img src="/assets/img/posts/mssql_northwind/48.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/46.jpg"><img src="/assets/img/posts/mssql_northwind/46.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+* INCLUDE
+  - give a hint to index by `INCLUDE`
+
+{% highlight SQL %}
+CREATE NONCLUSTERED INDEX Orders_Index03
+ON TestOrders(CustomerID) INCLUDE (ShipVia);
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/mssql_northwind/49.jpg"><img src="/assets/img/posts/mssql_northwind/49.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/50.jpg"><img src="/assets/img/posts/mssql_northwind/50.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/51.jpg"><img src="/assets/img/posts/mssql_northwind/51.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+* Clustered
+  - Only one column
+  - it can put a load if there is Non-Clustred
 
 
 
