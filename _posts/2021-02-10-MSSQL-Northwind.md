@@ -524,8 +524,8 @@ SET STATISTICS IO ON;
 SET STATISTICS PROFILE ON;
 {% endhighlight %}
 
-## WITH (INDEX())
-* WITH (INDEX())
+## WITH INDEX
+* WITH INDEX
    - force index usage
    - Database choose whether index usage or not
    - if it is more better index not usage, database can choose `SCAN`
