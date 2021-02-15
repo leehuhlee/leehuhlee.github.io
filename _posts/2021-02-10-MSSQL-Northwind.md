@@ -626,7 +626,7 @@ END
 
 SELECT COUNT(*)
 FROM TestOrders;
-{% enghighlight %}
+{% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/mssql_northwind/52.jpg"><img src="/assets/img/posts/mssql_northwind/52.jpg"></a>
