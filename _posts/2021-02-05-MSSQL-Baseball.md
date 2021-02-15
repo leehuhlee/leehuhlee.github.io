@@ -1426,6 +1426,146 @@ FROM salaries AS s
   <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
+# Sorting
 
+## Decrease Sorting
+* Reason
+  - O(NLogN) → DB has too many data
+  - if size is to big to cover useable memory, then database search disk also
+  - So, you need to know when the sorting is excuteing
+  
+
+* SORT MERGE JOIN
+	- in algorithm, before to Merge, Sort is caused
+
+* ORDER BY
+	- the database have to Sort by `ORDER BY`
+  - if you can use `INDEX` exactly, you don't habe to sort probably
+
+{% highlight SQL %}
+SELECT *
+FROM players
+ORDER BY college;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/92.jpg"><img src="/assets/img/posts/mssql_baseball/92.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM batting
+ORDER BY playerID;
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/93.jpg"><img src="/assets/img/posts/mssql_baseball/93.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/94.jpg"><img src="/assets/img/posts/mssql_baseball/94.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* GROUP BY
+	- to sum up
+  - if you can use `INDEX` exactly, you don't habe to sort probably
+
+{% highlight SQL %}
+SELECT college, COUNT(college)
+FROM players
+WHERE college LIKE 'C%'
+GROUP BY college;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/95.jpg"><img src="/assets/img/posts/mssql_baseball/95.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT playerID, COUNT(playerID)
+FROM players
+WHERE playerID LIKE 'C%'
+GROUP BY playerID;
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_baseball/96.jpg"><img src="/assets/img/posts/mssql_baseball/96.jpg"></a>
+  <a href="/assets/img/posts/mssql_baseball/97.jpg"><img src="/assets/img/posts/mssql_baseball/97.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* DISTINCT
+	- to remove duplication
+
+{% highlight SQL %}
+SELECT DISTINCT college
+FROM players
+WHERE college LIKE 'C%';
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/98.jpg"><img src="/assets/img/posts/mssql_baseball/98.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* UNION
+	- to remove duplication
+  - if you can use `UNION ALL` exactly, you don't habe to sort probably
+
+{% highlight SQL %}
+SELECT college
+FROM players
+WHERE college LIKE 'B%'
+UNION
+SELECT college
+FROM players
+WHERE college LIKE 'C%';
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/99.jpg"><img src="/assets/img/posts/mssql_baseball/99.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT college
+FROM players
+WHERE college LIKE 'B%'
+UNION ALL
+SELECT college
+FROM players
+WHERE college LIKE 'C%';
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/100.jpg"><img src="/assets/img/posts/mssql_baseball/100.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* RANKING WINDOWS FUNCTION
+	- to sum up
+  
+{% highlight SQL %}
+SELECT ROW_NUMBER() OVER (ORDER BY college)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/101.jpg"><img src="/assets/img/posts/mssql_baseball/101.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT ROW_NUMBER() OVER (ORDER BY playerID)
+FROM players;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/102.jpg"><img src="/assets/img/posts/mssql_baseball/102.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* MIN MAX
+	- to sum up
 
 [Download](https://github.com/leehuhlee/Database){: .btn}
