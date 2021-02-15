@@ -596,4 +596,208 @@ ON TestOrders(CustomerID) INCLUDE (ShipVia);
   - Only one column
   - it can put a load if there is Non-Clustred
 
+
+# Index Column Order
+
+## Create dummy data
+{% highlight SQL %}
+USE Northwind;
+
+SELECT *
+INTO TestOrders
+FROM Orders;
+
+DECLARE @i INT = 1;
+DECLARE @emp INT;
+
+SELECT @emp = MAX(EmployeeID) 
+FROM Orders;
+
+SELECT *
+FROM TestOrders;
+
+WHILE(@i < 1000)
+BEGIN
+	INSERT INTO TestOrders(CustomerID, EmployeeID, OrderDate)
+	SELECT CustomerID, @emp + @i, OrderDate
+	FROM Orders;
+	SET @i = @i + 1;
+END
+
+SELECT COUNT(*)
+FROM TestOrders;
+{% enghighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/52.jpg"><img src="/assets/img/posts/mssql_northwind/52.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+## Create Index
+  - `idx_emp_ord` creates index by `EmployeeID` at first, and then by `OrderDate`
+  - `idx_ord_emp` creates index by `OrderDate` at first, and then by `EmployeeID`
+
+{% highlight SQL %}
+CREATE NONCLUSTERED INDEX idx_emp_ord
+ON TestOrders(EmployeeID, OrderDate);
+
+CREATE NONCLUSTERED INDEX idx_ord_emp
+ON TestOrders(OrderDate, EmployeeID);
+
+SET STATISTICS TIME ON;
+SET STATISTICS IO ON;
+{% endhighlight %}
+
+## Compare
+* Case 1: no range in search
+  - there is same logiacal read time
+  - and both use index to search
+
+{% highlight SQL%}
+SELECT *
+FROM TestOrders WITH(INDEX(idx_emp_ord))
+WHERE EmployeeID = 1 AND OrderDate = CONVERT(DATETIME, '19970101');
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_northwind/53.jpg"><img src="/assets/img/posts/mssql_northwind/53.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/54.jpg"><img src="/assets/img/posts/mssql_northwind/54.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders WITH(INDEX(idx_ord_emp))
+WHERE EmployeeID = 1 AND OrderDate = CONVERT(DATETIME, '19970101');
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_northwind/55.jpg"><img src="/assets/img/posts/mssql_northwind/55.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/56.jpg"><img src="/assets/img/posts/mssql_northwind/56.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+  - first, database searches the page which have a real data matching with condition
+  - and check the next row
+  - if the next row is not matched with condition, then return
+  - So, `idx_emp_ord` and `idx_emp_ord` searched same count of row
+  - this is because their search order did not affect to search
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders
+ORDER BY EmployeeID, OrderDate;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/57.jpg"><img src="/assets/img/posts/mssql_northwind/57.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders
+ORDER BY OrderDate, EmployeeID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/58.jpg"><img src="/assets/img/posts/mssql_northwind/58.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+* Case 2: range in search
+  - both use index also
+  - but both of logical read time are different
+
+{% highlight SQL%}
+-- Same with next SELECT statement ---------------
+SELECT *
+FROM TestOrders WITH(INDEX(idx_emp_ord))
+WHERE EmployeeID = 1 AND OrderDate >= '19970101' AND OrderDate <= '19970103';
+--------------------------------------------------
+
+SELECT *
+FROM TestOrders WITH(INDEX(idx_emp_ord))
+WHERE EmployeeID = 1 AND OrderDate BETWEEN '19960701' AND '19970103';
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_northwind/59.jpg"><img src="/assets/img/posts/mssql_northwind/59.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/60.jpg"><img src="/assets/img/posts/mssql_northwind/60.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders WITH(INDEX(idx_ord_emp))
+WHERE EmployeeID = 1 AND OrderDate BETWEEN '19960701' AND '19970103';
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/mssql_northwind/61.jpg"><img src="/assets/img/posts/mssql_northwind/61.jpg"></a>
+  <a href="/assets/img/posts/mssql_northwind/62.jpg"><img src="/assets/img/posts/mssql_northwind/62.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+  - in `idx_emp_ord`, database searches the page which match with `1` in `EmployeeID`, and then match with between `19970101` and `19970103` in `OrderDate`
+  - and check next row
+  - it is ordered by `EmployeeID` first, so next row must have same or bigger `EmployeeID`
+  - So, `idx_emp_ord` searched only 3 rows
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders
+ORDER BY EmployeeID, OrderDate;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/63.jpg"><img src="/assets/img/posts/mssql_northwind/63.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+  - in `idx_ord_emp`, database searches the page wich match with between `19970101` and `19970103` in `OrderDate`, and then match with `1` in `EmployeeID`
+  - and check next row
+  - it is ordered by `OrderDate` first, So if the `OrderDate` is in between `19970101` and `19970103`, then database have to check `EmployeeID` in the rows
+  - So `idx_ord_emp` searched more then 3 rows
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders
+ORDER BY OrderDate, EmployeeID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/64.jpg"><img src="/assets/img/posts/mssql_northwind/64.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+## IN-LIST
+* IN()
+  - if between range is small, then change the range to `IN()`
+
+{% highlight SQL %}
+SET STATISTICS PROFILE ON;
+
+SELECT *
+FROM TestOrders WITH(INDEX(idx_ord_emp))
+WHERE EmployeeID = 1 AND OrderDate IN('19960101','19970102', '19970103');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/65.jpg"><img src="/assets/img/posts/mssql_northwind/65.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders WITH(INDEX(idx_emp_ord))
+WHERE EmployeeID = 1 AND OrderDate IN('19960101','19970102', '19970103');
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/66.jpg"><img src="/assets/img/posts/mssql_northwind/66.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Database){: .btn}
