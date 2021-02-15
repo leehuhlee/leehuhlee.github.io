@@ -1154,4 +1154,278 @@ ORDER BY playerID;
   <figcaption>MSSQL Baseball</figcaption>
 </figure>
 
+
+# JOIN
+
+## Merge
+* Sort Merge
+  - Merge Join has condition
+  - outer has to be unique
+  - One-to-Many(PK, unique)
+  - Random Access X → Clustered Scan and sorting
+
+{% highlight SQL %}
+SELECT *
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/86.jpg"><img src="/assets/img/posts/mssql_baseball/86.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* Merge Join in C#
+
+{% highlight SQL %}
+  using System;
+  using System.Collections.Generic;
+  using System.Diagnostics.CodeAnalysis;
+
+  namespace MergeJoin
+  {
+    class Player : IComparable<Player>
+    {
+      public int playerId;
+
+      public int CompareTo(Player other)
+      {
+        if (playerId == other.playerId)
+          return 0;
+        return (playerId > other.playerId) ? 1 : -1;
+      }
+    }
+
+    class Salary : IComparable<Salary>
+    {
+      public int playerId;
+
+      public int CompareTo(Salary other)
+      {
+        if (playerId == other.playerId)
+          return 0;
+        return (playerId > other.playerId) ? 1 : -1;
+      }
+    }
+
+    class Program
+    {
+      static void Main(string[] args)
+      {
+        List<Player> players = new List<Player>();
+        players.Add(new Player() { playerId = 0 });
+        players.Add(new Player() { playerId = 9 });
+        players.Add(new Player() { playerId = 1 });
+        players.Add(new Player() { playerId = 3 });
+        players.Add(new Player() { playerId = 4 });
+
+        List<Salary> salaries = new List<Salary>();
+        salaries.Add(new Salary() { playerId = 0 });
+        salaries.Add(new Salary() { playerId = 5 });
+        salaries.Add(new Salary() { playerId = 0 });
+        salaries.Add(new Salary() { playerId = 2 });
+        salaries.Add(new Salary() { playerId = 9 });
+
+        // Step 1) Sort (if already sorted, SKIP)
+        // O(N * Log(N))
+        players.Sort();
+        salaries.Sort();
+
+        // One-To-Many(players is unique)
+        // Step 2) Merge
+        // outer [0,1,3,4,9]
+        // inner [0,0,2,5,9]
+
+        int p = 0;
+        int s = 0;
+
+        List<int> result = new List<int>();
+
+        // O(N+M)
+        while (p<players.Count && s<salaries.Count)
+        {
+          if(players[p].playerId == salaries[s].playerId)
+          {
+            result.Add(players[p].playerId);
+            s++;
+          }
+          else if(players[p].playerId < salaries[s].playerId)
+          {
+            p++;
+          }
+          else
+          {
+            s++;
+          }
+        }
+
+        // Many-To-Many(Player is not unique)
+        // outer [0,0,0,0,0] -> N
+        // inner [0,0,0,0,0] -> N
+        // O(N+M)
+      }
+    }
+  }
+{% endhighlight %}
+
+* Case: Outer is clustered
+  - is the best way to Merge Join
+
+{% highlight SQL%}
+SELECT *
+FROM schools AS s
+	INNER JOIN schoolsplayers AS p
+	ON s.schoolID = p.schoolID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/91.jpg"><img src="/assets/img/posts/mssql_baseball/91.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## Nested Loop
+* Nested Loop
+  - access outer table which is accessed first, and then access randomly in inner table
+  - if there is not index in inner table, time complexity O(N^2) is really heavy
+  - Nested Loop is great for ranging process
+
+{% highlight SQL %}
+SELECT TOP 5 *
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/87.jpg"><img src="/assets/img/posts/mssql_baseball/87.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+* Nested Loop in C#
+{% highlight C# %}
+  using System;
+  using System.Collections.Generic;
+
+  namespace NestedLoop
+  {
+    class Player
+    {
+      public int playerId;
+    }
+
+    class Salary
+    {
+      public int playerId;
+    }
+
+    class Program
+    {
+      static void Main(string[] args)
+      {
+        Random rand = new Random();
+
+        // N
+        List<Player> players = new List<Player>();
+        for(int i=0; i<1000; i++)
+        {
+          if (rand.Next(0, 2) == 0)
+            continue;
+
+          players.Add(new Player() { playerId = i });
+        }
+
+        /* N
+        List<Salary> salaries = new List<Salary>();
+        for (int i = 0; i < 1000; i++)
+        {
+          if (rand.Next(0, 2) == 0)
+            continue;
+
+          salaries.Add(new Salary() { playerId = i });
+        }
+        ////////////////////////////////////////////////*/
+        
+        Dictionary<int, Salary> salaries = new Dictionary<int, Salary>();
+        for (int i = 0; i < 1000; i++)
+        {
+          if (rand.Next(0, 2) == 0)
+            continue;
+
+          salaries.Add(i, new Salary() { playerId = i });
+        }
+
+        // Nested Loop
+        List<int> result = new List<int>();
+        foreach (Player p in players)
+        {
+          /* foreach(Salary s in salaries)
+          {
+            if(s.playerId == p.playerId)
+            {
+              result.Add(p.playerId);
+              break;
+            }
+          } 
+          ////////////////////////////////////////////////*/
+
+          Salary s = null;
+          if (salaries.TryGetValue(p.playerId, out s))
+          {
+            result.Add(p.playerId);
+            if (result.Count == 5)
+              break;
+          }              
+        }
+      }
+    }
+  }
+{% endhighlight %}
+
+* Forcing to use Nested Loop
+  - use `OPTION(LOOP JOIN)` to force using Nested Loop
+
+{% highlight SQL %}
+SELECT *
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID
+	OPTION(LOOP JOIN);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/89.jpg"><img src="/assets/img/posts/mssql_baseball/89.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+  - use `OPTION(FORCE ORDER)` to force ordering
+{% highlight SQL %}
+SELECT *
+FROM players AS p
+	INNER JOIN salaries AS s
+	ON p.playerID = s.playerID
+	OPTION(FORCE ORDER, LOOP JOIN);
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/90.jpg"><img src="/assets/img/posts/mssql_baseball/90.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+## Hash
+
+{% highlight SQL %}
+SELECT *
+FROM salaries AS s
+	INNER JOIN teams AS t
+	ON s.teamID = t.teamID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_baseball/88.jpg"><img src="/assets/img/posts/mssql_baseball/88.jpg"></a>
+  <figcaption>MSSQL Baseball</figcaption>
+</figure>
+
+
+
 [Download](https://github.com/leehuhlee/Database){: .btn}

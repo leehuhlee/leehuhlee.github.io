@@ -800,4 +800,129 @@ WHERE EmployeeID = 1 AND OrderDate IN('19960101','19970102', '19970103');
 	<figcaption>MSSQL Northwind</figcaption>
 </figure>
 
+# Join
+
+## Hash Join
+  - Hash Join does not need to sort → The more data to Merge, The better to Hash
+  - not be infected by Index
+	- Hash is better than NL/Merge(depends on situation)
+	- But you have to concider the cost of hash table(process time become bigger → Index)
+  - Random Access X
+  - smaller data is good to make Hash Table
+
+{% highlight SQL %}
+SELECT *
+FROM TestOrders AS o
+	INNER JOIN TestCustomers AS c
+	ON o.CustomerID = c.CustomerID;
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/mssql_northwind/67.jpg"><img src="/assets/img/posts/mssql_northwind/67.jpg"></a>
+	<figcaption>MSSQL Northwind</figcaption>
+</figure>
+
+* Hash Join in C#
+{% highlight SQL %}
+  using System;
+  using System.Collections.Generic;
+
+  namespace HashJoin
+  {
+    class Player
+    {
+      public int playerId;
+    }
+
+    class Salary
+    {
+      public int playerId;
+    }
+
+    class HashTable
+    {
+      int _bucketCount;
+      List<int>[] _buckets;
+
+      public HashTable(int bucketCount = 100)
+      {
+        _bucketCount = bucketCount;
+        _buckets = new List<int>[bucketCount];
+
+        for (int i = 0; i < bucketCount; i++)
+          _buckets[i] = new List<int>();
+      }
+
+      public void Add(int value)
+      {
+        int key = value % _bucketCount;
+        _buckets[key].Add(value);
+      }
+
+      public bool Find(int value)
+      {
+        int key = value % _bucketCount;
+
+        // _buckets[key].Contains(value);
+        foreach(int v in _buckets[key])
+        {
+          if (v == value)
+            return true;
+        }
+        return false;
+      }
+    }
+
+    class Program
+    {
+      static void Main(string[] args)
+      {
+        Random rand = new Random();
+
+        List<Player> players = new List<Player>();
+        for (int i = 0; i < 1000; i++)
+        {
+          if (rand.Next(0, 2) == 0)
+            continue;
+
+          players.Add(new Player() { playerId = i });
+        }
+
+        List<Salary> salaries = new List<Salary>();
+        for (int i = 0; i < 1000; i++)
+        {
+          if (rand.Next(0, 2) == 0)
+            continue;
+
+          salaries.Add(new Salary() { playerId = i });
+        }
+
+        // TEMP HashTable
+        /*Dictionary<int, Salary> hash = new Dictionary<int, Salary>();       
+        foreach (Salary s in salaries)
+          hash.Add(s.playerId, s);
+
+        List<int> result = new List<int>();
+        foreach(Player p in players)
+        {
+          if (hash.ContainsKey(p.playerId))
+            result.Add(p.playerId);
+        }*/
+
+        HashTable hash = new HashTable();
+        foreach (Salary s in salaries)
+          hash.Add(s.playerId);
+
+        List<int> result = new List<int>();
+        foreach(Player p in players)
+        {
+          if (hash.Find(p.playerId))
+            result.Add(p.playerId);
+        }
+      }
+    }
+  }
+{% endhighlight %}
+
+
 [Download](https://github.com/leehuhlee/Database){: .btn}
