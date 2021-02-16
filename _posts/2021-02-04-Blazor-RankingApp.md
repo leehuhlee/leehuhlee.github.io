@@ -236,6 +236,11 @@ comments: false
   }
 {% endhighlight %}
 
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Create.mp4" frameborder="0"> </iframe>
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/22.jpg"><img src="/assets/img/posts/blazor_rankingapp/22.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
 
 ## READ
 {% highlight C# %}
@@ -297,6 +302,8 @@ comments: false
   }
 {% endhighlight %}
 
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Update.mp4" frameborder="0"> </iframe>
+
 
 ## DELETE
 {% highlight C# %}
@@ -324,23 +331,547 @@ comments: false
   }
 {% endhighlight %}
 
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Delete.mp4" frameborder="0"> </iframe>
 
-# Result
+# SharedData
 
-## Create
-<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Create.mp4" frameborder="0"> </iframe>
+## Add a new project
+* SharedData
+  - Class Library(.Net Core)
+
+* Data\GameResult.cs
+{% highlight C# %}
+  using System;
+  using System.Collections.Generic;
+  using System.Text;
+
+  namespace SharedData.Models
+  {
+    public class GameResult
+    {
+      public int Id { get; set; }
+      public int UserId { get; set; }
+      public string UserName { get; set; }
+      public int Score { get; set; }
+      public DateTime Date { get; set; }
+    }
+  }
+{% endhighlight %}
+
 <figure>
-  <a href="/assets/img/posts/blazor_rankingapp/22.jpg"><img src="/assets/img/posts/blazor_rankingapp/22.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/23.jpg"><img src="/assets/img/posts/blazor_rankingapp/23.jpg"></a>
 	<figcaption>Blazor Ranking App</figcaption>
 </figure>
 
+# PostMan
+
+## Download
+* Postman
+  - Download <a href="https://www.postman.com/downloads/">Postman</a>
+  - deactivate [Settings]-[Enable SSL certificate verification]
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/29.jpg"><img src="/assets/img/posts/blazor_rankingapp/29.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+# WebApi
+
+## Add a new project
+* WebApi
+  - ASP.NET Core Web Application
+  - template: API
+  - package: Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.Design, Microsoft.EntityFrameworkCore.SqlServer
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/25.jpg"><img src="/assets/img/posts/blazor_rankingapp/25.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+## Reference
+* Dependency
+  - references `SharedData`
+
+## Database Connect
+* Data\ApplicationDbContext.cs
+{% highlight C# %}
+  using Microsoft.EntityFrameworkCore;
+  using SharedData.Models;
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Threading.Tasks;
+
+  namespace WebApi.Data
+  {
+    public class ApplicationDbContext: DbContext
+    {
+      public DbSet<GameResult>GameResults { get; set; }
+      public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options){ }
+    }
+  }
+{% endhighlight %}
+
+* Startup.cs
+{% highlight C# %}
+  public void ConfigureServices(IServiceCollection services)
+  {
+    ...
+    services.AddDbContext<ApplicationDbContext>(options =>
+      options.UseSqlServer(
+        Configuration.GetConnectionString("DefaultConnection")));
+  }
+{% endhighlight %}
+
+* appsettings.json
+{% highlight C# %}
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=RankingApiDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
+  },
+  ...
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/24.jpg"><img src="/assets/img/posts/blazor_rankingapp/24.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+## Controllers\RankingController.cs
+* REST (Representational State Transfer)
+  - Reusing features from the original HTTP communication to create a data transmission rule
+
+* ApiController feature
+  - can return C# object
+  - if return null, then 204 Response(No Content) in cli
+  - string → text/plain
+  - rest(int, bool) → application/json
+
+* Read
+  - ex: GET/ api/ ranking → get all items
+  - ex: GET/ api/ ranking/1 → get item which is id=1
+
+{% highlight C# %}
+  using Microsoft.AspNetCore.Http;
+  using Microsoft.AspNetCore.Mvc;
+  using SharedData.Models;
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Threading.Tasks;
+  using WebApi.Data;
+
+  namespace WebApi.Controllers
+  {
+    
+    [Route("api/[controller]")]
+    [ApiController]
+    public class RankingController : ControllerBase
+    {
+      ApplicationDbContext _context;
+
+      public RankingController(ApplicationDbContext context)
+      {
+        _context = context;
+      }
+
+      // Read
+      [HttpGet]
+      public List<GameResult> GetGameResults()
+      {
+        List<GameResult> results = _context.GameResults
+          .OrderByDescending(item => item.Score)
+          .ToList();
+
+        return results;
+      }
+
+      [HttpGet("{id}")]
+      public GameResult GetGameResults(int id)
+      {
+        GameResult result = _context.GameResults
+          .Where(item => item.Id == id)
+          .FirstOrDefault();
+
+        return result;
+      }
+    ...
+{% endhighlight %}
+
+  - Add data in `dbo.GameResults`
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/28.jpg"><img src="/assets/img/posts/blazor_rankingapp/28.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/26.jpg"><img src="/assets/img/posts/blazor_rankingapp/26.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/27.jpg"><img src="/assets/img/posts/blazor_rankingapp/27.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/30.jpg"><img src="/assets/img/posts/blazor_rankingapp/30.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/31.jpg"><img src="/assets/img/posts/blazor_rankingapp/31.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Create
+  - ex: POST/ api/ ranking → Create item(real data in Body)
+
+{% highlight C# %}
+...
+  [HttpPost]
+  public GameResult AddGameResult([FromBody]GameResult gameResult)
+  {
+    _context.GameResults.Add(gameResult);
+    _context.SaveChanges();
+
+    return gameResult;
+  }
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/32.jpg"><img src="/assets/img/posts/blazor_rankingapp/32.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Update
+  - ex: PUT /api/ ranking(not used in web because of PUT authority problem) → request update item(real data in Body)
+
+{% highlight C# %}
+...
+  [HttpPut]
+  public bool UpdateGameResult([FromBody] GameResult gameResult)
+  {
+    var findResult = _context.GameResults
+      .Where(x => x.Id == gameResult.Id)
+      .FirstOrDefault();
+
+    if (findResult == null)
+      return false;
+
+    findResult.UserName = gameResult.UserName;
+    findResult.Score = gameResult.Score;
+    _context.SaveChanges();
+
+    return true;
+  }
+...
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/33.jpg"><img src="/assets/img/posts/blazor_rankingapp/33.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/34.jpg"><img src="/assets/img/posts/blazor_rankingapp/34.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Delete
+  - DELETE/ api/ ranking/ 1(not used in web because of DELETE authority problem) → delete item which is id=1
+
+{% highlight C# %}
+...
+  [HttpDelete("{id}")]
+  public bool DeleteGameResult(int id)
+  {
+    var findResult = _context.GameResults
+      .Where(x => x.Id == id)
+      .FirstOrDefault();
+
+    if (findResult == null)
+      return false;
+
+    _context.GameResults.Remove(findResult);
+    _context.SaveChanges();
+
+    return true;
+  }
+...
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_rankingapp/35.jpg"><img src="/assets/img/posts/blazor_rankingapp/35.jpg"></a>
+  <a href="/assets/img/posts/blazor_rankingapp/36.jpg"><img src="/assets/img/posts/blazor_rankingapp/36.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+# Interlock RankingApp and WebApi
+
+## RankingApp
+* Reference
+  - reference `SharedData`
+
+* Folder Cleanup
+  - delete `Data\Models`
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/37.jpg"><img src="/assets/img/posts/blazor_rankingapp/37.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+* Data\ApplicationDbContext.cs
+{% highlight C# %}
+  using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+  using Microsoft.EntityFrameworkCore;
+  using System;
+  using System.Collections.Generic;
+  using System.Text;
+
+  namespace RankingApp.Data
+  {
+    public class ApplicationDbContext : IdentityDbContext
+    {
+      public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+      {  }
+    }
+  }
+{% endhighlight %}
+
+* Data\Services\RankingService.cs
+{% highlight C# %}
+  using Newtonsoft.Json;
+  using SharedData.Models;
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using System.Net.Http;
+  using System.Text;
+  using System.Threading.Tasks;
+
+  namespace RankingApp.Data.Services
+  {
+    public class RankingService
+    {
+      HttpClient _httpClient;
+
+      public RankingService(HttpClient client)
+      {
+        _httpClient = client;
+      }
+
+      // Create
+      public async Task<GameResult> AddGameResult(GameResult gameResult)
+      {
+        string jsonStr = JsonConvert.SerializeObject(gameResult);
+        var content = new StringContent(jsonStr, Encoding.UTF8, "application/json");
+        var result = await _httpClient.PostAsync("api/ranking", content);
+
+        if (result.IsSuccessStatusCode == false)
+          throw new Exception("AddGameResult Failed");
+
+        var resultContent = await result.Content.ReadAsStringAsync();
+        GameResult resGameResult = JsonConvert.DeserializeObject<GameResult>(resultContent);
+
+        return resGameResult;
+      }
+
+      // Read
+      public async Task<List<GameResult>> GetGameResultsAsync()
+      {
+        var result = await _httpClient.GetAsync("api/ranking");
+        var resultContent = await result.Content.ReadAsStringAsync();
+        List<GameResult> resGameResults = JsonConvert.DeserializeObject<List<GameResult>>(resultContent);
+        return resGameResults;
+      }
+
+      // Update
+      public async Task<bool> UpdateGameResult(GameResult gameResult)
+      {
+        string jsonStr = JsonConvert.SerializeObject(gameResult);
+        var content = new StringContent(jsonStr, Encoding.UTF8, "application/json");
+        var result = await _httpClient.PutAsync("api/ranking", content);
+
+        if (result.IsSuccessStatusCode == false)
+          throw new Exception("AddGameResult Failed");
+
+        return true;
+      }
+
+      // Delete
+      public async Task<bool> DeleteGameResult(GameResult gameResult)
+      {
+        var result = await _httpClient.DeleteAsync($"api/ranking/{gameResult.Id}");
+
+        if (result.IsSuccessStatusCode == false)
+          throw new Exception("DeleteGameResult Faild");
+
+        return true;
+      }
+    }
+  }
+{% endhighlight %}
+
+* Razor.razor
+{% highlight C# %}
+...
+  async Task SaveGameResult()
+  {
+    if (_gameResult.Id == 0)
+    {
+      _gameResult.Date = DateTime.Now;
+      var result = await RankingService.AddGameResult(_gameResult);
+    }
+    else
+    {
+      var result = await RankingService.UpdateGameResult(_gameResult);
+    }
+
+    _gameResults = await RankingService.GetGameResultsAsync();
+    _showPopup = false;
+  }
+{% endhighlight %}
+
+* Startup.cs
+  - use number in `Properties\launchSetting.json`
+
+{% highlight C# %}
+  public void ConfigureServices(IServiceCollection services)
+  {
+    ...
+    services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+
+    services.AddHttpClient<RankingService>(c =>
+    {
+      c.BaseAddress = new Uri("https://localhost:44313");
+    });
+  }
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/38.jpg"><img src="/assets/img/posts/blazor_rankingapp/38.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+# Build
+
+## Start several project at once
+* Solution
+  - [Property] - [Several start project]
+
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/39.jpg"><img src="/assets/img/posts/blazor_rankingapp/39.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+# Result(CRUD)
+
+## CREATE
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-WebApi-Create.mp4" frameborder="0"> </iframe>
+
+## READ
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/40.jpg"><img src="/assets/img/posts/blazor_rankingapp/40.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
 
 ## UPDATE
-<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Update.mp4" frameborder="0"> </iframe>
-
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-WebApi-Update.mp4" frameborder="0"> </iframe>
 
 ## DELETE
-<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-Delete.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/blazor_rankingapp/RankingApp-WebApi-Delete.mp4" frameborder="0"> </iframe>
 
+# Interlock RankingApp, WebApi and Unity
+
+## WebTest
+* WebManager.cs
+  - Put your WebApi Server Port number in `_baseUrl`
+
+{% highlight C# %}
+  using System;
+  using System.Collections;
+  using System.Collections.Generic;
+  using System.Text;
+  using UnityEngine;
+  using UnityEngine.Networking;
+
+  public class GameResult
+  {
+    public string userName;
+    public int score;
+  }
+
+  public class WebManager : MonoBehaviour
+  {
+    string _baseUrl = "https://localhost:44358/api";
+
+    void Start()
+    {
+      GameResult res = new GameResult()
+      {
+        userName = "Hanna",
+        score = 999
+      };
+
+      SendPostRequest("ranking", res, (uwr) =>
+      {
+        Debug.Log("Post Success!");
+      });
+
+      SendGetAllRequest("ranking", (uwr) =>
+      {
+        Debug.Log("Get All Success!");
+      });
+    }
+
+    public void SendPostRequest(String url, object obj, Action<UnityWebRequest> callback)
+    {
+      StartCoroutine(CoSendWebRequest(url, "POST", obj, callback));
+    }
+
+    public void SendGetAllRequest(String url, Action<UnityWebRequest> callback)
+    {
+      StartCoroutine(CoSendWebRequest(url, "GET", null, callback));
+    }
+
+    IEnumerator CoSendWebRequest(string url, string method, object obj, Action<UnityWebRequest> callback)
+    {
+      yield return null;
+
+      string sendUrl = $"{_baseUrl}/{url}/";
+      byte[] jsonBytes = null;
+
+      if(obj != null)
+      {
+        string jsonStr = JsonUtility.ToJson(obj);
+        jsonBytes = Encoding.UTF8.GetBytes(jsonStr);
+      }
+
+      var uwr = new UnityWebRequest(sendUrl, method);
+      uwr.uploadHandler = new UploadHandlerRaw(jsonBytes);
+      uwr.downloadHandler = new DownloadHandlerBuffer();
+      uwr.SetRequestHeader("Content-Type", "application/json");
+
+      yield return uwr.SendWebRequest();
+
+      if(uwr.isNetworkError || uwr.isHttpError)
+      {
+        Debug.Log(uwr.error);
+      }
+      else
+      {
+        Debug.Log("Recy " + uwr.downloadHandler.text);
+        callback.Invoke(uwr);
+      }
+    }
+  }
+{% endhighlight %}
+
+* GameObject
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/41.jpg"><img src="/assets/img/posts/blazor_rankingapp/41.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
+
+## Result
+<figure>
+  <a href="/assets/img/posts/blazor_rankingapp/42.jpg"><img src="/assets/img/posts/blazor_rankingapp/42.jpg"></a>
+	<figcaption>Blazor Ranking App</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
+[Download](https://github.com/leehuhlee/Unity){: .btn}
