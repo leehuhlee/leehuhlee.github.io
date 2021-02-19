@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "[Redis] NOSQL"
-date: 2021-02-10
+date: 2021-02-16
 excerpt: "Redis"
 tags: [Database, Redis, NOSQL]
 comments: false
