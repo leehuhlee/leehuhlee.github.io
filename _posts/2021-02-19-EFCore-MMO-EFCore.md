@@ -2,7 +2,7 @@
 layout: post
 title: "[EFCore] MMO EFCore"
 date: 2021-02-19
-excerpt: "Redis"
+excerpt: "Entity Framework Core and ORM"
 tags: [Database, Entity Framework Core, ORM]
 comments: false
 ---
@@ -334,20 +334,21 @@ comments: false
 * DataModel.cs
 
 {% highlight C# %}
+  [Table("Item")]
   public class Item
-	{
+  {
     [ForeignKey("OwnerId")]
-		public Player Owner { get; set; }
-	}
-
-  [Table("Player")]
-	public class Player
-	{
-    // public ICollection<Item> Items { get; set; }
-		public Item Item { get; set; }
-		public Guild Guild { get; set; }
+    public Player Owner { get; set; }
   }
-
+  
+  [Table("Player")]
+  public class Player
+  {
+    // public ICollection<Item> Items { get; set; }
+    public Item Item { get; set; }
+    public Guild Guild { get; set; }
+  }
+  
   [Table("Guild")]
   public class Guild
   {
