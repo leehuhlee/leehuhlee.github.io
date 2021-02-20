@@ -361,7 +361,7 @@ comments: false
 * AppDbContext.cs
 {% highlight C# %}
   public DbSet<Player> Players { get; set; }
-	public DbSet<Guild> Guilds { get; set; }
+  public DbSet<Guild> Guilds { get; set; }
 {% endhighlight %}
 
 * DbCommands.cs
@@ -395,25 +395,25 @@ comments: false
 
 {% highlight C# %}
   public static void EagerLoading()
-	{
-		Console.WriteLine("Input Guild Name");
-		Console.Write("> ");
-		string name = Console.ReadLine();
+  {
+    Console.WriteLine("Input Guild Name");
+    Console.Write("> ");
+    string name = Console.ReadLine();
 
-		using (var db = new AppDbContext())
-		{
-			Guild guild = db.Guilds.AsNoTracking()
-			            		.Where(g => g.GuildName == name)
-					            .Include(g => g.Members)
-						            .ThenInclude(p => p.Item)
-					            .First();
-
-			foreach (Player player in guild.Members)
-			{
-				Console.WriteLine($"TemplateId({player.Item.TemplateId}) Owner({player.Name})");
-			}
-		}
-	}
+    using (var db = new AppDbContext())
+    {
+      Guild guild = db.Guilds.AsNoTracking()
+                      .Where(g => g.GuildName == name)
+                      .Include(g => g.Members)
+                        .ThenInclude(p => p.Item)
+                      .First();
+      
+      foreach (Player player in guild.Members)
+      {
+        Console.WriteLine($"TemplateId({player.Item.TemplateId}) Owner({player.Name})");
+      }
+    }
+  }
 {% endhighlight %}
 
 <figure>
@@ -433,30 +433,30 @@ comments: false
 
 {% highlight C# %}
   public static void ExplicitLoading()
-	{
-	  Console.WriteLine("Input Guild Name");
-		Console.Write("> ");
-		string name = Console.ReadLine();
+  {
+    Console.WriteLine("Input Guild Name");
+    Console.Write("> ");
+    string name = Console.ReadLine();
 
-		using (var db = new AppDbContext())
-		{
-			Guild guild = db.Guilds
-					            .Where(g => g.GuildName == name)
-					            .First();
+    using (var db = new AppDbContext())
+    {
+      Guild guild = db.Guilds
+                      .Where(g => g.GuildName == name)
+                      .First();
+                      
+      db.Entry(guild).Collection(g => g.Members).Load();
+      
+      foreach (Player player in guild.Members)
+      {
+        db.Entry(player).Reference(p => p.Item).Load();
+      }
 
-			db.Entry(guild).Collection(g => g.Members).Load();
-
-			foreach (Player player in guild.Members)
-			{
-				db.Entry(player).Reference(p => p.Item).Load();
-			}
-
-			foreach (Player player in guild.Members)
-			{
-				Console.WriteLine($"TemplateId({player.Item.TemplateId}) Owner({player.Name})");
-			}
-		}
-	}
+      foreach (Player player in guild.Members)
+      {
+        Console.WriteLine($"TemplateId({player.Item.TemplateId}) Owner({player.Name})");
+      }
+    }
+  }
 {% endhighlight %}
 
 <figure>
@@ -477,25 +477,25 @@ comments: false
 
 {% highlight C# %}
   public static void SelectLoading()
-	{
-		Console.WriteLine("Input Guild Name");
-		Console.Write("> ");
-		string name = Console.ReadLine();
-
-		using (var db = new AppDbContext())
-		{
-			var info = db.Guilds
-			             .Where(g => g.GuildName == name)
-					         .Select(g => new
-		              	{
-				              Name = g.GuildName,
-				              MemberCount = g.Members.Count
-			              })
-					         .First();
-
-			Console.WriteLine($"GuildName({info.Name}), MemberCount({info.MemberCount})");
-		}
-	}
+  {
+    Console.WriteLine("Input Guild Name");
+    Console.Write("> ");
+    string name = Console.ReadLine();
+    
+    using (var db = new AppDbContext())
+    {
+      var info = db.Guilds
+                   .Where(g => g.GuildName == name)
+                   .Select(g => new
+                   {
+                     Name = g.GuildName,
+                     MemberCount = g.Members.Count
+                   })
+                   .First();
+                   
+      Console.WriteLine($"GuildName({info.Name}), MemberCount({info.MemberCount})");
+    }
+  }
 {% endhighlight %}
 
 <figure>
