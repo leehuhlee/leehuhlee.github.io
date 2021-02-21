@@ -1087,7 +1087,7 @@ comments: false
 ## Model Change
 * DataModel.cs
 
-{% highligiht C# %}
+{% highlight C# %}
   [Table("Item")]
   public class Item
   {
