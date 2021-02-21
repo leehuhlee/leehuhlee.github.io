@@ -904,7 +904,7 @@ comments: false
 ## 1) Not Nullable
 
 * DataModel.cs
-{ % highlight C# % }
+{% highlight C# %}
   [Table("Item")]
   public class Item
   {
@@ -922,7 +922,7 @@ comments: false
 ## 2) Nullable
 
 * DataModel.cs
-{ % highlight C# % }
+{% highlight C# %}
   [Table("Item")]
   public class Item
   {
@@ -1272,4 +1272,3 @@ comments: false
   - Convention is the easist
   - Validation and related parts → Data Annotation(directly, call SaveChanges)
   - etc → Fluent Api
-  
