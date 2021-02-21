@@ -1293,7 +1293,7 @@ comments: false
   </thead>
   <tbody>
     <tr>
-      <th><span>DbSet<T></span></th>
+      <th>DbSet &lt;T &gt;</th>
       <td>
         [Property/Class]name<br>
         [Table("MyTable")]</td>
@@ -1315,7 +1315,7 @@ comments: false
   </thead>
   <tbody>
     <tr>
-      <th><span>Column Name<T></span></th>
+      <th>Column Name&lt;T&gt;</th>
       <td>[Column("MyCol")]</td>
       <td>.HasColumnName("MyCol")</td>
     </tr>
@@ -1334,7 +1334,7 @@ comments: false
   </thead>
   <tbody>
     <tr>
-      <th><span>use only in code<T></span></th>
+      <th>use only in code&lt;T&gt;</th>
       <td>[NotMapped]</td>
       <td>.Ignore()</td>
     </tr>
@@ -1353,7 +1353,7 @@ comments: false
   </thead>
   <tbody>
     <tr>
-      <th><span>Soft Delete<T></span></th>
+      <th>Soft Delete&lt;T&gt;</th>
       <td></td>
       <td>.HasQueryFilter()</td>
     </tr>
