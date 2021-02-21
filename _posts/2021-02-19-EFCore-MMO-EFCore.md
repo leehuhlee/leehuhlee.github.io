@@ -1194,6 +1194,7 @@ comments: false
 
 ## Data Annotation
   - add Attribute at class/property
+  
 ## Fluent Api
   - set Setting directly in OnModelCreating
   - is the biggest in application range
