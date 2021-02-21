@@ -1226,49 +1226,204 @@ comments: false
     </tr>
   </tbody>
 </table>
-<p>
-  - Nullable         [Required]              .IsRequired()
-  - String length    [MayLength(20)]         .Has MaxLength(20)
-  - char form                                .IsUnicode(true)
-</p>
 
 * PK
-<p>
-  - Primary Key      [Key][Column(Order=0)]  .HasKey(x => new {x.Prop1, x.Prop2})<br>
-                     [Key][Column(Order=1)]
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Primary Key</th>
+      <td>[Key][Column(Order=0)]<br>
+          [Key][Column(Order=1)]</td>
+      <td>.HasKey(x => new {x.Prop1, x.Prop2})</td>
+    </tr>
+  </tbody>
+</table>
 
 * Index
-<p>
-  - add Index                                .HasIndex(p => p.Prop1)
-  - add complex index                        .HasIndex(p => new {p.Prop1, p.Prop2})
-  - set index name                           .HasIndex(p => p.Prop1).HasName("Index_MyProp")
-  - add unique Index                         .HasIndex(p => p.Prop1).IsUnique()
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>add Index</th>
+      <td></td>
+      <td>.HasIndex(p => p.Prop1)</td>
+    </tr>
+    <tr>
+      <th>add complex index</th>
+      <td></td>
+      <td>.HasIndex(p => new {p.Prop1, p.Prop2})</td>
+    </tr>
+    <tr>
+      <th>set index name</th>
+      <td></td>
+      <td>.HasIndex(p => p.Prop1).HasName("Index_MyProp")</td>
+    </tr>
+    <tr>
+      <th>add unique Index</th>
+      <td></td>
+      <td>.HasIndex(p => p.Prop1).IsUnique()</td>
+    </tr>
+  </tbody>
+</table>
 
 * table name
-<p>
-  - DbSet<T>          [Property/Class]name
-                      [Table("MyTable")]      .ToTable("MyTable")
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>DbSet<T></th>
+      <td>
+        [Property/Class]name<br>
+        [Table("MyTable")]</td>
+      <td>.ToTable("MyTable")</td>
+    </tr>
+  </tbody>
+</table>
 
 * column name
   - in Convention, using [Property]name
-<p>
-  -                   [Column("MyCol")]       .HasColumnName("MyCol")
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Column Name<T></th>
+      <td>[Column("MyCol")]</td>
+      <td>.HasColumnName("MyCol")</td>
+    </tr>
+  </tbody>
+</table>
 
 * use code modeling, but not in DB modeling(Property and Class)
-<p>
-  -                   [NotMapped]             .Ignore()
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>use only in code<T></th>
+      <td>[NotMapped]</td>
+      <td>.Ignore()</td>
+    </tr>
+  </tbody>
+</table>
 
 * Soft Delete
-<p>
-  -                                           .HasQueryFilter()
-</p>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Soft Delete<T></th>
+      <td></td>
+      <td>.HasQueryFilter()</td>
+    </tr>
+  </tbody>
+</table>
 
 * Order
   - Convention is the easist
   - Validation and related parts → Data Annotation(directly, call SaveChanges)
   - etc → Fluent Api
+
+
+## Relationship Configuration
+
+* Relationship
+  - Principal Entity
+  - Dependent Entity
+  - Navigational Property
+  - Primary Key(PK)
+  - Foreign Key(FK)
+  - Principal Key = PK or Unique Alternate Key
+  - Required Relationship(Not-Null)
+  - Optional Relationship(Nullable)
+
+* Set FK by Convention
+  - [PrincipalKeyName]<br>
+    ex. PlayerId
+  - [Class][PrincipalKeyName]<br>
+    ex. PlayerPlayerId
+  - [NagivationalPropertyName][PrincipalKeyName]<br>
+    ex. OwnerPlayerId / OwnerId
+
+## FK and Nullable
+
+* Required Relationship(Not-Null)
+  - when delete, call `OnDelete` factor by `Cascase` mode → if delete Principal, delete Dependent
+
+* Optional Relationship(Nullable)
+  - when delete, call `OnDelete` factor by `ClientSetNull` mode
+  - if delete Principal and Dependent Tracking, FK is setted null
+  - if delete Principal and not Dependent Tracking, occur Exception
+
+## Not in Convention
+* Complex FK
+* several Navigational Property reference same class
+* DB or Delete Customizing
+
+## Set Relationship with Data Annotation
+* [ForeignKey("Prop1")]
+* [InversProperty] 
+  - several Navigational Property reference same class
+
+* Set Relationship with Fluent Api
+
+<table>
+  <thead>
+  </thead>
+  <tbody>
+    <tr>
+      <td>.HasOne()</td>
+      <td>.HasMany()</td>
+    </tr>
+    <tr>
+      <td>.WithOne()</td>
+      <td>.WithMany()</td>
+    </tr>
+    <tr>
+      <td>.HasForeignKey()</td>
+      <td>.IsRequired()</td>
+      <td>.OnDelete()</td>
+    </tr>
+  </tbody>
+</table>
