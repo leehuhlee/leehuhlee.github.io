@@ -1194,7 +1194,7 @@ comments: false
 
 ## Data Annotation
   - add Attribute at class/property
-  
+
 ## Fluent Api
   - set Setting directly in OnModelCreating
   - is the biggest in application range
@@ -1366,6 +1366,39 @@ comments: false
   - Validation and related parts → Data Annotation(directly, call SaveChanges)
   - etc → Fluent Api
 
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  [Table("Player")]
+  public class Player
+  {
+    ...
+    [Required]
+    [MaxLength(20)]
+    public string Name { get; set; }
+    ...
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Player>()
+           .HasIndex(p => p.Name)
+           .HasName("Index_Person_Name")
+           .IsUnique();
+    ...
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/33.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/33.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/34.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/34.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
 
 ## Relationship Configuration
 
@@ -1407,7 +1440,7 @@ comments: false
 * [InversProperty] 
   - several Navigational Property reference same class
 
-* Set Relationship with Fluent Api
+## Set Relationship with Fluent Api
 
 <table>
   <thead>
@@ -1428,3 +1461,1040 @@ comments: false
     </tr>
   </tbody>
 </table>
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  [Table("Item")]
+  public class Item
+  {
+    ...
+    public int TestOwnerId { get; set; }
+    // public int OwnerId { get; set; }
+    ...
+    public int? TestCreatorId { get; set; }
+    public Player Creator { get; set; }
+    ...
+  }
+
+  [Table("Player")]
+  public class Player
+  {
+    ...
+    public Item OwnedItem { get; set; }
+    public ICollection<Item> CreatedItems { get; set; }
+    //public Item Item { get; set; }
+    ...
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Player>()
+           .HasMany(p => p.CreatedItems)
+           .WithOne(i => i.Creator)
+           .HasForeignKey(i => i.TestCreatorId);
+
+    builder.Entity<Player>()
+           .HasOne(p => p.OwnedItem)
+           .WithOne(i => i.Owner)
+           .HasForeignKey<Item>(i => i.TestOwnerId);
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/35.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/35.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/36.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/36.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Shadow Property & Backing Field
+
+## Shadow Property
+  - in Class OK, but Not in DB
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+    <tr>
+      <th>only use in code</th>
+      <td>[NotMapped]</td>
+      <td>.Ignore()</td>
+    </tr>
+  <tbody>
+  </tbody>
+</table>
+
+  - in DB OK, but Not in Class → Shadow Property
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Data Annotation</th>
+      <th>Fluent Api</th>
+    </tr>
+  </thead>
+    <tr>
+      <th>create</th>
+      <td></td>
+      <td>.Property<DateTime>("RecoveredDate")</td>
+    </tr>
+    <tr>
+      <th>Read/Write</th>
+      <td></td>
+      <td>.Property("RecoveredDate").CurrentVale</td>
+    </tr>
+  <tbody>
+  </tbody>
+</table>
+
+### Test
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Item>().Property<DateTime>("RecoveredDate");
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    db.Entry(items[0]).Property("RecoveredDate").CurrentValue = DateTime.Now;
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/37.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/37.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/38.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/38.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## Backing Field (EF Core)
+  - mapping private field in DB and change to public getter to use
+  - ex. save string by Json type in DB and getter use json with processing
+  - Fluent Api in normal
+
+* DataModel.cs
+{% highlight C# %}
+  public struct ItemOption
+  {
+    public int str;
+    public int dex;
+    public int hp;
+  }
+
+  [Table("Item")]
+  public class Item
+  {
+    private string _jsonData;
+    public string JsonData
+    {
+      get { return _jsonData; }
+      //set { _jsonData = value; }
+    }
+
+    public void SetOption(ItemOption option)
+    {
+      _jsonData = JsonConvert.SerializeObject(option);
+    }
+
+    public ItemOption GetOption()
+    {
+      return JsonConvert.DeserializeObject<ItemOption>(_jsonData);
+    }
+    ...
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Item>()
+                .Property(i => i.JsonData)
+                .HasField("_jsonData");
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/39.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/39.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/40.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/40.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/41.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/41.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Entity ↔ DB Table link
+  - all Entity Class Read/ Write → Cost (Select Loading, DTO)
+
+# Owned Type
+  - add normal Class in Entity Class
+
+## add to same table
+* .OwnsOne()
+  - Relationship .Include() vs Ownership
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  //public struct ItemOption
+  //{
+  //    public int str;
+  //    public int dex;
+  //    public int hp;
+  //}
+
+  public class ItemOption
+  {
+    public int Str { get; set; }
+    public int Dex { get; set; }
+    public int Hp { get; set; }
+  }
+
+  [Table("Item")]
+  public class Item
+  {
+    //private string _jsonData;
+    //public string JsonData
+    //{
+    //  get { return _jsonData; }
+    //  set { _jsonData = value; }
+    //}
+
+    //public void SetOption(ItemOption option)
+    //{
+    //  _jsonData = JsonConvert.SerializeObject(option);
+    //}
+
+    //public ItemOption GetOption()
+    //{
+    //  return JsonConvert.DeserializeObject<ItemOption>(_jsonData);
+    //}
+    
+    public ItemOption Option { get; set; }
+  }
+{% endhighlight %}
+
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Item>()
+           .OwnsOne(i => i.Option);
+    ...
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    items[1].Option = new ItemOption() { Dex = 1, Hp = 2, Str = 3 };
+    ...
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/42.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/42.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/43.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/43.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/44.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/44.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## add to diff table
+* .OwnsOne().ToTable()
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    //builder.Entity<Item>()
+    //       .OwnsOne(i => i.Option);
+
+    builder.Entity<Item>()
+           .OwnsOne(i => i.Option)
+           .ToTable("ItemOption");
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void ShowItem()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      foreach (var item in db.Items.Include(i => i.Owner).IgnoreQueryFilters().ToList())
+      {
+        ...
+        else
+        {
+          if (item.Option != null)
+            Console.WriteLine("STR " + item.Option.Str);
+          ...
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/45.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/45.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/46.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/46.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/47.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/47.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Table Per Hiearchy (TPH)
+  - several classes of hierarchy relation ↔ mapping in one table<br>
+    ex. Dog, Cat, Bird, Animal
+
+## Convention
+  - first make class by hiearchy and add DbSet
+  - Discriminator
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  public class EventItem : Item
+  {
+    public DateTime DestroyDate { get; set; }
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  class AppDbContext : DbContext
+  {
+    public DbSet<EventItem> EventItems { get; set; }
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/48.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/48.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/49.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/49.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/50.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/50.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## Fluent Api
+  - .HasDiscriminator().HasValue()
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  public enum ItemType
+  {
+    NormalItem,
+    EventItem
+  }
+  
+  [Table("Item")]
+  public class Item
+  {
+    public ItemType Type { get; set; }
+    ...
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  class AppDbContext : DbContext
+  {
+    //public DbSet<EventItem> EventItems { get; set; }
+  }
+
+  protected override void OnModelCreating(ModelBuilder builder)
+  { 
+    ...           
+    builder.Entity<Item>()
+           .HasDiscriminator(i => i.Type)
+           .HasValue<Item>(ItemType.NormalItem)
+           .HasValue<EventItem>(ItemType.EventItem);
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    new EventItem()
+    {
+      ...
+      DestroyDate =  DateTime.Now
+    },
+    ...
+  }
+
+  public static void ShowItem()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      foreach (var item in db.Items.Include(i => i.Owner).IgnoreQueryFilters().ToList())
+      {
+        ...
+        else
+        {
+          ...
+          EventItem eventItem = item as EventItem;
+          if (eventItem != null)
+            Console.WriteLine("DestroyDate: " + eventItem.DestroyDate);
+          ...
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/51.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/51.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/52.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/52.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/53.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/53.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Table Splitting
+  - several entity Class ↔ mapping one table
+
+### Test
+* DataModel.cs
+{% highlight C# %}
+      public class ItemDetail
+    {
+        public int ItemDetailId { get; set; }
+        public string Description { get; set; }
+    }
+
+    [Table("Item")]
+    public class Item
+    {
+      ...
+      public ItemDetail Detail { get; set; }
+      ...
+    }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    //builder.Entity<Item>()
+    //       .HasDiscriminator(i => i.Type)
+    //       .HasValue<Item>(ItemType.NormalItem)
+    //       .HasValue<EventItem>(ItemType.EventItem);
+
+    builder.Entity<Item>()
+           .HasOne(i => i.Detail)
+           .WithOne()
+           .HasForeignKey<ItemDetail>(i => i.ItemDetailId);
+
+    builder.Entity<Item>().ToTable("Items");
+    builder.Entity<ItemDetail>().ToTable("Items");
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    items[2].Detail = new ItemDetail()
+    {
+      Description = "This is a good item."
+    };
+  }
+
+  public static void ShowItem()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      //foreach (var item in db.Items.Include(i => i.Owner).IgnoreQueryFilters().ToList())
+      foreach (var item in db.Items.Include(i => i.Owner).Include(i => i.Detail).IgnoreQueryFilters().ToList())
+      {
+        ...
+        else
+        {
+          ...
+          if (item.Detail != null)
+            Console.WriteLine(item.Detail.Description);
+  }
+{% endhighlight %}
+
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/54.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/54.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/55.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/55.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/56.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/56.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Backing Field & Relationship
+
+## Backing Field → mapping private field in DB
+  - can use in Navigation Property
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  //public class ItemOption
+  //{
+  //  public int Str { get; set; }
+  //  public int Dex { get; set; }
+  //  public int Hp { get; set; }
+  //}
+
+  //public class ItemDetail
+  //{
+  //  public int ItemDetailId { get; set; }
+  //  public string Description { get; set; }
+  //}
+
+  //public enum ItemType
+  //{
+  //  NormalItem,
+  //  EventItem
+  //}
+
+  public class ItemReview
+  {
+    public int ItemReviewId { get; set; }
+    public int Score { get; set; } // 0~5
+  }
+
+  [Table("Item")]
+  public class Item
+  {
+    //public ItemType Type { get; set; }
+    //public ItemOption Option { get; set; }
+    //public ItemDetail Detail { get; set; }
+    ...
+    //public int? TestCreatorId { get; set; }
+    //public Player Creator { get; set; }
+
+    public double? AverageScore { get; set; }
+
+    private readonly List<ItemReview> _reviews = new List<ItemReview>();
+    public IEnumerable<ItemReview> Reviews { get { return _reviews.ToList(); } }
+
+    public void AddReview(ItemReview review)
+    {
+      _reviews.Add(review);
+      AverageScore = _reviews.Any() ? _reviews.Average(r => r.Score) : (double?)null;
+    }
+
+    public void RemoveReview(ItemReview review)
+    {
+      _reviews.Remove(review);
+    }
+  }
+
+  //public class EventItem : Item
+  //{
+  //  public DateTime DestroyDate { get; set; }
+  //}
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  class AppDbContext : DbContext
+  {
+    ...
+    //public DbSet<EventItem> EventItems { get; set; }
+    ...
+  }
+
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    //builder.Entity<Player>()
+    //       .HasMany(p => p.CreatedItems)
+    //       .WithOne(i => i.Creator)
+    //       .HasForeignKey(i => i.TestCreatorId);
+    ...
+    //builder.Entity<Item>()
+    //       .OwnsOne(i => i.Option)
+    //       .ToTable("ItemOption");
+    ...
+    //builder.Entity<Item>()
+    //       .HasOne(i => i.Detail)
+    //       .WithOne()
+    //       .HasForeignKey<ItemDetail>(i => i.ItemDetailId);
+
+    //builder.Entity<Item>().ToTable("Items");
+    //builder.Entity<ItemDetail>().ToTable("Items");
+
+    builder.Entity<Item>()
+           .Metadata
+           .FindNavigation("Reviews")
+           .SetPropertyAccessMode(PropertyAccessMode.Field);
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    //new EventItem()
+    new Item()
+    {
+      ...
+      //DestroyDate =  DateTime.Now
+    },
+    //items[1].Option = new ItemOption() { Dex = 1, Hp = 2, Str = 3 };
+
+    //items[2].Detail = new ItemDetail()
+    //{
+    //    Description = "This is a good item."
+    //};
+
+    items[0].AddReview(new ItemReview() { Score = 5 });
+    items[0].AddReview(new ItemReview() { Score = 4 });
+    items[0].AddReview(new ItemReview() { Score = 1 });
+    items[0].AddReview(new ItemReview() { Score = 5 });
+
+    ...
+    //{
+    //  var owner = db.Players.Where(p => p.Name == "Hanna").First();
+
+    //  Item item = new Item()
+    //  {
+    //    TemplateId = 300,
+    //    CreateDate = DateTime.Now,
+    //    Owner = owner
+    //  };
+    //  db.Items.Add(item);
+    //  db.SaveChanges();
+    //}
+  }
+
+  public static void ShowItem()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      //foreach (var item in db.Items.Include(i => i.Owner).Include(i => i.Detail).IgnoreQueryFilters().ToList())
+      foreach (var item in db.Items.Include(i => i.Owner).IgnoreQueryFilters().ToList())
+      {
+        ...
+        else
+        {
+          //if (item.Option != null)
+          //  Console.WriteLine("STR " + item.Option.Str);
+
+          //EventItem eventItem = item as EventItem;
+          //if (eventItem != null)
+          //  Console.WriteLine("DestroyDate: " + eventItem.DestroyDate);
+
+          //if (item.Detail != null)
+          //  Console.WriteLine(item.Detail.Description);
+
+          if(item.AverageScore == null)
+            Console.WriteLine("Score(None)");
+          else
+            Console.WriteLine($"Score({item.AverageScore})");
+
+          if (item.Owner == null)
+            Console.WriteLine($"ItemId({item.ItemId}) TemplateId({item.TemplateId}) Owner(0)");
+          else
+            Console.WriteLine($"ItemId({item.ItemId}) TemplateId({item.TemplateId}) Owner({item.Owner.Name})");
+        }
+      }
+    }
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/57.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/57.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/58.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/58.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/59.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/59.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# UserDefined Function(UDF)
+  - The ability to invoke SQL that you create
+  - want to perform operations on the DB side.
+  - EF Core queries are inefficient
+
+## Steps
+* Configuration
+  - make static function and assign EF Core
+* Database Setup
+* Use
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  [Table("Item")]
+  public class Item
+  {
+    ...
+    //public double? AverageScore { get; set; }
+
+    //private readonly List<ItemReview> _reviews = new List<ItemReview>();
+    //public IEnumerable<ItemReview> Reviews { get { return _reviews.ToList(); } }
+
+    //public void AddReview(ItemReview review)
+    //{
+    //  _reviews.Add(review);
+    //  AverageScore = _reviews.Any() ? _reviews.Average(r => r.Score) : (double?)null;
+    //}
+
+    //public void RemoveReview(ItemReview review)
+    //{
+    //  _reviews.Remove(review);
+    //}
+
+    public ICollection<ItemReview> Reviews { get; set; }
+  }
+{% endhighlight %}
+
+* Program.cs
+{% highlight C# %}
+  // assign EFCore
+  // Annotation(Attribute)
+  [DbFunction()]
+  public static double? GetAverageReviewScore(int ItemId)
+  {
+    throw new NotImplementedException("Don't Use!");
+  }
+{% endhighlight %}
+
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    //builder.Entity<Item>()
+    //       .Metadata
+    //       .FindNavigation("Reviews")
+    //       .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+    // DbFunction
+    builder.HasDbFunction(() => Program.GetAverageReviewScore(0));
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void InitializeDB(bool forceReset = false)
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      ...
+      string command = 
+        @" CREATE FUNCTION GetAverageReviewScore (@itemId INT) RETURNS FLOAT
+           AS
+           BEGIN
+
+           DECLARE @result AS FLOAT
+
+           SELECT @result = AVG(CAST([Score] AS FLOAT))
+           FROM ItemReview AS r
+           WHERE @itemId = r.ItemId
+
+           RETURN @result
+
+           END";
+
+      db.Database.ExecuteSqlRaw(command);
+      ...
+    }
+  }
+
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    //items[0].AddReview(new ItemReview() { Score = 5 });
+    //items[0].AddReview(new ItemReview() { Score = 4 });
+    //items[0].AddReview(new ItemReview() { Score = 1 });
+    //items[0].AddReview(new ItemReview() { Score = 5 });
+
+    items[0].Reviews = new List<ItemReview>()
+    {
+      new ItemReview(){Score = 5},
+      new ItemReview(){Score = 3},
+      new ItemReview(){Score = 2},
+    };
+            
+    items[1].Reviews = new List<ItemReview>()
+    {
+      new ItemReview(){Score = 1},
+      new ItemReview(){Score = 1},
+      new ItemReview(){Score = 0},
+    };
+    ...
+  }
+
+  public static void ShowItem(AppDbContext db)
+  {
+    ...
+    //if(item.AverageScore == null)
+    //  Console.WriteLine("Score(None)");
+    //else
+    //  Console.WriteLine($"Score({item.AverageScore})");
+  }
+
+  public static void CalcAverage()
+  {
+    using(AppDbContext db = new AppDbContext())
+    {
+      foreach(double? average in db.Items.Select(i => Program.GetAverageReviewScore(i.ItemId)))
+      {
+        if(average == null)
+          Console.WriteLine("No Review!");
+        else
+          Console.WriteLine($"Average: {average.Value}");
+      }
+    }
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/60.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/60.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/61.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/61.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/62.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/62.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Default Value
+
+## How to be defined
+* defined by Entity Class
+* defined by DB Table
+  - if you use DB by other way except EF ↔ DB, it makes diff<br>
+    ex) SQL Script 
+
+## Auto-Property Initializer(C# 6.0)
+* Entity default value
+  - apply DB by SaveChange
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  [Table("Item")]
+  public class Item
+  {
+    ...
+    public DateTime CreateDate { get; set; } = new DateTime(2020, 1, 1);
+    ...
+    //public ICollection<ItemReview> Reviews { get; set; }
+  }
+
+  //public class ItemReview
+  //{
+  //    public int ItemReviewId { get; set; }
+  //    public int Score { get; set; } // 0~5
+  //}
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+
+  public static CreateTestData(AppDbContext db)
+  {
+    ...
+    //items[0].Reviews = new List<ItemReview>()
+    //{
+    //  new ItemReview(){Score = 5},
+    //  new ItemReview(){Score = 3},
+    //  new ItemReview(){Score = 2},
+    //};
+            
+    //items[1].Reviews = new List<ItemReview>()
+    //{
+    //  new ItemReview(){Score = 1},
+    //  new ItemReview(){Score = 1},
+    //  new ItemReview(){Score = 0},
+    //};
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/63.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/63.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/64.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/64.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/65.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/65.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## Fluent Api
+* DB Table
+  - DEFAULT
+
+### Test
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    //builder.HasDbFunction(() => Program.GetAverageReviewScore(0));
+
+    builder.Entity<Item>()
+           .Property("CreateDate")
+           .HasDefaultValue(DateTime.Now);
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/66.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/66.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/67.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/67.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/68.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/68.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## SQL Fragment 
+* .HasDefaultValueSql
+  - when add new value, excute in DB
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  [Table("Item")]
+  public class Item
+  {
+    ...
+    //public DateTime CreateDate { get; set; } = new DateTime(2020, 1, 1);
+    public DateTime CreateDate { get; private set; }
+    ...
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+
+    //builder.Entity<Item>()
+    //       .Property("CreateDate")
+    //       .HasDefaultValue(DateTime.Now);
+
+    builder.Entity<Item>()
+           .Property("CreateDate")
+           .HasDefaultValueSql("GETDATE()");
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    List<Item> items = new List<Item>()
+    {
+      new Item()
+      {
+        TemplateId = 101,
+        //CreateDate = DateTime.Now,
+        Owner = hanna
+      },
+      new Item()
+      {
+        TemplateId = 102,
+        //CreateDate = DateTime.Now,
+        Owner = faker,
+      },
+      new Item()
+      {
+        TemplateId = 103,
+        //CreateDate = DateTime.Now,
+        Owner = deft
+      }
+    };
+    ...
+  }
+
+  //public static void UpdateDate()
+  //{
+  //  Console.WriteLine("Input Player Name");
+  //  Console.Write("> ");
+  //  string name = Console.ReadLine();
+
+  //  using(var db = new AppDbContext())
+  //  {
+  //    var items = db.Items.Include(i => i.Owner)
+  //                  .Where(i => i.Owner.Name == name);
+
+  //    foreach(Item item in items)
+  //    {
+  //      item.CreateDate = DateTime.Now;
+  //    }
+
+  //    db.SaveChanges();
+  //  }
+
+  //  ReadAll();
+  //}
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/69.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/69.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/70.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/70.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/71.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/71.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## Value Generator
+  - excute in EF Core
+  - set Generator rule
+
+### Test
+
+* DataModel.cs
+{% highlight C# %}
+  public class PlayerNameGenerator : ValueGenerator<string>
+  {
+    public override bool GeneratesTemporaryValues => false;
+
+    public override string Next(EntityEntry entry) 
+    {
+      string name = $"Player_{DateTime.Now.ToString("yyyyMMdd")}";
+      return name;
+    }
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  protected override void OnModelCreating(ModelBuilder builder)
+  {
+    ...
+    builder.Entity<Player>()
+           .Property(p => p.Name)
+           .HasValueGenerator((p, e) => new PlayerNameGenerator());
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    //var hanna = new Player() { Name = "Hanna" };
+    var hanna = new Player() { };
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/72.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/72.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/73.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/73.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
