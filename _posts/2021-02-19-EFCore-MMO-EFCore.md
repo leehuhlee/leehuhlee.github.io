@@ -1547,7 +1547,7 @@ comments: false
     <tr>
       <th>create</th>
       <td></td>
-      <td>.Property<DateTime>("RecoveredDate")</td>
+      <td>.Property&lt;DateTime&gt;("RecoveredDate")</td>
     </tr>
     <tr>
       <th>Read/Write</th>
