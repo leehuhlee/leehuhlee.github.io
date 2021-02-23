@@ -2498,3 +2498,99 @@ comments: false
   <a href="/assets/img/posts/efcore_mmo_efcore/73.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/73.jpg"></a>
 	<figcaption>MMO EFCore</figcaption>
 </figure>
+
+
+# Migration
+  - EF Core DbContext ↔ need agreement about DB state
+
+## Code-First
+  - the standard is Entity Class or Db Context
+  - not always update recently
+
+* Migration Step<br>
+  1) make Migration<br> 
+  2) apply Migration<br>
+
+* Add-Migration [Name]<br>
+  1) search DbContext and analize → DB Modeling(recent)<br>
+  2) DB Modeling most latest Migration state by ModelSnapshot.cs<br>
+  3) 1-2 Compare and print result<br>
+    &nbsp; a) ModelSnapshot<br>
+    &nbsp; b) Migrate.Designer.cs and Migrate.cs -> detail data related with Migration <br>
+    - Add Up/Down by Hands
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/74.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/74.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/75.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/75.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/76.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/76.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+* apply Migration<br>
+  1) SQL change script<br>
+    - Script-Migration [From] [To] [Options]<br>
+  2) call Database.Migrate <br>
+  3) Command Line method<br>
+    - Update-Database [options]
+
+### Test
+* DataModel.cs
+{% highlight C# %}
+  [Table("Item")]
+  public class Item
+  {
+    ...
+    public int ItemGreade { get; set; }
+    ...
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/77.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/77.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/78.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/78.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+* Sync to specific Migration 
+  - Update-Database [Name]
+
+<figure>
+  <a href="/assets/img/posts/efcore_mmo_efcore/79.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/79.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+* Delete last Migration
+  - Remove-Migration
+
+<figure>
+  <a href="/assets/img/posts/efcore_mmo_efcore/80.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/80.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## Database-First
+  - if you have Database, you can make EF Core DbContext from Database
+
+* Download
+  - <a href="https://marketplace.visualstudio.com/items?itemName=ErikEJ.EFCorePowerTools">EFCore Poser Tools</a>
+
+* Reverse Engineer
+  - [EF Core Power Tools] - [Reverse Engineer]
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/81.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/81.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/82.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/82.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/83.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/83.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/84.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/84.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/85.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/85.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/86.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/86.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+## SQL-First
+* Methods
+  - Hands Power
+  - Script-Migration [From] [To] [Options]
+  - Compare DB and extract SQL
+
