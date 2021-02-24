@@ -2594,3 +2594,457 @@ comments: false
   - Script-Migration [From] [To] [Options]
   - Compare DB and extract SQL
 
+# DbContext(Optimize)
+
+## ChangeTracker
+* Tracking State
+  - State is mostly intuitive but when it include Relationship, it becames more complexive
+
+## Database
+* Transaction
+* DB Creation / Migration
+* Raw SQL
+
+## Model
+* DB Modeling
+
+* State Check method
+  - Entry().State
+  - Entry().Property().IsModified
+  - Entry().Navigation().IsModified
+
+* state changing on Add/AddRange
+  - NotTracking State → Added
+  - Tracking State → seperated Modified or current state maintain by FK setting 
+
+* state changing on Remove/RemoveRange
+  - (key that made by DB) && (not C# default value) → Updated, Modified or Deleted
+  - (not Key that made by DB) || (C# default value) → Added
+  - above is Added because of behavior consistency
+  - DB need to the existence first (ex. Cascade Delete Process)
+
+### Test
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    var hanna = new Player() { Name = "Hanna" };
+    //var hanna = new Player() { };
+    ...
+    
+    db.SaveChanges();
+
+    // Add Test
+    {
+      Item item = new Item()
+      {
+        TemplateId = 500,
+        Owner = hanna
+      };
+      db.Items.Add(item);
+      // add item -> indirectly infect Player
+      // Player is Tracking state, it doesn't need to FK setting 
+
+      Console.WriteLine("2.)" + db.Entry(hanna).State);
+    }
+
+    // Delete Test
+    {
+      Player p = db.Players.First();
+
+      // DB don't know the new guild (not exist DB key)
+      p.Guild = new Guild() { GuildName = "This will be deleted Soon" };
+      // Item is in DB already (exist DB Key)
+      p.OwnedItem = items[0];
+
+      db.Players.Remove(p);
+
+      // remove Player directly
+      Console.WriteLine("3.)" + db.Entry(p).State); // Deleted
+      Console.WriteLine("4.)" + db.Entry(p.Guild).State); // Added
+      Console.WriteLine("5.)" + db.Entry(p.OwnedItem).State); // Deleted
+    }
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/87.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/87.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/88.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/88.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+* Update/UpdateRange
+  - the normal method to update Entity in EF is not Update
+  - Tracked Entity → change property → SaveChanges
+  - Update is to update all Untracked Entity (Disconnected State)
+
+* Update Step in EF Core<br>
+  1) call Update<br>
+  2) Entity State = Modified<br>
+  3) all IsModified of Non-Relational Property = true
+
+* Relationship in Update
+  - (key that made by DB) && (not 0 → Updated, Modified or Deleted
+  - (not Key that made by DB) || (0) → Added
+
+* Attach
+  - change Untracked Entity to Tracked Entity
+
+* Relationship in Attach
+  - (key that made by DB) && (not 0 → Unchanged
+  - (not Key that made by DB) || (0) → Added
+
+### Test
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    List<Item> items = new List<Item>()
+    {
+      ...
+      //new Item()
+      //{
+      //  TemplateId = 102,
+      //  Owner = faker,
+      //},
+      //new Item()
+      //{
+      //  TemplateId = 103,
+      //  Owner = deft
+      //}
+    };
+
+    //db.Entry(items[2]).Property("RecoveredDate").CurrentValue = DateTime.Now;
+    ...
+  }
+
+  public static void TestUpdateAttach()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      // Update Test
+      {
+        // Disconnected
+        Player p = new Player();
+        p.PlayerId = 2;
+        p.Name = "FakerLegend";
+
+        // DB don't know the new guild(not exist DB Key)
+        p.Guild = new Guild() { GuildName = "Update Guild" };
+
+        Console.WriteLine("6) " + db.Entry(p.Guild).State); // Detached
+        db.Players.Update(p);
+        Console.WriteLine("7) " + db.Entry(p.Guild).State); // Added
+      }
+
+      //Attach Test
+      {
+        Player p = new Player();
+
+        // TEMP
+        p.PlayerId = 3;
+        p.Name = "DeftHero";
+        p.Guild = new Guild() { GuildName = "Update Guild" };
+
+        Console.WriteLine("8) "+ db.Entry(p.Guild).State); // Detached
+        db.Players.Attach(p);
+        Console.WriteLine("9) " + db.Entry(p.Guild).State); // Added
+      }
+    }
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/89.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/89.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/90.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/90.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void TestUpdateAttach()
+  {
+    ...
+    //Attach Test
+    {
+      Player p = new Player();
+
+      // TEMP
+      p.PlayerId = 3;
+      //p.Name = "DeftHero";
+      p.Guild = new Guild() { GuildName = "Update Guild" };
+
+      Console.WriteLine("8) "+ db.Entry(p.Guild).State); // Detached
+      db.Players.Attach(p);
+      p.Name = "DeftHero";
+      Console.WriteLine("9) " + db.Entry(p.Guild).State); // Added
+    }
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/91.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/91.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/92.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/92.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# State Control
+  - can control State (ex. Optimization)
+  - Entry().State = EntityState.Added
+  - Entry().Property("").IsModified = true
+
+## TrackGraph
+  - State Control of Untracked Entity in Relationship<br>
+  ex. change speficific data
+
+## ChangeTracker
+  - detect state data changing<br>
+  ex. Print log when name of player changing<br>
+  ex. Put Validation code<br>
+  ex. add CreateTime data when player is created time
+
+* Steps<br>
+  1) override SaveChanges<br>
+  2) extract / use changing data by ChangeTracker.Entries
+
+### Test
+* DataModel.cs
+{% highlight C# %}
+  // detect Created Time
+  public interface ILogEntity
+  {
+    DateTime CreateTime { get; }
+    void SetCreateTime();
+  }
+
+  [Table("Player")]
+  public class Player
+  {
+    ...
+    //public ICollection<Item> CreatedItems { get; set; }
+    ...
+    public DateTime CreateTime { get; private set; }
+
+    public void SetCreateTime()
+    {
+      CreateTime = DateTime.Now;
+    }
+  }
+{% endhighlight %}
+
+* AppDbContext.cs
+{% highlight C# %}
+  public override int SaveChanges()
+  {
+    var entities = ChangeTracker.Entries()
+                                .Where(e => e.State == EntityState.Added);
+
+    foreach(var entity in entities)
+    {
+      ILogEntity tracked = entity.Entity as ILogEntity;
+      if (tracked != null)
+        tracked.SetCreateTime();
+    }
+    return base.SaveChanges();
+  }
+{% endhighlight %}
+
+* DbCommands.cs
+{% highlight C# %}
+  public static void StateControl()
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      // State Control
+      {
+        Player p = new Player { Name = "StateTest" };
+        db.Entry(p).State = EntityState.Added; // change Tracked
+        // db.Players.Add(p);
+        db.SaveChanges();
+      }
+
+      // TrackGraph
+      {
+        // Disconnected State
+        // not all change, only change player name
+        Player p = new Player()
+        {
+          PlayerId = 2,
+          Name = "Faker_New",
+        };
+
+        p.OwnedItem = new Item() { TemplateId = 777 }; // item data
+        p.Guild = new Guild() { GuildName = "TrackGraphGuild" }; // guild data
+
+        db.ChangeTracker.TrackGraph(p, e =>
+        {
+          if(e.Entry.Entity is Player)
+          {
+            e.Entry.State = EntityState.Unchanged;
+            e.Entry.Property("Name").IsModified = true;
+          }
+          else if(e.Entry.Entity is Guild)
+          {
+            e.Entry.State = EntityState.Unchanged;
+          }
+          else if(e.Entry.Entity is Item)
+          {
+            e.Entry.State = EntityState.Unchanged;
+          }
+        });
+        db.SaveChanges();
+      }
+    }
+  }
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/efcore_mmo_efcore/93.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/93.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/94.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/94.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/95.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/95.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# call SQL direct
+  - you can call your SQL<br>
+  ex. not to LINQ → call Stored Procedure, etc<br>
+  ex. Performance Optimizing
+
+## FormSql → FromSql / FormSqlInterpolated
+  - Add Raw SQL in EF Core Query
+
+## ExecuteSqlCommand → ExcuteSqlRaw / ExecuteSqlInterpolated
+  - Non-Query SQL(not SELECT)
+
+## Reload
+  - there is Tracked Entity already
+  - when DB data is changed by ExecuteSqlCommand, then Reload
+
+### Test
+* DbCommands.cs
+{% highlight C# %}
+  public static void CreateTestData(AppDbContext db)
+  {
+    ...
+    List<Item> items = new List<Item>()
+    {
+      new Item()
+      {
+        TemplateId = 101,
+        Owner = hanna
+      },
+      new Item()
+      {
+        TemplateId = 102,
+        Owner = faker,
+      },
+      new Item()
+      {
+        TemplateId = 103,
+        Owner = deft
+      }
+    };
+    
+    //Console.WriteLine("1.)" + db.Entry(hanna).State);
+
+    //db.SaveChanges();
+
+    //{
+    //  Item item = new Item()
+    //  {
+    //    TemplateId = 500,
+    //    Owner = hanna
+    //  };
+    //  db.Items.Add(item);
+
+    //  Console.WriteLine("2.)" + db.Entry(hanna).State);
+    //}
+
+    //{
+    //  Player p = db.Players.First();
+    //  p.Guild = new Guild() { GuildName = "This will be deleted Soon" };
+    //  p.OwnedItem = items[0];
+
+    //  db.Players.Remove(p);
+
+    //  Console.WriteLine("3.)" + db.Entry(p).State); // Deleted
+    //  Console.WriteLine("4.)" + db.Entry(p.Guild).State); // Added
+    //  Console.WriteLine("5.)" + db.Entry(p.OwnedItem).State); // Deleted
+    //}
+  }
+
+  public static void CallSQL()
+  {
+    using(AppDbContext db = new AppDbContext())
+    {
+      // FormSql
+      {
+        string name = "Hanna";
+
+        // SQL Injection(Web Hacking)
+
+        var list = db.Players
+                     .FromSqlRaw("SELECT * FROM dbo.Player WHERE Name = {0}", name)
+                     .Include(p => p.OwnedItem)
+                     .ToList();
+
+        foreach(var p in list)
+        {
+          Console.WriteLine($"{p.Name} {p.PlayerId}");
+        }
+                    
+        // String Interpolation C#6.0
+        var list2 = db.Players
+                      .FromSqlInterpolated($"SELECT * FROM dbo.Player WHERE Name = {name}");
+
+        foreach (var p in list2)
+        {
+          Console.WriteLine($"{p.Name} {p.PlayerId}");
+        }
+      }
+
+      // ExecuteSqlCommand (Non-Query SQL)
+      {
+        Player p = db.Players.Single(p => p.Name == "Faker");
+        string prevName = "Faker";
+        string afterName = "Faker_New";
+        db.Database.ExecuteSqlInterpolated($"UPDATE dbo.Player SET Name={afterName} WHERE Name={prevName}");
+
+        db.Entry(p).Reload();
+      }
+    }
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/96.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/96.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/97.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/97.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+# Logging
+  - print SQL log in console
+
+### Test
+* AppDbContext.cs
+{% highlight C# %}
+  public static readonly ILoggerFactory MyLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
+
+  protected override void OnConfiguring(DbContextOptionsBuilder options)
+  {
+    options
+      .UseLoggerFactory(MyLoggerFactory)
+      .UseSqlServer(ConnectionString);
+  }
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/efcore_mmo_efcore/98.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/98.jpg"></a>
+  <a href="/assets/img/posts/efcore_mmo_efcore/99.jpg"><img src="/assets/img/posts/efcore_mmo_efcore/99.jpg"></a>
+	<figcaption>MMO EFCore</figcaption>
+</figure>
+
+[Download](https://github.com/leehuhlee/CShap){: .btn}
