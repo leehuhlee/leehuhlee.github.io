@@ -514,7 +514,49 @@ void LateUpdate()
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Camera-Wall.mp4" frameborder="0"> </iframe>
 
+# Animation
 
+## WAIT & RUN
 
+* Animation Controller
+  - `Animation Controller` can make animation
+  - customize Animation
+  - Add controller in Animator
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmorpg/5.jpg"><img src="/assets/img/posts/unity_mmorpg/5.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/6.jpg"><img src="/assets/img/posts/unity_mmorpg/6.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/7.jpg"><img src="/assets/img/posts/unity_mmorpg/7.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* PlayerController.cs
+{% highlight C# %}
+void Update()
+{
+    ...
+    if (_moveToDest)
+    {
+        Animator anim = GetComponent<Animator>();
+        anim.Play("RUN");
+    }
+    else
+    {
+        Animator anim = GetComponent<Animator>();
+        anim.Play("WAIT");
+    }
+}
+
+void OnMouseClicked(Define.MouseEvent evt)
+{
+    //if (evt != Define.MouseEvent.Click)
+    //    return;
+    ...
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-Wait-Run.mp4" frameborder="0"> </iframe>
+
+## Animation Blending
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
