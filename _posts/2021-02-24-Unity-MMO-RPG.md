@@ -558,5 +558,44 @@ void OnMouseClicked(Define.MouseEvent evt)
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-Wait-Run.mp4" frameborder="0"> </iframe>
 
 ## Animation Blending
+  - player can move sequencialy, not suddenly
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/8.jpg"><img src="/assets/img/posts/unity_mmorpg/8.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/9.jpg"><img src="/assets/img/posts/unity_mmorpg/9.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Blend Tree
+  - blend sevral animations
+  - `Threshold` sets blend values
+  - when the value comes closer to threshold value, the animation will be excuted
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+  float wait_run_ratio;
+  ...
+  void Update()
+  {
+    ...
+    if (_moveToDest)
+    {
+      wait_run_ratio = Mathf.Lerp(wait_run_ratio, 1, 10.0f * Time.deltaTime);
+      Animator anim = GetComponent<Animator>();
+      anim.SetFloat("wait_run_ratio", wait_run_ratio);
+      anim.Play("WAIT_RUN");
+    }
+    else
+    {
+      wait_run_ratio = Mathf.Lerp(wait_run_ratio, 0, 10.0f * Time.deltaTime);
+      Animator anim = GetComponent<Animator>();
+      anim.SetFloat("wait_run_ratio", wait_run_ratio);
+      anim.Play("WAIT_RUN");
+    }   
+  }
+}
+{% endhighlight %}
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
