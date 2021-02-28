@@ -62,7 +62,7 @@ public class Managers : MonoBehaviour
   - it links other Manager objects with each Managers
 
 * InputManager.cs
-{% highlihght C# %}
+{% highlight C# %}
 public class InputManager
 {
     public Action KeyAction = null;
@@ -513,6 +513,8 @@ void LateUpdate()
 {% endhighlight %}
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Camera-Wall.mp4" frameborder="0"> </iframe>
+
+
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
