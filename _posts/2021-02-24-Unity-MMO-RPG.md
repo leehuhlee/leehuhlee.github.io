@@ -755,5 +755,230 @@ public class PlayerController : MonoBehaviour
 	<figcaption>MMO Unity</figcaption>
 </figure>
 
+## KeyFrame Animation
+  - you can make KeyFrame Animation
+
+* Animation Tool
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/15.jpg"><img src="/assets/img/posts/unity_mmorpg/15.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - Click object
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/16.jpg"><img src="/assets/img/posts/unity_mmorpg/16.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/17.jpg"><img src="/assets/img/posts/unity_mmorpg/17.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - Add all Transform Properties
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/18.jpg"><img src="/assets/img/posts/unity_mmorpg/18.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/19.jpg"><img src="/assets/img/posts/unity_mmorpg/19.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - change position at 60 sec and 120 sec
+  
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/20.jpg"><img src="/assets/img/posts/unity_mmorpg/20.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/21.jpg"><img src="/assets/img/posts/unity_mmorpg/21.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-KeyFrame.mp4" frameborder="0"> </iframe>
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/22.jpg"><img src="/assets/img/posts/unity_mmorpg/22.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-KeyFrame-Curve.mp4" frameborder="0"> </iframe>
+
+  - keyframe recording mode
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/23.jpg"><img src="/assets/img/posts/unity_mmorpg/23.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-KeyFrame-Recording.mp4" frameborder="0"> </iframe>
+
+## Animation Event
+
+* Animation Event
+  - Add Animation Event
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/24.jpg"><img src="/assets/img/posts/unity_mmorpg/24.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Scripts\CubeEventTest.cs
+{% highlight C# %}
+public class CubeEventTest : MonoBehaviour
+{
+    void TestEventCallback()
+    {
+        Debug.Log("Evnet Received!");
+    }
+}
+{% endhighlight %}
+
+  - in added animation event, change function
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/25.jpg"><img src="/assets/img/posts/unity_mmorpg/25.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* change `unitychan_RUN00_F`
+  - Add Event
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/26.jpg"><img src="/assets/img/posts/unity_mmorpg/26.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/27.jpg"><img src="/assets/img/posts/unity_mmorpg/27.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* PlayerController.cs
+{% highlight C# %}
+void OnRunEvent()
+{
+    Debug.Log("walk walk");
+}
+{% endhighlight %}
+
+
+## send reference value
+* change `unitychan_RUN00_F`
+  - change string
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/28.jpg"><img src="/assets/img/posts/unity_mmorpg/28.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* PlayerController.cs
+{% highlight C# %}
+void OnRunEvent(string a)
+{
+    Debug.Log($"walk{a} walk{a}");
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Animation-KeyFrame-Event.mp4" frameborder="0"> </iframe>
+
+# UI
+
+## Pivot
+  - it is central point of UI object
+  - object rotate round pivot when rotation is changed
+
+## Anchor
+  - set ratio and size of object when screen size is changed
+
+## UI Anomatification
+
+* Detect Objects
+  - change object name
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/30.jpg"><img src="/assets/img/posts/unity_mmorpg/30.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure
+
+* Utils\Util.cs
+
+{% highlight C# %}
+public class Util
+{
+    public static T FindChild<T>(GameObject go, string name = null, bool recursive = false) where T: UnityEngine.Object
+    {
+        if (go == null)
+            return null;
+
+        if(recursive == false)
+        {
+            for (int i = 0; i < go.transform.childCount; i++)
+            {
+                Transform transform = go.transform.GetChild(i);
+                if(string.IsNullOrEmpty(name) || transform.name == name)
+                {
+                    T component = transform.GetComponent<T>();
+                    if (component != null)
+                        return component;
+                }
+            }
+        }
+        else
+        {
+            foreach(T component in go.GetComponentsInChildren<T>())
+            {
+                if (string.IsNullOrEmpty(name) || component.name == name)
+                    return component;
+            }
+        }
+
+        return null;
+    }
+}
+{% endhighlight %}
+
+* Scripts\UI\UI_Button.cs
+{% highlight C# %}
+public class UI_Button : MonoBehaviour
+{
+    // Text _text;
+    Dictionary<Type, UnityEngine.Object[]> _objects = new Dictionary<Type, UnityEngine.Object[]>();
+
+    enum Buttons
+    {
+        PointButton,
+    }
+
+    enum Texts
+    {
+        PointText,
+        ScoreText,
+    }
+
+    private void Start()
+    {
+        Bind<Button>(typeof(Buttons));
+        Bind<Text>(typeof(Texts));
+    }
+
+    void Bind<T>(Type type) where T: UnityEngine.Object
+    {
+        string [] names = Enum.GetNames(type);
+
+        UnityEngine.Object[] objects = new UnityEngine.Object[names.Length];
+        _objects.Add(typeof(T), objects);
+
+        for(int i=0; i<names.Length; i++)
+        {
+            objects[i] = Util.FindChild<T>(gameObject, names[i], true);
+        }
+    }
+
+    int _score = 0;
+
+    public void OnButtonClicked()
+    {
+        _score++;
+        //_text.text = $"Score : {_score}";
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/29.jpg"><img src="/assets/img/posts/unity_mmorpg/29.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
