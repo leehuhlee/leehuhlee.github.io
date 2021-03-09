@@ -883,6 +883,8 @@ void OnRunEvent(string a)
 
 ## UI Anomatification
 
+### Object Detection
+
 * Detect Objects
   - change object name
 
@@ -978,7 +980,267 @@ public class UI_Button : MonoBehaviour
 <figure>
   <a href="/assets/img/posts/unity_mmorpg/29.jpg"><img src="/assets/img/posts/unity_mmorpg/29.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
-</figure
+</figure>
+
+### Base UI
+
+* Create Base UI
+  - use prefab
+
+* Delete in Hierarchy
+  - first, delete `UI_Button` in prefeb
+  - drag `UI_Button` in Hierarchy to prefab
+  - delete `UI_Button` in Hierarchy
+  - this step is to change `UI_Button` prefeb
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/31.jpg"><img src="/assets/img/posts/unity_mmorpg/31.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* UI_Button.cs
+
+{% highlight C# %}
+public class UI_Button : UI_Base
+{
+  ...
+    enum GameObjects
+    {
+        TestObject,
+    }
+
+    private void Start()
+    {
+        ...
+        Bind<GameObject>(typeof(GameObjects));
+
+        GetText((int)Texts.ScoreText).text = "Bind Test";
+    }
+    ...
+}
+{% endhighlight %}
+
+* Script\UI\UI_Base.cs
+{% highlight C# %}
+public class UI_Base : MonoBehaviour
+{
+    Dictionary<Type, UnityEngine.Object[]> _objects = new Dictionary<Type, UnityEngine.Object[]>();
+
+    protected void Bind<T>(Type type) where T : UnityEngine.Object
+    {
+        string[] names = Enum.GetNames(type);
+
+        UnityEngine.Object[] objects = new UnityEngine.Object[names.Length];
+        _objects.Add(typeof(T), objects);
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            if (typeof(T) == typeof(GameObject))
+                objects[i] = Util.FindChild(gameObject, names[i], true);
+            else
+                objects[i] = Util.FindChild<T>(gameObject, names[i], true);
+
+            if (objects[i] == null)
+                Debug.Log($"Faild to bind{name[i]}");
+        }
+    }
+
+    protected T Get<T>(int idx) where T : UnityEngine.Object
+    {
+        UnityEngine.Object[] objects = null;
+        if (_objects.TryGetValue(typeof(T), out objects) == false)
+            return null;
+
+        return objects[idx] as T;
+    }
+
+    protected Text GetText(int idx) { return Get<Text>(idx); }
+    protected Button GetButton(int idx) { return Get<Button>(idx); }
+    protected Image GetImage(int idx) { return Get<Image>(idx); }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    Managers.Resource.Instantiate("UI/UI_Button");
+}
+{% endhighlight %}
+
+### Event Handler
+
+* Drag Image
+  - add `UI_Button` in Hierarchy
+  - add `ItemIcon` Image in `UI_Button`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/32.jpg"><img src="/assets/img/posts/unity_mmorpg/32.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    //Managers.Resource.Instantiate("UI/UI_Button");
+}
+{% endhighlight %}
+
+* Script\UI\UI_EventHandler.cs
+  - add this component in `ItemIcon` Image
+
+{% highlight C# %}
+public class UI_EventHandler : MonoBehaviour, IBeginDragHandler, IDragHandler
+{
+    public Action<PointerEventData> OnBeginDragHandler = null;
+    public Action<PointerEventData> OnDragHandler = null;
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (OnBeginDragHandler != null)
+            OnBeginDragHandler.Invoke(eventData);
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (OnDragHandler != null)
+            OnDragHandler.Invoke(eventData);
+    }
+}
+{% endhighlight %}
+
+* UI_Button.cs
+{% highlight C# %}
+enum Images
+{
+    ItemIcon,
+}
+
+private void Start()
+{
+    ...
+    Bind<Image>(typeof(Images));
+
+    ...
+    GameObject go = GetImage((int)Images.ItemIcon).gameObject;
+    UI_EventHandler evt = go.GetComponent<UI_EventHandler>();
+    evt.OnDragHandler += ((PointerEventData data) => { evt.gameObject.transform.position = data.position; });
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Drag.mp4" frameborder="0"> </iframe>
+
+### UI Event
+
+* Add Script Component
+  - by code, add script component in each game object atomatically
+
+* UI_Base.cs
+{% highlight C# %}
+public static void AddUIEvent(GameObject go, Action<PointerEventData> action, Define.UIEvent type = Define.UIEvent.Click)
+    {
+        UI_EventHandler evt = Util.GetOrAddComponent<UI_EventHandler>(go);
+
+        switch (type)
+        {
+            case Define.UIEvent.Click:
+                evt.OnClickHandler -= action;
+                evt.OnClickHandler += action;
+                break;
+            case Define.UIEvent.Drag:
+                evt.OnDragHandler -= action;
+                evt.OnDragHandler += action;
+                break;
+        }
+        evt.OnDragHandler += ((PointerEventData data) => { evt.gameObject.transform.position = data.position; });
+    }
+{% endhighlight %}
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    public enum UIEvent
+    {
+        Click,
+        Drag,
+    }
+    ...
+}
+{% endhighlight %}
+
+* Util.cs
+{% highlight C# %}
+public class Util
+{
+    public static T GetOrAddComponent<T>(GameObject go) where T : UnityEngine.Component
+    {
+        T component = go.GetComponent<T>();
+        if (component == null)
+            component = go.AddComponent<T>();
+        return component;
+    }
+    ...
+}
+{% endhighlight %}
+
+* UI_EventHandler.cs
+{% highlight C# %}
+public class UI_EventHandler : MonoBehaviour, IPointerClickHandler,IDragHandler
+{
+    public Action<PointerEventData> OnClickHandler = null;
+    public Action<PointerEventData> OnDragHandler = null;
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (OnClickHandler != null)
+            OnClickHandler.Invoke(eventData);
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (OnDragHandler != null)
+            OnDragHandler.Invoke(eventData);
+    }
+}
+{% endhighlight %}
+
+* UI_Button.cs
+{% highlight C# %}
+private void Start()
+{
+    ...
+    GetButton((int)Buttons.PointButton).gameObject.AddUIEvent(OnButtonClicked);
+    GameObject go = GetImage((int)Images.ItemIcon).gameObject;
+    AddUIEvent(go, (PointerEventData data) => { go.transform.position = data.position; }, Define.UIEvent.Drag);
+    }
+
+    ...
+
+public void OnButtonClicked(PointerEventData data)
+{
+    _score++;
+    GetText((int)Texts.ScoreText).text = $"Score: {_score}";
+}
+{% endhighlight %}
+
+* Extension.cs
+  - extense function
+
+{% highlight C# %}
+public static class Extension
+{
+    public static void AddUIEvent(this GameObject go, Action<PointerEventData> action, Define.UIEvent type = Define.UIEvent.Click)
+    {
+        UI_Base.AddUIEvent(go, action, type);
+    }
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Click.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
