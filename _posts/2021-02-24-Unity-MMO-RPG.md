@@ -1242,5 +1242,244 @@ public static class Extension
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Click.mp4" frameborder="0"> </iframe>
 
+## UI Manager
+
+### Create Popup
+
+* Popup UI
+  - create Popup in code
+
+* organize folder
+  - Create `Popup` folder in Prefabs\UI and Scripts\UI
+  - Dreate `Scene` folder in Prefabs\UI and Scripts\UI
+  - Move `UI_Button` to  Prefabs\UI\Popup and Scripts\UI\Popup
+
+* Scripts\UI\Popup\UI_Popup.cs
+{% highlight C# %}
+public class UI_Popup : UI_Base{ }
+{% endhighlight %}
+
+* Managers\UIManagers.cs
+  - use stack to manage popup
+{% highlight C# %}
+public class UIManager
+{
+    int _order = 0;
+
+    Stack<UI_Popup> _popupStack = new Stack<UI_Popup>();
+
+    public T ShowPopupUI<T>(string name = null) where T : UI_Popup
+    {
+        if (string.IsNullOrEmpty(name))
+            name = typeof(T).Name;
+
+        GameObject go = Managers.Resource.Instantiate($"UI/Popup/{name}");
+
+        T popup = Util.GetOrAddComponent<T>(go);
+        _popupStack.Push(popup);
+
+        return popup;
+    }
+
+    public void ClosePopupUI(UI_Popup popup)
+    {
+        if (_popupStack.Count == 0)
+            return;
+        if(_popupStack.Peek() != popup)
+        {
+            Debug.Log("Close Popup Failed!");
+            return;
+        }
+
+        ClosePopupUI();
+    }
+
+    public void ClosePopupUI()
+    {
+        if (_popupStack.Count == 0)
+            return;
+
+        UI_Popup popup = _popupStack.Pop();
+        Managers.Resource.Destroy(popup.gameObject);
+        popup = null;
+
+        _order--;
+    }
+
+    public void CloseAllPopupUI()
+    {
+        while (_popupStack.Count > 0)
+            ClosePopupUI();
+    }
+}
+{% endhighlight %}
+
+* UI_Button.cs
+{% highlight C# %}
+public class UI_Button : UI_Popup
+{
+  ...
+}
+{% endhighlight %}
+
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+  ...
+  UIManager _ui = new UIManager();
+
+  ...
+  public static UIManager UI { get { return Instance._ui; } }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    UI_Button ui = Managers.UI.ShowPopupUI<UI_Button>();
+    Managers.UI.ClosePopupUI(ui);
+}
+{% endhighlight %}
+
+### Popup ordering
+
+* Popup Order
+  - Popup Ordering is essential when showing and closing popup
+  - Popup Blocker is essential if there is several Popups behind
+
+* UIManager.cs
+{% highlight C# %}
+public class UIManager
+{
+    int _order = 10;
+    ...
+    UI_Scene _sceneUI = null;
+
+    public GameObject Root
+    {
+        get
+        {
+            GameObject root = GameObject.Find("@UI_Root");
+            if (root == null)
+                root = new GameObject { name = "@UI_Root" };
+            return root;
+        }
+    }
+    public void SetCanvas(GameObject go, bool sort = true)
+    {
+        Canvas canvas = Util.GetOrAddComponent<Canvas>(go);
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
+
+        if (sort)
+        {
+            canvas.sortingOrder = _order;
+            _order++;
+        }
+  }
+
+    public T ShowSceneUI<T>(string name = null) where T : UI_Scene
+    {
+        if (string.IsNullOrEmpty(name))
+            name = typeof(T).Name;
+
+        GameObject go = Managers.Resource.Instantiate($"UI/Scene/{name}");
+        T sceneUI = Util.GetOrAddComponent<T>(go);
+        _sceneUI = sceneUI;
+
+        go.transform.SetParent(Root.transform);
+
+        return sceneUI;
+    }
+
+    public T ShowPopupUI<T>(string name = null) where T : UI_Popup
+    {
+        if (string.IsNullOrEmpty(name))
+            name = typeof(T).Name;
+
+        GameObject go = Managers.Resource.Instantiate($"UI/Popup/{name}");
+        T popup = Util.GetOrAddComponent<T>(go);
+        _popupStack.Push(popup);
+
+        go.transform.SetParent(Root.transform);
+
+        return popup;
+    }
+}
+{% endhighlight %}
+
+* UI_Popup.cs
+{% highlight C# %}
+public class UI_Popup : UI_Base
+{
+    public virtual void init()
+    {
+        Managers.UI.SetCanvas(gameObject, true);
+    }
+
+    public virtual void ClosePopupUI()
+    {
+        Managers.UI.ClosePopupUI(this);
+    }
+}
+{% endhighlight %}
+
+* Scripts\UI\UI_Scene.cs
+{% highlight C# %}
+public class UI_Scene : UI_Base
+{
+    public virtual void init()
+    {
+        Managers.UI.SetCanvas(gameObject, false);
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    //Managers.UI.ClosePopupUI(ui);
+}
+{% endhighlight %}
+
+* UI_Button.cs
+{% highlight C# %}
+void Start()
+{
+    init();
+}
+    
+public override void init()
+{
+    base.init();
+
+    Bind<Button>(typeof(Buttons));
+    Bind<Text>(typeof(Texts));
+    Bind<GameObject>(typeof(GameObjects));
+    Bind<Image>(typeof(Images));
+
+    GetButton((int)Buttons.PointButton).gameObject.AddUIEvent(OnButtonClicked);
+    GameObject go = GetImage((int)Images.ItemIcon).gameObject;
+    AddUIEvent(go, (PointerEventData data) => { go.transform.position = data.position; }, Define.UIEvent.Drag);
+}
+{% endhighlight %}
+
+* Blocker
+  - Blocker blocks behind popup moving
+  - Create Image and set size to cover whole UI_Button
+  - set alpha value of color to 0
+  - set Hierarchy like below
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/33.jpg"><img src="/assets/img/posts/unity_mmorpg/33.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Popup.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
