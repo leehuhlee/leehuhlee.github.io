@@ -1482,4 +1482,214 @@ public override void init()
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Popup.mp4" frameborder="0"> </iframe>
 
+## Inventory
+
+### Panel
+  - Before starting, you should delete `UI_Button` in Hierarchy
+  - and change PlayerController.cs
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    //UI_Button ui = Managers.UI.ShowPopupUI<UI_Button>();
+}
+{% endhighlight %}
+
+* Asset Store
+  - search `Unity Samples : UI`
+  - import only `Textures and Sprites`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/34.jpg"><img src="/assets/img/posts/unity_mmorpg/34.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/35.jpg"><img src="/assets/img/posts/unity_mmorpg/35.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/36.jpg"><img src="/assets/img/posts/unity_mmorpg/36.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - and down load `2D Sprite` in [window]-[Package Manager]
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/37.jpg"><img src="/assets/img/posts/unity_mmorpg/37.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+### Binding
+
+* Inventory Panel
+  - Create Pannel and Change Canvas name to `UI_Inven`
+  - and use `UIPanel` in  [Textures and Sprite]-[Rounded UI] to Panel
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/38.jpg"><img src="/assets/img/posts/unity_mmorpg/38.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - create Panel in Panel and change name to `UI_Inven_Item`
+  - create Image in `UI_Inven_Item`
+  - use `icon1` in [Textures and Sprite]-[Decoration] to Image
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/39.jpg"><img src="/assets/img/posts/unity_mmorpg/39.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - Add `Grid Layout Group` in Panel
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/40.jpg"><img src="/assets/img/posts/unity_mmorpg/40.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - prefab `UI_Inven_Item` and Duplicate this
+  - prefab `UI_Inven`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/42.jpg"><img src="/assets/img/posts/unity_mmorpg/42.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/41.jpg"><img src="/assets/img/posts/unity_mmorpg/41.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Change Prefab
+  - in `UI_Inven` prefab, change panel name to `GridPanel`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/43.jpg"><img src="/assets/img/posts/unity_mmorpg/43.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - in `UI_Inven_Item` prefab, change image name to `ItemIcon`
+  - create Text and change name to `ItemNameText`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/44.jpg"><img src="/assets/img/posts/unity_mmorpg/44.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/45.jpg"><img src="/assets/img/posts/unity_mmorpg/45.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Scripts\UI\Scene\UI_Inven.cs
+{% highlight C# %}
+public class UI_Inven : UI_Scene
+{
+    enum GameObjects
+    {
+        GridPanel,
+    }
+
+    void Start()
+    {
+        Init();
+    }
+
+    public override void Init()
+    {
+        base.Init();
+
+        Bind<GameObject>(typeof(GameObjects));
+        GameObject gridPanel = Get<GameObject>((int)GameObjects.GridPanel);
+
+        foreach (Transform child in gridPanel.transform)
+            Managers.Resource.Destroy(child.gameObject);
+
+        for(int i=0; i<8; i++)
+        {
+            GameObject item = Managers.Resource.Instantiate("UI/Scene/UI_Inven_Item");
+            item.transform.SetParent(gridPanel.transform);
+
+            UI_Inven_Item invenItem = Util.GetOrAddComponent<UI_Inven_Item>(item);
+            invenItem.SetInfo($"Sward {i}");
+        }
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    Managers.UI.ShowSceneUI<UI_Inven>();
+}
+{% endhighlight %}
+
+* UI_Base.cs
+  - Making Init in here is better
+
+{% highlight C# %}
+public abstract class UI_Base : MonoBehaviour
+{
+    ...
+    public abstract void Init();
+    ...
+}
+{% endhighlight %}
+
+* UI_Popup.cs
+{% highlight C# %}
+public class UI_Popup : UI_Base
+{
+    public override void Init()
+    {
+        Managers.UI.SetCanvas(gameObject, true);
+    }
+}
+{% endhighlight %}
+
+* UI_Scene.cs
+{% highlight C# %}
+public class UI_Scene : UI_Base
+{
+    public override void Init()
+    {
+        Managers.UI.SetCanvas(gameObject, false);
+    }
+}
+{% endhighlight %}
+
+* Scripts\UI\Scene\UI_Inven_Item.cs
+{% highlight C# %}
+public class UI_Inven_Item : UI_Base
+{
+    enum GameObjects
+    {
+        ItemIcon,
+        ItemNameText,
+    }
+
+    string _name;
+
+    void Start()
+    {
+        Init();
+    }
+
+    public override void Init()
+    {
+        Bind<GameObject>(typeof(GameObjects));
+
+        Get<GameObject>((int)GameObjects.ItemNameText).GetComponent<Text>().text = _name;
+        Get<GameObject>((int)GameObjects.ItemIcon).AddUIEvent((PointerEventData) => { Debug.Log($"{_name} Item clicked!"); } );
+    }
+
+    public void SetInfo(string name)
+    {
+        _name = name;
+    }
+}
+{% endhighlight %}
+
+* Add Component
+  - in `UI_Inven` prefab, add Componenet `UI_Inven.cs`
+  - in `UI_Inven_Item` prefab, add Component `UI_Inven_Item.cs`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/46.jpg"><img src="/assets/img/posts/unity_mmorpg/46.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/47.jpg"><img src="/assets/img/posts/unity_mmorpg/47.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Inven.mp4" frameborder="0"> </iframe>
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
