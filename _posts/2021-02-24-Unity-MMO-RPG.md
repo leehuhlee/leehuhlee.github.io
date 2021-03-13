@@ -560,7 +560,7 @@ void OnMouseClicked(Define.MouseEvent evt)
 ## Animation Blending
   - player can move sequencialy, not suddenly
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/8.jpg"><img src="/assets/img/posts/unity_mmorpg/8.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/9.jpg"><img src="/assets/img/posts/unity_mmorpg/9.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -748,7 +748,7 @@ public class PlayerController : MonoBehaviour
 * Conditioning
   - you can make condition in animations
 
-<figure>
+<figure class="third">
   <a href="/assets/img/posts/unity_mmorpg/12.jpg"><img src="/assets/img/posts/unity_mmorpg/12.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/13.jpg"><img src="/assets/img/posts/unity_mmorpg/13.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/14.jpg"><img src="/assets/img/posts/unity_mmorpg/14.jpg"></a>
@@ -767,7 +767,7 @@ public class PlayerController : MonoBehaviour
 
   - Click object
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/16.jpg"><img src="/assets/img/posts/unity_mmorpg/16.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/17.jpg"><img src="/assets/img/posts/unity_mmorpg/17.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -775,7 +775,7 @@ public class PlayerController : MonoBehaviour
 
   - Add all Transform Properties
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/18.jpg"><img src="/assets/img/posts/unity_mmorpg/18.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/19.jpg"><img src="/assets/img/posts/unity_mmorpg/19.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -783,7 +783,7 @@ public class PlayerController : MonoBehaviour
 
   - change position at 60 sec and 120 sec
   
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/20.jpg"><img src="/assets/img/posts/unity_mmorpg/20.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/21.jpg"><img src="/assets/img/posts/unity_mmorpg/21.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -838,7 +838,7 @@ public class CubeEventTest : MonoBehaviour
 * change `unitychan_RUN00_F`
   - Add Event
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/26.jpg"><img src="/assets/img/posts/unity_mmorpg/26.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/27.jpg"><img src="/assets/img/posts/unity_mmorpg/27.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -891,7 +891,7 @@ void OnRunEvent(string a)
 <figure>
   <a href="/assets/img/posts/unity_mmorpg/30.jpg"><img src="/assets/img/posts/unity_mmorpg/30.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
-</figure
+</figure>
 
 * Utils\Util.cs
 
@@ -1501,7 +1501,7 @@ void Start()
   - search `Unity Samples : UI`
   - import only `Textures and Sprites`
 
-<figure>
+<figure class="third">
   <a href="/assets/img/posts/unity_mmorpg/34.jpg"><img src="/assets/img/posts/unity_mmorpg/34.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/35.jpg"><img src="/assets/img/posts/unity_mmorpg/35.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/36.jpg"><img src="/assets/img/posts/unity_mmorpg/36.jpg"></a>
@@ -1545,7 +1545,7 @@ void Start()
   - prefab `UI_Inven_Item` and Duplicate this
   - prefab `UI_Inven`
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/42.jpg"><img src="/assets/img/posts/unity_mmorpg/42.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/41.jpg"><img src="/assets/img/posts/unity_mmorpg/41.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -1562,7 +1562,7 @@ void Start()
   - in `UI_Inven_Item` prefab, change image name to `ItemIcon`
   - create Text and change name to `ItemNameText`
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/44.jpg"><img src="/assets/img/posts/unity_mmorpg/44.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/45.jpg"><img src="/assets/img/posts/unity_mmorpg/45.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -1683,13 +1683,255 @@ public class UI_Inven_Item : UI_Base
   - in `UI_Inven` prefab, add Componenet `UI_Inven.cs`
   - in `UI_Inven_Item` prefab, add Component `UI_Inven_Item.cs`
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/46.jpg"><img src="/assets/img/posts/unity_mmorpg/46.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/47.jpg"><img src="/assets/img/posts/unity_mmorpg/47.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
 </figure>
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-UI-Inven.mp4" frameborder="0"> </iframe>
+
+## Fix Codes
+
+* folder organization
+  - move `UI_Inven_Item` prefab and script
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmorpg/48.jpg"><img src="/assets/img/posts/unity_mmorpg/48.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/49.jpg"><img src="/assets/img/posts/unity_mmorpg/49.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* ResourceManager.cs
+  - it removes "(Clone)" string when creating new object by prefab
+
+{% highlight C# %}
+public GameObject Instantiate(string path, Transform parent = null)
+{
+    ...
+    GameObject go = Object.Instantiate(prefab, parent);
+    int index = go.name.IndexOf("(Clone)");
+    if (index > 0)
+        go.name = go.name.Substring(0, index);
+
+    return go;
+}
+{% endhighlight %}
+
+* UIManager.cs
+{% highlight C# %}
+public T MakeSubItem<T>(Transform parent = null, string name = null) where T : UI_Base
+{
+    if (string.IsNullOrEmpty(name))
+        name = typeof(T).Name;
+
+    GameObject go = Managers.Resource.Instantiate($"UI/SubItem/{name}");
+
+    if (parent != null)
+        go.transform.SetParent(parent);
+        
+    return Util.GetOrAddComponent<T>(go);
+}
+{% endhighlight %}
+
+* UI_Base.cs
+{% highlight C# %}
+public abstract class UI_Base : MonoBehaviour
+{
+    ...
+    protected GameObject GetObject(int idx) { return Get<GameObject>(idx); }
+
+    public static void BindEvent(GameObject go, Action<PointerEventData> action, Define.UIEvent type = Define.UIEvent.Click)
+    {
+      ...
+    }
+}
+{% endhighlight %}
+
+  - and change all `AddUIEvent` to `BindEvent` in the project
+
+* Extension.cs
+{% highlight C# %}
+public static class Extension
+{
+    public static T GetOrAddComponent<T>(this GameObject go) where T : UnityEngine.Component
+    {
+        return Util.GetOrAddComponent<T>(go);
+    }
+    ...
+}
+{% endhighlight %}
+
+# Scene
+  
+## organize Scenes
+
+* PlayerController.cs
+{% highlight C# %}
+void Start()
+{
+    ...
+    //Managers.UI.ShowSceneUI<UI_Inven>();
+}
+{% endhighlight %}
+
+* Scripts\Scenes\BaseScene.cs
+{% highlight C# %}
+public abstract class BaseScene : MonoBehaviour
+{
+    public Define.Scene SceneType { get; protected set; } = Define.Scene.Unknown;
+
+    void Awake()
+    {
+        Init();
+    }
+
+    protected virtual void Init()
+    {
+        Object obj = GameObject.FindObjectOfType(typeof(EventSystem));
+        if (obj == null)
+            Managers.Resource.Instantiate("UI/EventSystem").name = "@EventSystem";
+    }
+
+    public abstract void Clear();
+}
+{% endhighlight %}
+
+* Scripts\Scenes\GameScene.cs
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Game;
+
+        Managers.UI.ShowSceneUI<UI_Inven>();
+    }
+
+    public override void Clear() { }
+}
+{% endhighlight %}
+
+* Scripts\Scenes\LoginScene.cs
+{% highlight C# %}
+public class LoginScene : BaseScene
+{
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Login;
+    }
+
+    public override void Clear() { }
+}
+{% endhighlight %}
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    public enum Scene
+    {
+        Unknown,
+        Login,
+        Lobby,
+        Game,
+    }
+    ...
+}
+{% endhighlight %}
+
+* Game
+  - save `SampleScene` to `Game`
+  - Create Empty GameObject and change name to `@Scene`
+  - Add `GameScene.cs` Componenet to `@Scene`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/50.jpg"><img src="/assets/img/posts/unity_mmorpg/50.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - prefab EventSystem in Prefabs\UI
+  - Remove EventSystem object in Hierarchy
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/51.jpg"><img src="/assets/img/posts/unity_mmorpg/51.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Login
+  - Create New Scene and save name to `Login`
+  - Create Empty GameObject and change name to `@Scene`
+  - Add `LoginScene.cs` Componenet to `@Scene`
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/52.jpg"><img src="/assets/img/posts/unity_mmorpg/52.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+## Changing Scenes
+
+* Build Settings
+  - [Files]-[Build Settings]
+  - You can add Scene by Drag in Asset
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/53.jpg"><img src="/assets/img/posts/unity_mmorpg/53.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+  - it is for just setting, dont' click build button, just exit this window
+
+* Scripts\Managers\SceneManagerEx.cs
+{% highlight C# %}
+public class SceneManagerEx
+{
+    public BaseScene CurrentScene { get { return GameObject.FindObjectOfType<BaseScene>(); } }
+
+    public void LoadScene(Define.Scene type)
+    {
+        CurrentScene.Clear();
+        SceneManager.LoadScene(GetSceneName(type));
+    }
+
+    string GetSceneName(Define.Scene type)
+    {
+        string name = System.Enum.GetName(typeof(Define.Scene), type);
+        return name;
+    }
+}
+{% endhighlight %}
+
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+  ...
+  SceneManagerEx _scene = new SceneManagerEx();
+  ...
+  public static SceneManagerEx Scene { get { return Instance._scene; } }
+}
+{% endhighlight %}
+
+* LoginScene.cs
+  - scene will change when you press Q
+
+{% highlight C# %}
+private void Update()
+{
+    if(Input.GetKeyDown(KeyCode.Q))
+    {
+        Managers.Scene.LoadScene(Define.Scene.Game);
+    }
+}
+
+public override void Clear()
+{
+    Debug.Log("LoginScene Clear!");
+}
+{% endhighlight %}
+
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
