@@ -1932,6 +1932,261 @@ public override void Clear()
 }
 {% endhighlight %}
 
+# Sound
+
+## Sound ingredients
+* Audio Source
+  - Player
+* Audio Clip
+  - Sound file
+* Audio Listener
+  - audience
+
+## Sound Manager
+
+* move sound clips
+  - Create [Sounds] folder
+  - if player meet box, then sounds will play
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/55.jpg"><img src="/assets/img/posts/unity_mmorpg/55.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+* Add Sound Source Component
+  - Delete Cube Two
+  - Add Sound Source Component on Cube One
+  - check `Is Trigger` on Cube One
+  - and Audio Listner is already in Main Camera, so you don't have to add Audio Listner
+  - if you want, you can add Aduio Listner on player
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/56.jpg"><img src="/assets/img/posts/unity_mmorpg/56.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+
+* Scripts\Managers\SoundManager.cs
+{% highlight C# %}
+public class SoundManager
+{
+    AudioSource[] _audioSources = new AudioSource[(int)Define.Sound.MaxCount];
+
+    Dictionary<string, AudioClip> _audioClips = new Dictionary<string, AudioClip>();
+
+    public void Init()
+    {
+        GameObject root = GameObject.Find("@Sound");
+
+        if (root == null)
+        {
+            root = new GameObject { name = "@Sound" };
+            Object.DontDestroyOnLoad(root);
+
+            string[] soundNames = System.Enum.GetNames(typeof(Define.Sound));
+            for(int i=0; i<soundNames.Length -1; i++)
+            {
+                GameObject go = new GameObject { name = soundNames[i] };
+                _audioSources[i] = go.AddComponent<AudioSource>();
+                go.transform.parent = root.transform;
+            }
+
+            _audioSources[(int)Define.Sound.Bgm].loop = true;
+        }
+    }
+
+    public void Clear()
+    {
+        foreach(AudioSource audioSource in _audioSources)
+        {
+            audioSource.clip = null;
+            audioSource.Stop();
+        }
+
+        _audioClips.Clear();
+    }
+
+    public void Play(string path, Define.Sound type = Define.Sound.Effect,  float pitch = 1.0f)
+    {
+        AudioClip audioClip = GetOrAddAudioClip(path, type);
+        Play(audioClip, type, pitch);
+    }
+
+    public void Play(AudioClip audioClip, Define.Sound type = Define.Sound.Effect, float pitch = 1.0f)
+    {
+        if (audioClip == null)
+            return;
+
+        if (type == Define.Sound.Bgm)
+        {
+            AudioSource audioSource = _audioSources[(int)Define.Sound.Bgm];
+            if (audioSource.isPlaying)
+                audioSource.Stop();
+
+            audioSource.pitch = pitch;
+            audioSource.clip = audioClip;
+            audioSource.Play();
+        }
+        else
+        {
+            AudioSource audioSource = _audioSources[(int)Define.Sound.Effect];
+            audioSource.pitch = pitch;
+            audioSource.PlayOneShot(audioClip);
+        }
+    }
+
+    AudioClip GetOrAddAudioClip(string path, Define.Sound type = Define.Sound.Effect)
+    {
+        if (path.Contains("Sounds/") == false)
+            path = $"Sounds/{path}";
+
+        AudioClip audioClip = null;
+
+        if (type == Define.Sound.Bgm)
+        {
+            audioClip = Managers.Resource.Load<AudioClip>(path);
+        }
+        else
+        {
+            if (_audioClips.TryGetValue(path, out audioClip) == false)
+            {
+                audioClip = Managers.Resource.Load<AudioClip>(path);
+                _audioClips.Add(path, audioClip);
+            }
+        }
+
+        if (audioClip == null)
+        {
+            Debug.Log($"AudioClip Missing! {path}");
+        }
+        return audioClip;
+    }
+}
+{% endhighlight %}
+
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    SoundManager _sound = new SoundManager();
+    ...
+    public static SoundManager Sound { get { return Instance._sound; } }
+    ...
+}
+{% endhighlight %}
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    ...
+    public enum Sound
+    {
+        Bgm,
+        Effect,
+        MaxCount,
+    }
+    ...
+}
+{% endhighlight %}
+
+* TestSound.cs
+{% highlight C# %}
+public class TestSound : MonoBehaviour
+{
+    public AudioClip audioClip;
+    public AudioClip audioClip2;
+
+    int i = 0;
+
+    private void OnTriggerEnter(Collider other)
+    {
+        i++;
+
+        if(i%2==0)
+            Managers.Sound.Play(audioClip, Define.Sound.Bgm);
+        else
+            Managers.Sound.Play(audioClip2, Define.Sound.Bgm);
+    }
+}
+{% endhighlight %}
+
+### Memory Optimization
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    public static void Clear()
+    {
+        Input.Clear();
+        Sound.Clear();
+        Scene.Clear();
+        UI.Clear();
+    }
+}
+{% endhighlight %}
+
+* InputManager.cs
+{% highlight C# %}
+public void Clear()
+{
+    KeyAction = null;
+    MouseAction = null;
+}
+{% endhighlight %}
+
+* UIManager.cs
+{% highlight C# %}
+public void Clear()
+{
+    CloseAllPopupUI();
+    _sceneUI = null;
+}
+{% endhighlight %}
+
+* SceneManagerEX.cs
+{% highlight C# %}
+public void LoadScene(Define.Scene type)
+{
+    Managers.Clear();
+    //CurrentScene.Clear();
+    ...
+}
+
+...
+
+public void Clear()
+{
+    CurrentScene.Clear();
+}
+{% endhighlight %}
+
+* LoginScene.cs
+{% highlight C# %}
+public override void Clear()
+{
+    Debug.Log("LoginScene Clear!");
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Sound.mp4" frameborder="0"> </iframe>
+
+## 3D Sound
+
+* make 3D Sound on Cube One
+  - change Spatial Blend to 1. This mean this Sound Source is 3D Sound.
+  - change min and max distance
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/54.jpg"><img src="/assets/img/posts/unity_mmorpg/54.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Sound-3D.mp4" frameborder="0"> </iframe>
+
+  - for Next chapter, you need to remove TestSounc.cs and Sound Source Component on Cube One
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
