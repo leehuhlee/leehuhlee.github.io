@@ -2188,5 +2188,265 @@ public override void Clear()
 
   - for Next chapter, you need to remove TestSounc.cs and Sound Source Component on Cube One
 
+# Pool
+
+* Pooling
+  - If there is so much object in game, it will make some trouble when loading.
+  - to decrese this overloading, pool manager will work
+  - pool manager loads object before they are activate setting non-activate
+  - when the are needed in game, pool manager will switch their status to activate from non-activate
+
+## Pool Manager
+
+* Manager.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    PoolManager _pool = new PoolManager();
+    ...
+    public static PoolManager Pool { get { return Instance._pool; } }
+    ...
+
+    static void Init()
+    {
+        if (s_instance == null)
+        {
+            ...
+            s_instance._pool.Init();
+            ...
+        }
+    }
+
+    public static void Clear()
+    {
+        ...
+        Pool.Clear();
+    }
+}
+{% endhighlight %}
+
+
+* Scripts\Managers\Poolable.cs
+{% highlight C# %}
+public class Poolable : MonoBehaviour
+{
+    public bool IsUsing;
+}
+{% endhighlight %}
+
+* Scripts\Managers\PoolManager.cs
+{% highlight C# %}
+public class PoolManager
+{
+    #region Pool
+    class Pool
+    {
+        public GameObject Original { get; private set; }
+        public Transform Root { get; set; }
+
+        Stack<Poolable> _poolStack = new Stack<Poolable>();
+
+        public void Init(GameObject original, int count = 5)
+        {
+            Original = original;
+            Root = new GameObject().transform;
+            Root.name = $"{original.name}_Root";
+
+            for(int i=0; i<count; i++)
+                Push(Create());
+        }
+
+        Poolable Create()
+        {
+            GameObject go = Object.Instantiate<GameObject>(Original);
+            go.name = Original.name;
+            return go.GetOrAddComponent<Poolable>();
+        }
+
+        public void Push(Poolable poolable)
+        {
+            if (poolable == null)
+                return;
+
+            poolable.transform.parent = Root;
+            poolable.gameObject.SetActive(false);
+            poolable.IsUsing = false;
+
+            _poolStack.Push(poolable);
+        }
+
+        public Poolable Pop(Transform parent)
+        {
+            Poolable poolable;
+
+            if (_poolStack.Count > 0)
+                poolable = _poolStack.Pop();
+            else
+                poolable = Create();
+
+            poolable.gameObject.SetActive(true);
+
+            if (parent == null)
+                poolable.transform.parent = Managers.Scene.CurrentScene.transform;
+
+            poolable.transform.parent = parent;
+            poolable.IsUsing = true;
+
+            return poolable;
+        }
+    }
+    #endregion
+
+    Dictionary<string, Pool> _pool = new Dictionary<string, Pool>();
+    Transform _root;
+
+    public void Init()
+    {
+        if (_root == null)
+        {
+            _root = new GameObject { name = "@Pool_Root" }.transform;
+            Object.DontDestroyOnLoad(_root);
+        }
+    }
+
+    public void CreatePool(GameObject original, int count = 5)
+    {
+        Pool pool = new Pool();
+        pool.Init(original, count);
+        pool.Root.parent = _root;
+
+        _pool.Add(original.name, pool);
+    }
+
+    public void Push(Poolable poolable)
+    {
+        string name = poolable.gameObject.name;
+        if (_pool.ContainsKey(name) == false)
+        {
+            GameObject.Destroy(poolable.gameObject);
+            return;
+        }
+
+        _pool[name].Push(poolable);
+    }
+
+    public Poolable Pop(GameObject original, Transform parent = null)
+    {
+        if (_pool.ContainsKey(original.name) == false)
+            CreatePool(original);
+               
+        return _pool[original.name].Pop(parent);
+    }
+
+    public GameObject GetOriginal(string name)
+    {
+        if (_pool.ContainsKey(name) == false)
+            return null;
+        return _pool[name].Original;
+    }
+
+    public void Clear()
+    {
+        foreach (Transform child in _root)
+            GameObject.Destroy(child.gameObject);
+
+        _pool.Clear();
+    }
+}
+{% endhighlight %}
+
+* ResourceManager.cs
+{% highlight C# %}
+public T Load<T>(string path) where T: Object
+{
+    if (typeof(T) == typeof(GameObject))
+    {
+        ...
+
+        GameObject go = Managers.Pool.GetOriginal(name);
+        if (go != null)
+            return go as T;
+    }
+    ...
+}
+    
+public GameObject Instantiate(string path, Transform parent = null)
+{
+    GameObject original = Load<GameObject>($"Prefabs/{path}");
+
+    if (original == null)
+    {
+        Debug.Log($"Failed to load prefab: {path}");
+        return null;
+    }
+    
+    if (original.GetComponent<Poolable>() != null)
+        return Managers.Pool.Pop(original, parent).gameObject;
+
+    GameObject go = Object.Instantiate(original, parent);
+    go.name = original.name;
+
+    return go;
+}
+
+public void Destroy(GameObject go)
+{
+    if (go == null)
+        return;
+
+    Poolable poolable = go.GetComponent<Poolable>();
+    if(poolable != null)
+    {
+        Managers.Pool.Push(poolable);
+        return;
+    }
+
+    Object.Destroy(go);
+}
+{% endhighlight %}
+
+### Test
+
+* GameScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    ...
+    for (int i = 0; i < 5; i++)
+        Managers.Resource.Instantiate("UnityChan");
+}
+{% endhighlight %}
+
+* LoginScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    ...
+
+    List<GameObject> list = new List<GameObject>();
+    for (int i = 0; i < 5; i++)
+        list.Add(Managers.Resource.Instantiate("UnityChan"));
+
+    foreach(GameObject obj in list)
+    {
+        Managers.Resource.Destroy(obj);
+    }
+}
+{% endhighlight %}
+
+* Test
+  - create new prefab for player
+  - remove player in hierarchy
+  - add player in CameraController component
+
+<figure>
+  <a href="/assets/img/posts/unity_mmorpg/57.jpg"><img src="/assets/img/posts/unity_mmorpg/57.jpg"></a>
+  <a href="/assets/img/posts/unity_mmorpg/58.jpg"><img src="/assets/img/posts/unity_mmorpg/58.jpg"></a>
+	<figcaption>MMO Unity</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Pool.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
