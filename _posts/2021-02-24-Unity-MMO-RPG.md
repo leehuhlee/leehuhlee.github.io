@@ -2440,7 +2440,7 @@ protected override void Init()
   - remove player in hierarchy
   - add player in CameraController component
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmorpg/57.jpg"><img src="/assets/img/posts/unity_mmorpg/57.jpg"></a>
   <a href="/assets/img/posts/unity_mmorpg/58.jpg"><img src="/assets/img/posts/unity_mmorpg/58.jpg"></a>
 	<figcaption>MMO Unity</figcaption>
@@ -2448,5 +2448,150 @@ protected override void Init()
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Pool.mp4" frameborder="0"> </iframe>
 
+# Coroutine
+
+* can Save/Restore status of function
+  - stop a work spending so much time
+  - stop/restore function when you want
+
+## return
+
+  * yield retun object
+    - return type what you want(even class)
+
+  * yield return null
+    - pass this tic
+
+  * yield return break;
+    - stop this coroutine
+
+### Test
+
+* GameScene.cs
+{% highlight C# %}  
+public class GameScene : BaseScene
+{
+    Coroutine co;
+
+    protected override void Init()
+    {
+        ...
+        co = StartCoroutine("ExplodeAfterSeconds", 4.0f);
+        StartCoroutine("CoStopExplode", 6.0f);
+    }
+
+    IEnumerator CoStopExplode(float seconds)
+    {
+        Debug.Log("Stop Enter");
+        yield return new WaitForSeconds(seconds);
+        Debug.Log("Stop Execute!");
+
+        if (co != null)
+        {
+            StopCoroutine(co);
+            co = null;
+        }
+    }
+
+    IEnumerator ExplodeAfterSeconds(float seconds)
+    {
+        Debug.Log("Explode Enter");
+        yield return new WaitForSeconds(seconds);
+        Debug.Log("Explode Execute!");
+        co = null;
+    }
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MMORPG-Coroutine.mp4" frameborder="0"> </iframe>
+
+# Data
+
+* JSON
+  - Normally, data is managed by json files
+
+* Assets\Resources\Data\StatData.json
+{% highlight json %}
+{
+  "stats": [
+    {
+      "level": "1",
+      "hp": "100",
+      "attack": "10"
+    },
+    {
+      "level": "2",
+      "hp": "150",
+      "attack": "15"
+    },
+    {
+      "level": "3",
+      "hp": "200",
+      "attack": "20"
+    }
+  ]
+}
+{% endhighlight %}
+
+## Data Manager
+
+* Data Manager
+  - control the json files of data
+
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    DataManager _data = new DataManager();
+    ...
+    public static DataManager Data { get { return Instance._data; } }
+    ...
+    static void Init()
+    {
+        if (s_instance == null)
+        {
+            ...
+            s_instance._data.Init();
+            ...
+        }
+    }
+}
+{% endhighlight %}
+
+* Scripts\Managers\DataManager.cs
+{% highlight C# %}
+public interface ILoader<Key, Value>
+{
+    Dictionary<Key, Value> MakeDict();
+}
+
+public class DataManager
+{
+    public Dictionary<int, Stat> StatDict { get; private set; } = new Dictionary<int, Stat>();
+
+    public void Init()
+    {
+        StatDict = LoadJson<StatData, int, Stat>("StatData").MakeDict();
+    }
+
+    Loader LoadJson<Loader, Key, Value>(string path) where Loader: ILoader<Key, Value>
+    {
+        TextAsset textAsset = Managers.Resource.Load<TextAsset>($"Data/{path}");
+        return JsonUtility.FromJson<Loader>(textAsset.text);
+    }
+}
+{% endhighlight %}
+
+### Test
+
+* GameScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    ...
+    Dictionary<int,Stat> dict = Managers.Data.StatDict;
+}
+{% endhighlight %}
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
