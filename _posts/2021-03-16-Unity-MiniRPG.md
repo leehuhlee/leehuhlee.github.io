@@ -795,5 +795,365 @@ private void Start()
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-UI-HPBar.mp4" frameborder="0"> </iframe>
 
+# Monster AI
+  - monster can detect player
+  - monster can follow player
+  - monster can attack player
+
+## State Controll
+  - Change state by enum and switch
+
+* PlayerController.cs
+  - include code organization
+  - change PlayerState to Define.State
+
+{% highlight C# %}
+public class PlayerController : BaseController
+{
+	int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);
+	bool _stopSkill = false;
+
+	PlayerStat _stat;
+
+	public  override void  Init()
+    {
+		_stat = gameObject.GetComponent<PlayerStat>();
+		Managers.Input.MouseAction -= OnMouseEvent;
+		Managers.Input.MouseAction += OnMouseEvent;
+
+		if (gameObject.GetComponentInChildren<UI_HPBar>() == null)
+			Managers.UI.MakeWorldSpaceUI<UI_HPBar>(transform);
+	}
+
+	protected override void UpdateMoving()
+	{
+		if (_lockTarget != null)
+		{
+			_destPos = _lockTarget.transform.position;
+			float distance = (_destPos - transform.position).magnitude;
+			if (distance <= 1)
+			{
+				State = Define.State.Skill;
+				return;
+			}
+		}
+
+		Vector3 dir = _destPos - transform.position;
+		if (dir.magnitude < 0.1f)
+		{
+			State = Define.State.Idle;
+		}
+		else
+		{
+			Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir.normalized, Color.green);
+			if (Physics.Raycast(transform.position + Vector3.up * 0.5f, dir, 1.0f, LayerMask.GetMask("Block")))
+			{
+				if (Input.GetMouseButton(0) == false)
+					State = Define.State.Idle;
+				return;
+			}
+
+			float moveDist = Mathf.Clamp(_stat.MoveSpeed * Time.deltaTime, 0, dir.magnitude);
+			transform.position += dir.normalized * moveDist;
+			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 20 * Time.deltaTime);
+		}
+	}
+
+	protected override void UpdateSkill()
+	{
+		if (_lockTarget != null)
+		{
+			Vector3 dir = _lockTarget.transform.position - transform.position;
+			Quaternion quat = Quaternion.LookRotation(dir);
+			transform.rotation = Quaternion.Lerp(transform.rotation, quat, 20 * Time.deltaTime);
+		}
+	}
+
+	void OnHitEvent()
+	{
+		if(_lockTarget != null)
+        {
+			Stat targetStat = _lockTarget.GetComponent<Stat>();
+			PlayerStat myStat = gameObject.GetComponent<PlayerStat>();
+			int damage = Mathf.Max(0, myStat.Attack - targetStat.Defense);
+			targetStat.Hp -= damage;
+        }
+
+		if (_stopSkill)
+			State = Define.State.Idle;
+		else
+			State = Define.State.Skill;
+		
+	}
+
+	void OnMouseEvent(Define.MouseEvent evt)
+	{
+		switch (State)
+		{
+			case Define.State.Idle:
+				OnMouseEvent_IdleRun(evt);
+				break;
+			case Define.State.Moving:
+				OnMouseEvent_IdleRun(evt);
+				break;
+			case Define.State.Skill:
+				{
+					if (evt == Define.MouseEvent.PointerUp)
+						_stopSkill = true;
+				}
+				break;
+		}
+	}
+
+	void OnMouseEvent_IdleRun(Define.MouseEvent evt)
+	{
+		RaycastHit hit;
+		Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+		bool raycastHit = Physics.Raycast(ray, out hit, 100.0f, _mask);
+
+		switch (evt)
+		{
+			case Define.MouseEvent.PointerDown:
+				{
+					if (raycastHit)
+					{
+						_destPos = hit.point;
+						State = Define.State.Moving;
+						_stopSkill = false;
+
+						if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+							_lockTarget = hit.collider.gameObject;
+						else
+							_lockTarget = null;
+					}
+				}
+				break;
+			case Define.MouseEvent.Press:
+				{
+					if (_lockTarget == null && raycastHit)
+						_destPos = hit.point;
+				}
+				break;
+			case Define.MouseEvent.PointerUp:
+				_stopSkill = true;
+				break;
+		}
+	}
+}
+{% endhighlight %}
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    public enum State
+	{
+		Die,
+		Moving,
+		Idle,
+		Skill,
+	}
+  ...
+}
+{% endhighlight %}
+
+* Scripts\Controllers\BaseController.cs
+{% highlight C# %}
+public abstract class BaseController : MonoBehaviour
+{
+	[SerializeField]
+	protected Vector3 _destPos;
+
+	[SerializeField]
+	protected Define.State _state = Define.State.Idle;
+
+	[SerializeField]
+	protected GameObject _lockTarget;
+
+	public virtual Define.State State
+	{
+		get { return _state; }
+		set
+		{
+			_state = value;
+
+			Animator anim = GetComponent<Animator>();
+			switch (_state)
+			{
+				case Define.State.Die:
+					break;
+				case Define.State.Idle:
+					anim.CrossFade("WAIT", 0.1f);
+					break;
+				case Define.State.Moving:
+					anim.CrossFade("RUN", 0.1f);
+					break;
+				case Define.State.Skill:
+					anim.CrossFade("ATTACK", 0.1f, -1, 0);
+					break;
+			}
+		}
+	}
+
+    private void Start()
+    {
+		Init();
+    }
+
+	void Update()
+	{
+		switch (State)
+		{
+			case Define.State.Die:
+				UpdateDie();
+				break;
+			case Define.State.Moving:
+				UpdateMoving();
+				break;
+			case Define.State.Idle:
+				UpdateIdle();
+				break;
+			case Define.State.Skill:
+				UpdateSkill();
+				break;
+		}
+	}
+
+	public abstract void Init();
+
+	protected virtual void UpdateDie() { }
+	protected virtual void UpdateMoving() { }
+	protected virtual void UpdateIdle() { }
+	protected virtual void UpdateSkill() { }
+}
+{% endhighlight %}
+
+* Scripts\Controllers\MonsterController.cs
+{% highlight C# %}
+public class MonsterController : BaseController
+{
+    Stat _stat;
+
+    [SerializeField]
+    float _scanRange = 10;
+    [SerializeField]
+    float _attackRange = 2;
+
+    public override void Init()
+    {
+        _stat = gameObject.GetComponent<Stat>();
+
+        if(gameObject.GetComponentInChildren<UI_HPBar>() == null)
+            Managers.UI.MakeWorldSpaceUI<UI_HPBar>(transform);
+    }
+
+    protected override void UpdateIdle()
+    {
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+            return;
+
+        float distance = (player.transform.position - transform.position).magnitude;
+        if(distance <= _scanRange)
+        {
+            _lockTarget = player;
+            State = Define.State.Moving;
+            return;
+        }
+    }
+
+    protected override void UpdateMoving()
+    {
+        if (_lockTarget != null)
+        {
+            _destPos = _lockTarget.transform.position;
+            float distance = (_destPos - transform.position).magnitude;
+            if (distance <= _attackRange)
+            {
+                NavMeshAgent nma = gameObject.GetOrAddComponent<NavMeshAgent>();
+                nma.SetDestination(transform.position);
+                State = Define.State.Skill;
+                return;
+            }
+        }
+
+        Vector3 dir = _destPos - transform.position;
+        if (dir.magnitude < 0.1f)
+        {
+            State = Define.State.Idle;
+        }
+        else
+        {
+            NavMeshAgent nma = gameObject.GetOrAddComponent<NavMeshAgent>();
+            nma.SetDestination(_destPos);
+            nma.speed = _stat.MoveSpeed;
+
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 20 * Time.deltaTime);
+        }
+    }
+
+    protected override void UpdateSkill()
+    {
+        if (_lockTarget != null)
+        {
+            Vector3 dir = _lockTarget.transform.position - transform.position;
+            Quaternion quat = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Lerp(transform.rotation, quat, 20 * Time.deltaTime);
+        }
+    }
+
+    void OnHitEvent()
+    {
+        if(_lockTarget != null)
+        {
+            Stat targetStat = _lockTarget.GetComponent<Stat>();
+            Stat myStat = gameObject.GetComponent<Stat>();
+            int damage = Mathf.Max(0, myStat.Attack - targetStat.Defense);
+            targetStat.Hp -= damage;
+
+            if(targetStat.Hp > 0)
+            {
+                float distance = (_lockTarget.transform.position - transform.position).magnitude;
+                if (distance <= _attackRange)
+                    State = Define.State.Skill;
+                else
+                    State = Define.State.Moving;
+            }
+            else
+            {
+                State = Define.State.Idle;
+            }
+        }
+        else
+        {
+            State = Define.State.Idle;
+        }
+    }
+}
+{% endhighlight %}
+
+## Animation
+
+* MonsterAnimController
+
+<figure>
+  <a href="/assets/img/posts/unity_minirpg/19.jpg"><img src="/assets/img/posts/unity_minirpg/19.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+## Components
+  - Remove NavMeshAgent Component from player
+  - Add `player` tag in player
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_minirpg/20.jpg"><img src="/assets/img/posts/unity_minirpg/29.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/20.jpg"><img src="/assets/img/posts/unity_minirpg/29.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Monster.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
