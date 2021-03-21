@@ -237,4 +237,563 @@ public class PlayerController : MonoBehaviour
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Stat.mp4" frameborder="0"> </iframe>
 
+# Cursor
+
+## Cursor
+  * Download Cursor in Asset Store
+  * Select cursors and Move those to Resources\Textures\Cursor
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_minirpg/8.jpg"><img src="/assets/img/posts/unity_minirpg/8.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/9.jpg"><img src="/assets/img/posts/unity_minirpg/9.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+  * Change Texture type to `Cursor` in all Cursor
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_minirpg/10.jpg"><img src="/assets/img/posts/unity_minirpg/10.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/11.jpg"><img src="/assets/img/posts/unity_minirpg/11.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/12.jpg"><img src="/assets/img/posts/unity_minirpg/12.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+## Change Cursor
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+    ...
+    Texture2D _attackIcon;
+    Texture2D _handIcon;
+
+    enum CursorType
+    {
+        None,
+        Attack,
+        Hand,
+    }
+
+    CursorType _cursorType = CursorType.None;
+
+    void Start()
+    {
+        _attackIcon = Managers.Resource.Load<Texture2D>("Textures/Cursor/Attack");
+        _handIcon = Managers.Resource.Load<Texture2D>("Textures/Cursor/Hand");
+        ...
+    }
+    ...
+
+    void UpdateMouseCousor()
+    {
+       ...
+        if (Physics.Raycast(ray, out hit, 100.0f, _mask))
+        {
+            if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+            {
+                if(_cursorType != CursorType.Attack)
+                {
+                    Cursor.SetCursor(_attackIcon, new Vector2(_attackIcon.width / 5, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Attack;
+                }
+            }
+            else
+            {
+                if(_cursorType != CursorType.Hand)
+                {
+                    Cursor.SetCursor(_handIcon, new Vector2(_handIcon.width / 3, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Hand;
+                }
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Cursor.mp4" frameborder="0"> </iframe>
+
+# Targeting
+
+* Click vs Press
+  - Click: press mouse button shortly
+  - Press: press mouse button for several seconds
+  - you can define Click and Press
+
+## Mouse Event
+
+* Define.cs
+{% highlight C# %}
+public enum MouseEvent
+{
+    Press,
+    PointerDown,
+    PointerUp,
+    Click,
+}
+{% endhighlight %}
+
+* PlayerController.cs
+  - when you press mouse button, player still moves
+
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+    void UpdateMouseCousor()
+    {
+        if (Input.GetMouseButton(0))
+            return;
+
+        ...
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 100.0f, _mask))
+        {
+            if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+            {
+                if(_cursorType != CursorType.Attack)
+                {
+                    Cursor.SetCursor(_attackIcon, new Vector2(_attackIcon.width / 5, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Attack;
+                }
+            }
+            else
+            {
+                if(_cursorType != CursorType.Hand)
+                {
+                    Cursor.SetCursor(_handIcon, new Vector2(_handIcon.width / 3, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Hand;
+                }
+            }
+        }
+    }
+    ...
+
+    GameObject _lockTarget;
+
+    void OnMouseEvent(Define.MouseEvent evt)
+    {
+        if (_state == PlayerState.Die)
+            return;
+
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        bool raycastHit = Physics.Raycast(ray, out hit, 100.0f, _mask);
+
+        switch (evt)
+        {
+            case Define.MouseEvent.PointerDown:
+                {
+                    if (raycastHit)
+                    {
+                        _destPos = hit.point;
+                        _state = PlayerState.Moving;
+
+                        if(hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+                            _lockTarget = hit.collider.gameObject;
+                        else
+                            _lockTarget = null;
+                    }
+                }
+                break;
+            case Define.MouseEvent.Press:
+                {
+                    if(_lockTarget != null)
+                        _destPos = _lockTarget.transform.position;
+                    else if (raycastHit)
+                            _destPos = hit.point;
+                }
+                break;
+            case Define.MouseEvent.PointerUp:
+                _lockTarget = null;
+                break;
+        }
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Target.mp4" frameborder="0"> </iframe>
+
+# Attack
+
+## Mouse Event
+* InputManager.cs
+  - Define Click and Press
+{% highlight C# %}
+public class InputManager
+{
+    ...
+    public Action<Define.MouseEvent> MouseAction = null;
+
+    bool _pressed = false;
+    float _pressedTime = 0;
+
+    public void OnUpdate()
+    {
+        if (EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        ...
+
+        if (MouseAction != null)
+        {
+            if (Input.GetMouseButton(0))
+            {
+                if (!_pressed)
+                {
+                    MouseAction.Invoke(Define.MouseEvent.PointerDown);
+                    _pressedTime = Time.time;
+                }
+                MouseAction.Invoke(Define.MouseEvent.Press);
+                _pressed = true;
+            }
+            else
+            {
+                if (_pressed)
+                {
+                    if (Time.time < _pressedTime + 0.2f)
+                        MouseAction.Invoke(Define.MouseEvent.Click);
+                    MouseAction.Invoke(Define.MouseEvent.PointerUp);
+                }
+                _pressed = false;
+                _pressedTime = 0;
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* PlayerController.cs
+  - included code organization
+
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+	public enum PlayerState
+	{
+		Die,
+		Moving,
+		Idle,
+		Skill,
+	}
+
+	int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);
+
+	PlayerStat _stat;
+	Vector3 _destPos;
+
+	[SerializeField]
+	PlayerState _state = PlayerState.Idle;
+
+	GameObject _lockTarget;
+
+	public PlayerState State
+	{
+		get { return _state; }
+		set
+		{
+			_state = value;
+
+			Animator anim = GetComponent<Animator>();
+			switch (_state)
+			{
+				case PlayerState.Die:
+					break;
+				case PlayerState.Idle:
+					anim.CrossFade("WAIT", 0.1f);
+					break;
+				case PlayerState.Moving:
+					anim.CrossFade("RUN", 0.1f);
+					break;
+				case PlayerState.Skill:
+					anim.CrossFade("ATTACK", 0.1f, -1, 0);
+					break;
+			}
+		}
+	}
+  ...
+
+	void UpdateMoving()
+	{
+		if (_lockTarget != null)
+		{
+			_destPos = _lockTarget.transform.position;
+			float distance = (_destPos - transform.position).magnitude;
+			if (distance <= 1)
+			{
+				State = PlayerState.Skill;
+				return;
+			}
+		}
+
+		Vector3 dir = _destPos - transform.position;
+		if (dir.magnitude < 0.1f)
+		{
+			State = PlayerState.Idle;
+		}
+		else
+		{
+			NavMeshAgent nma = gameObject.GetOrAddComponent<NavMeshAgent>();
+			float moveDist = Mathf.Clamp(_stat.MoveSpeed * Time.deltaTime, 0, dir.magnitude);
+			nma.Move(dir.normalized * moveDist);
+
+			Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir.normalized, Color.green);
+			if (Physics.Raycast(transform.position + Vector3.up * 0.5f, dir, 1.0f, LayerMask.GetMask("Block")))
+			{
+				if (Input.GetMouseButton(0) == false)
+					State = PlayerState.Idle;
+				return;
+			}
+
+			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 20 * Time.deltaTime);
+		}
+	}
+  ...
+
+	void UpdateSkill()
+	{
+		if (_lockTarget != null)
+		{
+			Vector3 dir = _lockTarget.transform.position - transform.position;
+			Quaternion quat = Quaternion.LookRotation(dir);
+			transform.rotation = Quaternion.Lerp(transform.rotation, quat, 20 * Time.deltaTime);
+		}
+	}
+
+	void OnHitEvent()
+	{
+		if (_stopSkill)
+			State = PlayerState.Idle;
+		else
+			State = PlayerState.Skill;
+		
+	}
+
+	void Update()
+    {
+		switch (State)
+		{
+			case PlayerState.Die:
+				UpdateDie();
+				break;
+			case PlayerState.Moving:
+				UpdateMoving();
+				break;
+			case PlayerState.Idle:
+				UpdateIdle();
+				break;
+			case PlayerState.Skill:
+				UpdateSkill();
+				break;
+		}
+	}
+
+	bool _stopSkill = false;
+
+	void OnMouseEvent(Define.MouseEvent evt)
+	{
+		switch (State)
+		{
+			case PlayerState.Idle:
+				OnMouseEvent_IdleRun(evt);
+				break;
+			case PlayerState.Moving:
+				OnMouseEvent_IdleRun(evt);
+				break;
+			case PlayerState.Skill:
+				{
+					if (evt == Define.MouseEvent.PointerUp)
+						_stopSkill = true;
+				}
+				break;
+		}
+	}
+
+	void OnMouseEvent_IdleRun(Define.MouseEvent evt)
+	{
+		RaycastHit hit;
+		Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+		bool raycastHit = Physics.Raycast(ray, out hit, 100.0f, _mask);
+
+		switch (evt)
+		{
+			case Define.MouseEvent.PointerDown:
+				{
+					if (raycastHit)
+					{
+						_destPos = hit.point;
+						State = PlayerState.Moving;
+						_stopSkill = false;
+
+						if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+							_lockTarget = hit.collider.gameObject;
+						else
+							_lockTarget = null;
+					}
+				}
+				break;
+			case Define.MouseEvent.Press:
+				{
+					if (_lockTarget == null && raycastHit)
+						_destPos = hit.point;
+				}
+				break;
+			case Define.MouseEvent.PointerUp:
+				_stopSkill = true;
+				break;
+		}
+	}
+}
+{% endhighlight %}
+
+## Animation
+  - use CrossFade method
+  - delete all parameters in PlayerAnimController
+  - add `ATTACK` Animation from Knight animation resources in PlayerAnimController
+
+<figure>
+  <a href="/assets/img/posts/unity_minirpg/13.jpg"><img src="/assets/img/posts/unity_minirpg/13.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+## UI
+  - Create sword prefab from knight and paste to player
+
+<figure>
+  <a href="/assets/img/posts/unity_minirpg/14.jpg"><img src="/assets/img/posts/unity_minirpg/14.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Attack.mp4" frameborder="0"> </iframe>
+
+# Hp
+  - reduce monster's Hp gage when player attaks monster
+
+## UI
+  - Create Hp bar by `Slider`
+  - Create Prefab
+<figure>
+  <a href="/assets/img/posts/unity_minirpg/15.jpg"><img src="/assets/img/posts/unity_minirpg/15.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+  - Change transform
+<figure class="third">
+  <a href="/assets/img/posts/unity_minirpg/16.jpg"><img src="/assets/img/posts/unity_minirpg/16.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/17.jpg"><img src="/assets/img/posts/unity_minirpg/17.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/18.jpg"><img src="/assets/img/posts/unity_minirpg/18.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+## Componenets
+
+* UIManager.cs
+{% highlight C# %}
+public T MakeWorldSpaceUI<T>(Transform parent = null, string name = null) where T : UI_Base
+{
+    if (string.IsNullOrEmpty(name))
+        name = typeof(T).Name;
+
+    GameObject go = Managers.Resource.Instantiate($"UI/WorldSpace/{name}");
+
+    if (parent != null)
+        go.transform.SetParent(parent);
+
+    Canvas canvas = go.GetOrAddComponent<Canvas>();
+    canvas.renderMode = RenderMode.WorldSpace;
+    canvas.worldCamera = Camera.main;
+
+    return Util.GetOrAddComponent<T>(go);
+}
+{% endhighlight %}
+
+* PlayerController.cs
+  - if myStat.Attack - targetStat.Defense is negative, then damage is 0
+
+{% highlight C# %}
+void Start()
+{
+    ...
+
+		Managers.UI.MakeWorldSpaceUI<UI_HPBar>(transform);
+}
+...
+
+void OnHitEvent()
+{
+	  if(_lockTarget != null)
+        {
+			Stat targetStat = _lockTarget.GetComponent<Stat>();
+			Stat myStat = gameObject.GetComponent<PlayerStat>();
+			int damage = Mathf.Max(0, myStat.Attack - targetStat.Defense);
+			targetStat.Hp -= damage;
+        }
+
+		if (_stopSkill)
+			State = PlayerState.Idle;
+		else
+			State = PlayerState.Skill;
+		
+}
+{% endhighlight %}
+
+* Scripts\UI\WordSpace\UI_HPBar.cs
+  - ratio controlls hp
+  - int / int = int, so we need float casting
+  - add UI_HPBar.cs component to monster
+
+{% highlight C# %}
+public class UI_HPBar : UI_Base
+{
+    enum GameObjects
+    {
+        HPBar,
+    }
+
+    Stat _stat;
+
+    public override void Init()
+    {
+        Bind<GameObject>(typeof(GameObjects));
+        _stat = transform.parent.GetComponent<Stat>();
+    }
+
+    private void Update()
+    {
+        Transform parent = transform.parent;
+        transform.position = parent.position + Vector3.up * (parent.GetComponent<Collider>().bounds.size.y);
+        transform.rotation = Camera.main.transform.rotation;
+
+        float ratio = _stat.Hp / (float)_stat.MaxHp;
+        SetHpRatio(ratio);
+    }
+
+    public void SetHpRatio(float ratio)
+    {
+        GetObject((int)GameObjects.HPBar).GetComponent<Slider>().value = ratio;
+    }
+}
+{% endhighlight %}
+
+* UI_Base.cs
+  - you should remove all start function in this project 
+
+{% highlight C# %}
+private void Start()
+{
+    Init();
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-UI-HPBar.mp4" frameborder="0"> </iframe>
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
