@@ -1146,8 +1146,8 @@ public class MonsterController : BaseController
   - Add `player` tag in player
 
 <figure class="half">
-  <a href="/assets/img/posts/unity_minirpg/20.jpg"><img src="/assets/img/posts/unity_minirpg/29.jpg"></a>
-  <a href="/assets/img/posts/unity_minirpg/20.jpg"><img src="/assets/img/posts/unity_minirpg/29.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/20.jpg"><img src="/assets/img/posts/unity_minirpg/20.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/21.jpg"><img src="/assets/img/posts/unity_minirpg/21.jpg"></a>
 	<figcaption>Mini RPG Unity</figcaption>
 </figure>
 
@@ -1155,5 +1155,244 @@ public class MonsterController : BaseController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Monster.mp4" frameborder="0"> </iframe>
 
+# Destroy
+  - you cannot make player to null directly
+  - because other managers or componenets still use player
+
+## Prefab
+
+* Player
+  - remove original player prefab and create new player prefab(Drag and Drop hierarchy object to Prefabs folder)
+
+* Monster
+  - remove original monster prefab and create new monster prefab(Drag and Drop hierarchy object to Prefabs folder)
+
+## Componenets
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    public enum WorldObject
+    {
+        Unkown,
+        Player,
+        Monster,
+    }
+    ...
+}
+{% endhighlight %}
+
+* BaseController.cs
+{% highlicht C# %}
+public abstract class BaseController : MonoBehaviour
+{
+	...
+
+	public Define.WorldObject WorldObjectType { get; protected set; } = Define.WorldObject.Unkown;
+  ...
+}
+{% endhighlight %}
+
+* Manager.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    static Managers s_instance;
+    static Managers Instance{ get { Init(); return s_instance; } }
+
+    #region Contents
+    GameManagerEx _game = new GameManagerEx();
+
+    public static GameManagerEx Game { get { return Instance._game; } }
+    #endregion
+
+    #region Core
+    DataManager _data = new DataManager();
+    InputManager _input = new InputManager();
+    PoolManager _pool = new PoolManager();
+    ResourceManager _resource = new ResourceManager();
+    SceneManagerEx _scene = new SceneManagerEx();
+    SoundManager _sound = new SoundManager();
+    UIManager _ui = new UIManager();
+    #endregion
+    ...
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : BaseController
+{
+    ...
+    public override void Init()
+    {
+        WorldObjectType = Define.WorldObject.Monster;
+       ...
+    }
+    ...
+
+    void OnHitEvent()
+    {
+        if(_lockTarget != null)
+        {
+            Stat targetStat = _lockTarget.GetComponent<Stat>();
+            int damage = Mathf.Max(0, _stat.Attack - targetStat.Defense);
+            targetStat.Hp -= damage;
+
+            if (targetStat.Hp <= 0)
+            {
+                Managers.Game.Despawn(targetStat.gameObject);
+            }
+            ...
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : BaseController
+{
+    public  override void  Init()
+    {
+		  WorldObjectType = Define.WorldObject.Player;
+		  ...
+	  }
+    ...
+}
+{% endhighlight %}
+
+* Extension.cs
+  - only null checking is not enough
+  - because player has poolable component
+  - so you need activate cheking
+
+{% highlight C# %}
+public static class Extension
+{
+    ...
+
+    public static bool IsValid(this GameObject go)
+    {
+        return go != null && go.activeSelf;
+    }
+}
+{% endhighlight %}
+
+* CameraController.cs
+{% highlight C# %}
+public class CameraController : MonoBehaviour
+{
+    ...
+
+    [SerializeField]
+    GameObject _player = null;
+
+    public void SetPlayer(GameObject player) { _player = player; }
+    ...
+
+    void LateUpdate()
+    {
+        RaycastHit hit;
+        if (_mode == Define.CameraMode.QuaterView)
+        {
+            if(_player.IsValid() == false)
+            {
+                return;
+            }
+            ...
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Scripts\Managers\Contents\GameManagerEx.cs
+  - if you make GameManager.cs, then the icon is wheel
+
+{% highlight C# %}
+public class GameManagerEx
+{
+    GameObject _player;
+    HashSet<GameObject> _monsters = new HashSet<GameObject>();
+
+    public GameObject Spawn(Define.WorldObject type, string path, Transform parent = null)
+    {
+        GameObject go = Managers.Resource.Instantiate(path, parent);
+
+        switch (type)
+        {
+            case Define.WorldObject.Monster:
+                _monsters.Add(go);
+                break;
+            case Define.WorldObject.Player:
+                _player = go;
+                break;
+        }
+
+        return go;
+    }
+
+    public Define.WorldObject GetWorldObjectType(GameObject go)
+    {
+        BaseController bc = go.GetComponent<BaseController>();
+
+        if (bc == null)
+            return Define.WorldObject.Unkown;
+
+        return bc.WorldObjectType;
+        
+    }
+
+    public void Despawn(GameObject go)
+    {
+        Define.WorldObject type = GetWorldObjectType(go);
+
+        switch (type)
+        {
+            case Define.WorldObject.Monster:
+                {
+                    if (_monsters.Contains(go))
+                        _monsters.Remove(go);
+                }
+                break;
+            case Define.WorldObject.Player:
+                if (_player == go)
+                    _player = null;
+                break;
+
+        }
+
+        Managers.Resource.Destroy(go);
+    }
+}
+{% endhighlight %}
+
+
+
+* Folder Organization
+
+<figure>
+  <a href="/assets/img/posts/unity_minirpg/22.jpg"><img src="/assets/img/posts/unity_minirpg/22.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/23.jpg"><img src="/assets/img/posts/unity_minirpg/23.jpg"></a>
+  <a href="/assets/img/posts/unity_minirpg/24.jpg"><img src="/assets/img/posts/unity_minirpg/24.jpg"></a>
+	<figcaption>Mini RPG Unity</figcaption>
+</figure>
+
+### Test
+
+* GameScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    ...
+
+    GameObject player = Managers.Game.Spawn(Define.WorldObject.Player, "UnityChan");
+    Camera.main.gameObject.GetOrAddComponent<CameraController>().SetPlayer(player);
+    Managers.Game.Spawn(Define.WorldObject.Monster, "Knight");
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Destroy.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
