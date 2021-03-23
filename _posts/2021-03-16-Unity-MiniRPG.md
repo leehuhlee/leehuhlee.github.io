@@ -86,7 +86,7 @@ void UpdateMoving()
 }
 {% endhighlight %}
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Move.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Move.mp4" frameborder="0"> </iframe>
 
 # Stat
 
@@ -235,7 +235,7 @@ public class PlayerController : MonoBehaviour
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Stat.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Stat.mp4" frameborder="0"> </iframe>
 
 # Cursor
 
@@ -313,7 +313,7 @@ public class PlayerController : MonoBehaviour
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Cursor.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Cursor.mp4" frameborder="0"> </iframe>
 
 # Targeting
 
@@ -415,7 +415,7 @@ public class PlayerController : MonoBehaviour
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Target.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Target.mp4" frameborder="0"> </iframe>
 
 # Attack
 
@@ -670,7 +670,7 @@ public class PlayerController : MonoBehaviour
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Attack.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Attack.mp4" frameborder="0"> </iframe>
 
 # Hp
   - reduce monster's Hp gage when player attaks monster
@@ -793,7 +793,7 @@ private void Start()
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-UI-HPBar.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-UI-HPBar.mp4" frameborder="0"> </iframe>
 
 # Monster AI
   - monster can detect player
@@ -1153,7 +1153,7 @@ public class MonsterController : BaseController
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Monster.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Monster.mp4" frameborder="0"> </iframe>
 
 # Destroy
   - you cannot make player to null directly
@@ -1393,7 +1393,7 @@ protected override void Init()
 }
 {% endhighlight %}
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Destroy.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Destroy.mp4" frameborder="0"> </iframe>
 
 # Level
 
@@ -1616,6 +1616,6 @@ public class PlayerController : BaseController
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Level.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Level.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
