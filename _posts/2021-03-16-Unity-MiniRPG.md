@@ -1184,7 +1184,7 @@ public class Define
 {% endhighlight %}
 
 * BaseController.cs
-{% highlicht C# %}
+{% highlight C# %}
 public abstract class BaseController : MonoBehaviour
 {
 	...
@@ -1394,5 +1394,228 @@ protected override void Init()
 {% endhighlight %}
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Destroy.mp4" frameborder="0"> </iframe>
+
+# Level
+
+## Camera Zoom
+
+* CameraController.cs
+  - when player is behind buildings, camera will zoom player
+{% highlight C# %}
+void LateUpdate()
+{
+    ...
+    if (_mode == Define.CameraMode.QuaterView)
+    {
+        ...
+
+        if(Physics.Raycast(_player.transform.position, _delta, out hit, _delta.magnitude, 1<<(int)Define.Layer.Block))
+        {
+            float dist = (hit.point - _player.transform.position).magnitude * 0.8f;
+            transform.position = _player.transform.position + _delta.normalized * dist + Vector3.up * 1.5f;
+        }
+        ...
+    }
+}
+{% endhighlight %}
+
+## Leveling
+
+* GameManagerEx.cs
+{% highlight C# %}
+public class GameManagerEx
+{
+    ...
+    public GameObject GetPlayer() { return _player; }
+    ...
+}
+{% endhighlight %}
+
+* StatData.json
+  - for player
+{% highlight json %}
+{
+  "stats": [
+    {
+      "level": "1",
+      "maxHp": "200",
+      "attack": "20",
+      "totalExp": "0"
+    },
+    {
+      "level": "2",
+      "maxHp": "250",
+      "attack": "25",
+      "totalExp": "10"
+    },
+    {
+      "level": "3",
+      "maxHp": "300",
+      "attack": "30",
+      "totalExp": "20"
+    }
+  ]
+}
+{% endhighlight %}
+
+* Stat.cs
+{% highlight C# %}
+public class Stat : MonoBehaviour
+{
+    ...
+    public void Start()
+    {
+        _level = 1;
+        _hp = 100;
+        _maxhp = 100;
+        _attack = 10;
+        _defense = 5;
+        _moveSpeed = 5.0f;
+    }
+
+    public virtual void OnAttacked(Stat attacker)
+    {
+        int damage = Mathf.Max(0, attacker.Attack - Defense);
+        Hp -= damage;
+
+        if (Hp <= 0)
+        {
+            Hp = 0;
+            OnDead(attacker);
+        }
+    }
+
+    protected virtual void OnDead(Stat attacker)
+    {
+        PlayerStat playerStat = attacker as PlayerStat;
+        if (playerStat != null)
+        {
+            playerStat.Exp += 15;
+        }
+
+        Managers.Game.Despawn(gameObject);
+    }
+}
+{% endhighlight %}
+
+* PlayerStat.cs
+{% highlight C# %}
+public class PlayerStat : Stat
+{
+    ...
+    public int Exp 
+    { 
+        get { return _exp; }
+        set 
+        {
+            _exp = value;
+            int level = Level;
+            while (true)
+            {
+                Data.Stat stat;
+                if (Managers.Data.StatDict.TryGetValue(level + 1, out stat) == false)
+                    break;
+                if (_exp < stat.totalExp)
+                    break;
+                level++;
+            }
+
+            if(level != Level)
+            {
+                Debug.Log("Level UP!");
+                Level = level;
+                SetStat(Level);
+            }
+        } 
+    }
+    ...
+
+    public void Start()
+    {
+        _level = 1;
+        _exp = 0;
+        _defense = 5;
+        _moveSpeed = 5.0f;
+        _gold = 0;
+
+        SetStat(_level);
+    }
+
+    public void SetStat(int level)
+    {
+        Dictionary<int, Data.Stat> dict = Managers.Data.StatDict;
+        Data.Stat stat = dict[level];
+
+        _hp = stat.maxHp;
+        _maxhp = stat.maxHp;
+        _attack = stat.attack;
+    }
+
+    protected override void OnDead(Stat attacker)
+    {
+        Debug.Log("Player Dead");
+    }
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : BaseController
+{
+    Stat _stat;
+    ...
+
+    protected override void UpdateIdle()
+    {
+        GameObject player = Managers.Game.GetPlayer();
+        if (player == null)
+            return;
+
+        float distance = (player.transform.position - transform.position).magnitude;
+        if(distance <= _scanRange)
+        {
+            _lockTarget = player;
+            State = Define.State.Moving;
+            return;
+        }
+    }
+
+    ...
+    void OnHitEvent()
+    {
+        if(_lockTarget != null)
+        {
+            Stat targetStat = _lockTarget.GetComponent<Stat>();
+            targetStat.OnAttacked(_stat);
+            ...
+        }
+        ...
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : BaseController
+{
+	  ...
+
+	  void OnHitEvent()
+	  {
+	  	  if(_lockTarget != null)
+        {
+		    	Stat targetStat = _lockTarget.GetComponent<Stat>();
+			    targetStat.OnAttacked(_stat);
+		    }
+		    ...
+	  }
+
+	  ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmorpg/MiniRPG-Level.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
