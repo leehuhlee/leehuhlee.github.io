@@ -1368,11 +1368,9 @@ public class GameManagerEx
 }
 {% endhighlight %}
 
-
-
 * Folder Organization
 
-<figure>
+<figure class="third">
   <a href="/assets/img/posts/unity_minirpg/22.jpg"><img src="/assets/img/posts/unity_minirpg/22.jpg"></a>
   <a href="/assets/img/posts/unity_minirpg/23.jpg"><img src="/assets/img/posts/unity_minirpg/23.jpg"></a>
   <a href="/assets/img/posts/unity_minirpg/24.jpg"><img src="/assets/img/posts/unity_minirpg/24.jpg"></a>
@@ -1617,5 +1615,137 @@ public class PlayerController : BaseController
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Level.mp4" frameborder="0"> </iframe>
+
+# Monster Generator
+
+## Spawning
+  - Monster is generated automatically for same number
+
+* Scripts\Contents\SpawningPool.cs
+{% highlight C# %}
+public class SpawningPool : MonoBehaviour
+{
+    [SerializeField]
+    int _monsterCount = 0;
+    int _reserveCount = 0;
+    [SerializeField]
+    int _keepMonsterCount = 0;
+    [SerializeField]
+    Vector3 _spawnPos;
+    [SerializeField]
+    float _spawnRadius = 15.0f;
+    [SerializeField]
+    float _spawnTime = 5.0f;
+
+    public void AddMonsterCount(int value) { _monsterCount += value; }
+    public void SetKeepMonsterCount(int count) { _keepMonsterCount = count; }
+
+    void Start()
+    {
+        Managers.Game.OnSpawnEvent -= AddMonsterCount;
+        Managers.Game.OnSpawnEvent += AddMonsterCount;
+    }
+
+    void Update()
+    {
+        while(_reserveCount + _monsterCount < _keepMonsterCount)
+        {
+            StartCoroutine("ReserveSpawn");
+        }
+    }
+
+    IEnumerator ReserveSpawn()
+    {
+        _reserveCount++;
+        yield return new WaitForSeconds(Random.Range(0,_spawnTime));
+        GameObject obj = Managers.Game.Spawn(Define.WorldObject.Monster, "Knight");
+        NavMeshAgent nma = obj.GetOrAddComponent<NavMeshAgent>();
+
+        Vector3 randPos;
+
+        while (true)
+        {
+            Vector3 randDir = Random.insideUnitSphere * Random.Range(0, _spawnRadius);
+            randDir.y = 0;
+            randPos = _spawnPos + randDir;
+
+            NavMeshPath path = new NavMeshPath();
+            if (nma.CalculatePath(randPos, path))
+                break;
+        }
+
+        obj.transform.position = randPos;
+        _reserveCount--;
+    }
+}
+{% endhighlight %}
+
+* GameManagerEx.cs
+{% highlight C# %}
+public class GameManagerEx
+{
+    ...
+    public Action<int> OnSpawnEvent;
+    ...
+
+    public void Despawn(GameObject go)
+    {
+        Define.WorldObject type = GetWorldObjectType(go);
+
+        switch (type)
+        {
+            case Define.WorldObject.Monster:
+                {
+                    if (_monsters.Contains(go))
+                    {
+                        _monsters.Remove(go);
+                        if (OnSpawnEvent != null)
+                            OnSpawnEvent.Invoke(-1);
+                    }
+
+                }
+                break;
+            ...
+    }
+}
+{% endhighlight %}
+
+### Test
+
+* PlayerController.cs
+  - to avoid player going up
+{% highlight C# %}
+protected override void UpdateMoving()
+{
+	...
+
+	Vector3 dir = _destPos - transform.position;
+	dir.y = 0;
+	...
+}
+{% endhighlight %}
+
+* GameScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    base.Init();
+    SceneType = Define.Scene.Game;
+
+    //Managers.UI.ShowSceneUI<UI_Inven>();
+    Dictionary<int, Data.Stat> dict = Managers.Data.StatDict;
+    gameObject.GetOrAddComponent<CursorController>();
+
+    GameObject player = Managers.Game.Spawn(Define.WorldObject.Player, "UnityChan");
+    Camera.main.gameObject.GetOrAddComponent<CameraController>().SetPlayer(player);
+    //Managers.Game.Spawn(Define.WorldObject.Monster, "Knight");
+    GameObject go = new GameObject { name = "SpawningPool" };
+    SpawningPool pool = go.GetOrAddComponent<SpawningPool>();
+    pool.SetKeepMonsterCount(5);
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Monster-Generator.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
