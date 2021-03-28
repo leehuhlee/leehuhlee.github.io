@@ -351,5 +351,359 @@ volatile static bool _stop = false;
 	<figcaption>C# Multi Thread</figcaption>
 </figure>
 
+# Cache
+
+* Temporal Locality
+  - recently used memory must have be used again
+
+* Spacial Locality
+  - close memory with recently used memory must have be used
+
+### Test: Spacial Locality
+
+* ServerCore\Program.cs
+{% highlight C# %}
+static void Main(string[] args)
+{
+    int[,] arr = new int [10000, 10000];
+
+    {
+        long now = DateTime.Now.Ticks;
+        for (int y = 0; y < 10000; y++)
+            for (int x = 0; x < 10000; x++)
+                arr[y, x] = 1;
+        long end = DateTime.Now.Ticks;
+        Console.WriteLine($"(y, x) order spent time {end-now}");
+    }
+
+    {
+        long now = DateTime.Now.Ticks;
+        for (int y = 0; y < 10000; y++)
+            for (int x = 0; x < 10000; x++)
+                arr[x, y] = 1;
+        long end = DateTime.Now.Ticks;
+        Console.WriteLine($"(x, y) order spent time {end-now}");
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/16.jpg"><img src="/assets/img/posts/cshap_multi_thread/16.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+# Memory Barrier
+
+## Hardware Optimization
+  - if there is no related with each code, ordering of code can be changed
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int x = 0;
+    static int y = 0;
+    static int r1 = 0;
+    static int r2 = 0;
+
+    static void Thread_1()
+    {
+        y = 1; //store y
+        r1 = x; // Load x
+    }
+
+    static void Thread_2()
+    {
+        x = 1; // Storex
+        r2 = y; // Load y
+    }
+
+    static void Main(string[] args)
+    {
+        int count = 0;
+        while (true)
+        {
+            count++;
+            x = y = r1 = r2 = 0;
+
+            Task t1 = new Task(Thread_1);
+            Task t2 = new Task(Thread_2);
+            t1.Start();
+            t2.Start();
+
+            Task.WaitAll(t1, t2);
+
+            if (r1 == 0 && r2 == 0)
+                break;
+        }
+
+        Console.WriteLine($"{count} times executed!");
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/17.jpg"><img src="/assets/img/posts/cshap_multi_thread/17.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+  - this mean, `r1=x` is ordered first then `y=1` and `r2=y` is ordered first then `x=1`
+
+## Memory Barrier
+  - To avoid Hardware optimization
+
+* Memory Barrier 
+  - avoid relocating code
+  - Visibility
+
+* Full memory Barrier(ASM MFENCE, C# Thread.MemoryBarrier)
+  - ban Store and Load.
+
+* Store Memory Barrier (ASM SFENCE)
+  - ban only Store
+    
+* Load Memory Barrier(ASM LFENCE) 
+  - ban only Load
+
+## Memory Barrier timing
+
+* Store
+  - after store
+
+* Load
+  - before load
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int x = 0;
+    static int y = 0;
+    static int r1 = 0;
+    static int r2 = 0;
+
+    static void Thread_1()
+    {
+        y = 1; //store y
+        Thread.MemoryBarrier();
+        r1 = x; // Load x
+    }
+
+    static void Thread_2()
+    {
+        x = 1; // Storex
+        Thread.MemoryBarrier();
+        r2 = y; // Load y
+    }
+
+    static void Main(string[] args)
+    {
+        int count = 0;
+        while (true)
+        {
+            count++;
+            x = y = r1 = r2 = 0;
+
+            Task t1 = new Task(Thread_1);
+            Task t2 = new Task(Thread_2);
+            t1.Start();
+            t2.Start();
+
+            Task.WaitAll(t1, t2);
+
+            if (r1 == 0 && r2 == 0)
+                break;
+        }
+
+        Console.WriteLine($"{count} times executed!");
+    }
+}
+{% endhighlight %}
+
+# Interlocked
+
+## Race Condition
+  - Tasks excute withour order
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int number = 0;
+
+    static void Thread_1()
+    {
+        for (int i = 0; i < 100000; i++)
+            number++;
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 100000; i++)
+            number--;
+    }
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(Thread_1);
+        Task t2 = new Task(Thread_2);
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(number);
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/18.jpg"><img src="/assets/img/posts/cshap_multi_thread/18.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+  - this happened because `number++` and `number--` is not atomic
+
+## Interlocked
+  - make method to atomic
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static void Thread_1()
+    {
+        for (int i = 0; i < 100000; i++)
+            Interlocked.Increment(ref number);
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 100000; i++)
+            Interlocked.Decrement(ref number);
+    }
+
+    ...
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/19.jpg"><img src="/assets/img/posts/cshap_multi_thread/19.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+  - result is changed because `Interlocked.Increment` and `Interlocked.Decrement` is atomic
+
+# Lock
+
+## Mutual Exclusive
+
+* Monitor
+  - if code is too long to make interlocked, we can use `Monitor`
+  - `Enter` means lock the task and `Exit` means solve the task
+  - after `Exit`, other tasks are running
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int number = 0;
+    static object _obj = new object();
+
+    static void Thread_1()
+    {
+        for (int i = 0; i < 100000; i++)
+        {
+            Monitor.Enter(_obj); // Lock
+            number++;
+            Monitor.Exit(_obj); // Solve
+        }
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 100000; i++)
+        {
+            Monitor.Enter(_obj);
+            number--;
+            Monitor.Exit(_obj);
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(Thread_1);
+        Task t2 = new Task(Thread_2);
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(number);
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/20.jpg"><img src="/assets/img/posts/cshap_multi_thread/20.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+## Lock
+
+* Lock
+  - `Lock` is same function with try-catch-finally
+  - object is used like a Lock
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int number = 0;
+    static object _obj = new object();
+
+    static void Thread_1()
+    {
+        for (int i = 0; i < 100000; i++)
+        {
+            lock (_obj)
+            {
+                number++;
+            }
+        }
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 100000; i++)
+        {
+                lock (_obj)
+                {
+                    number--;
+                }
+            }
+        }
+    ...
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/21.jpg"><img src="/assets/img/posts/cshap_multi_thread/21.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
