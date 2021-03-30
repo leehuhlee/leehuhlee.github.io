@@ -691,18 +691,258 @@ class Program
     {
         for (int i = 0; i < 100000; i++)
         {
-                lock (_obj)
-                {
-                    number--;
-                }
+            lock (_obj)
+            {
+                number--;
             }
         }
+    }
     ...
 }
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/cshap_multi_thread/21.jpg"><img src="/assets/img/posts/cshap_multi_thread/21.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+## DeadLock
+  - if there are two keys and two process and each process got one key, then this program never gonna finish.
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class SessionManager
+{
+    static object _lock = new object();
+
+    public static void TestSession()
+    {
+        lock (_lock) { }
+    }
+
+    public static void Test()
+    {
+        lock (_lock)
+        {
+            UserManager.TestUser();
+        }
+    }
+}
+
+class UserManager
+{
+    static object _lock = new object();
+
+    public static void Test()
+    {
+        lock (_lock)
+        {
+            SessionManager.TestSession();
+        }
+    }
+
+    public static void TestUser()
+    {
+        lock (_lock) { }
+    }
+}
+
+class Program
+{
+    static int number = 0;
+
+    static void Thread_1()
+    {
+        for (int i = 0; i < 10000; i++)
+        {
+            SessionManager.Test();
+        }
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 10000; i++)
+        {
+            UserManager.Test();
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(Thread_1);
+        Task t2 = new Task(Thread_2);
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(number);
+    }
+}
+{% endhighlight %}
+
+* Sleep
+  - you can stop one of thread untill other thread gonna be finished
+
+### Test
+* ServerCore\Program.cs
+{% highlight C# %}
+static void Main(string[] args)
+{
+    Task t1 = new Task(Thread_1);
+    Task t2 = new Task(Thread_2);
+    t1.Start();
+
+    Thread.Sleep(1000);
+
+    t2.Start();
+
+    Task.WaitAll(t1, t2);
+
+    Console.WriteLine(number);
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/22.jpg"><img src="/assets/img/posts/cshap_multi_thread/22.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+## SpinLock
+  - one thread waits other thread untill this thread gonna be finished
+
+### Test
+* ServerCore\Program.cs
+{% highlight C# %}
+class SpinLock
+{
+    volatile bool _locked = false;
+
+    public void Acquire()
+    {
+        while (_locked)
+        {
+            //wait for lock to release
+        }
+
+        _locked = true;
+    }
+
+    public void Release()
+    {
+        _locked = false;
+    }
+}
+
+class Program
+{
+    static int _num = 0;
+    static SpinLock _lock = new SpinLock();
+
+    static void Thread_1()
+    {
+        for(int i=0; i<100000; i++)
+        {
+            _lock.Acquire();
+            _num++;
+            _lock.Release();
+        }
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 100000; i++)
+        {
+            _lock.Acquire();
+            _num--;
+            _lock.Release();
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(Thread_1);
+        Task t2 = new Task(Thread_2);
+
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(_num);
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/23.jpg"><img src="/assets/img/posts/cshap_multi_thread/23.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+  - this happened because this process is not atomic.
+
+* Interlocked.Exchange
+
+### Test
+* ServerCore\Program.cs
+{% highlight C# %}
+class SpinLock
+{
+    volatile int _locked = 0;
+
+    public void Acquire()
+    {
+        while(true)
+        {
+            int original = Interlocked.Exchange(ref _locked, 1);
+            if (original == 0)
+                break;
+        }
+    }
+
+    public void Release()
+    {
+        _locked = 0;
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/24.jpg"><img src="/assets/img/posts/cshap_multi_thread/24.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+* Interlocked.CompareExchange
+
+### Test
+* ServerCore\Program.cs
+{% highlight C# %}
+class SpinLock
+{
+    volatile int _locked = 0;
+
+    public void Acquire()
+    {
+        while(true)
+        {
+            int expected = 0;
+            int desired = 1;
+            if (Interlocked.CompareExchange(ref _locked, desired, expected) == expected)
+                break;
+        }
+    }
+
+    public void Release()
+    {
+        _locked = 0;
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/25.jpg"><img src="/assets/img/posts/cshap_multi_thread/25.jpg"></a>
 	<figcaption>C# Multi Thread</figcaption>
 </figure>
 
