@@ -946,4 +946,111 @@ class SpinLock
 	<figcaption>C# Multi Thread</figcaption>
 </figure>
 
+## Context Switching
+
+* Thread.Sleep(1);
+  - an unconditional rest
+
+* Thread.Sleep(0);
+  - an unconditial yield
+  - but thread cannot yield to lower priority
+  - if there is only same or lower priority with current thread, then current thread is excuted
+
+* Thread.Yield(); 
+  - a generous concession
+  - if there is excutable thread, then this thread is excuted
+  - if threr is not excutable thread, remained time is removed
+
+## ResetEvent
+
+* AutoResetEvemt
+  - speed is really not good, but thread is excuted automatically
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Lock
+{
+    AutoResetEvent _available = new AutoResetEvent(true);
+
+    public void Acquire()
+    {
+        _available.WaitOne();
+    }
+
+    public void Release()
+    {
+        _available.Set();
+    }
+}
+
+class Program
+{
+    static int _num = 0;
+    static Lock _lock = new Lock();
+
+    ...
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/26.jpg"><img src="/assets/img/posts/cshap_multi_thread/26.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+## Mutex
+
+* Mutex
+  - Mutex can count wait and release, and use threadId
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static int _num = 0;
+    static Mutex _lock = new Mutex();
+
+    static void Thread_1()
+    {
+        for(int i=0; i<10000; i++)
+        {
+            _lock.WaitOne();
+            _num++;
+            _lock.ReleaseMutex();
+        }
+    }
+
+    static void Thread_2()
+    {
+        for (int i = 0; i < 10000; i++)
+        {
+            _lock.WaitOne();
+            _num--;
+            _lock.ReleaseMutex();
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(Thread_1);
+        Task t2 = new Task(Thread_2);
+
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(_num);
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/27.jpg"><img src="/assets/img/posts/cshap_multi_thread/27.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
