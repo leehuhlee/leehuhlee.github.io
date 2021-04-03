@@ -950,16 +950,19 @@ class SpinLock
 
 * Thread.Sleep(1);
   - an unconditional rest
+  - Monitor and lock
 
 * Thread.Sleep(0);
   - an unconditial yield
   - but thread cannot yield to lower priority
   - if there is only same or lower priority with current thread, then current thread is excuted
+  - SpinLock
 
 * Thread.Yield(); 
   - a generous concession
   - if there is excutable thread, then this thread is excuted
   - if threr is not excutable thread, remained time is removed
+  - Mutex
 
 ## ResetEvent
 
@@ -1050,6 +1053,247 @@ class Program
 
 <figure>
   <a href="/assets/img/posts/cshap_multi_thread/27.jpg"><img src="/assets/img/posts/cshap_multi_thread/27.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+## ReaderWriterLock
+  - in normal situation, there is no lock
+  - but if in specific situation, for example, you want to write, then lock is excuted
+
+### Test :  Non Recursive Lock
+
+* ServerCore\Lock.cs
+  - Spin Lock Policy: 5000 times → Yield
+
+{% highlight C# %}
+class Lock
+{
+    // 0000 0000 0000 0000 0000 0000 0000 0000
+    const int EMPTY_FLAG = 0x00000000;
+
+    // 0111 1111 1111 1111 0000 0000 0000 0000
+    const int WRITE_MASK = 0x7FFF0000;
+
+    // 0000 0000 0000 0000 1111 1111 1111 1111
+    const int READ_MASK = 0x0000FFFF;
+
+    const int MAX_SPIN_COUNT = 5000;
+
+    // 32bits = [Unused(1)] [WriteThreadId(15)] [ReadCount(16)]
+    int _flag =  EMPTY_FLAG;
+
+    public void WriteLock()
+    {
+        // noone has WriteLock or ReadLock, then get ownership by compitition
+        int desired = (Thread.CurrentThread.ManagedThreadId << 16) & WRITE_MASK;
+        while (true)
+        {
+            for(int i=0; i<MAX_SPIN_COUNT; i++)
+            {
+                if (Interlocked.CompareExchange(ref _flag, desired, EMPTY_FLAG) == EMPTY_FLAG)
+                    return;
+            }
+
+            Thread.Yield();
+        }
+    }
+
+    public void WriteUnlock()
+    {
+        Interlocked.Exchange(ref _flag, EMPTY_FLAG);
+    }
+
+    public void ReadLock()
+    {
+        // noone has WriteLock, then add 1 to ReadCount
+        while (true)
+        {
+            for(int i=0; i<MAX_SPIN_COUNT; i++)
+            {
+                int expected = (_flag & READ_MASK);
+                if (Interlocked.CompareExchange(ref _flag, expected + 1, expected) == expected)
+                    return;
+            }
+
+            Thread.Yield();
+        }
+    }
+
+    public void ReadUnlock()
+    {
+        Interlocked.Decrement(ref _flag);
+    }
+}
+{% endhighlight %}
+
+
+### Test :  Recursive Lock
+
+* ServerCore\Lock.cs
+  - Spin Lock Policy: 5000 times → Yield
+  - WriteLock → WriteLock OK, WriteLock → ReadLock OK, ReadLock → WriteLock NO
+
+{% highlight C# %}
+class Lock
+{
+    // 0000 0000 0000 0000 0000 0000 0000 0000
+    const int EMPTY_FLAG = 0x00000000;
+
+    // 0111 1111 1111 1111 0000 0000 0000 0000
+    const int WRITE_MASK = 0x7FFF0000;
+
+    // 0000 0000 0000 0000 1111 1111 1111 1111
+    const int READ_MASK = 0x0000FFFF;
+
+    const int MAX_SPIN_COUNT = 5000;
+    int _writeCount = 0;
+
+    // 32bits = [Unused(1)] [WriteThreadId(15)] [ReadCount(16)]
+    int _flag =  EMPTY_FLAG;
+
+    public void WriteLock()
+    {
+        // check that same thread has already WriteLock
+        int lockThreadId = (_flag & WRITE_MASK) >> 16;
+        if(Thread.CurrentThread.ManagedThreadId == lockThreadId)
+        {
+            _writeCount++;
+            return;
+        }
+
+        // noone has WriteLock or ReadLock, then get ownership by compitition
+        int desired = (Thread.CurrentThread.ManagedThreadId << 16) & WRITE_MASK;
+        while (true)
+        {
+            for(int i=0; i<MAX_SPIN_COUNT; i++)
+            {
+                if (Interlocked.CompareExchange(ref _flag, desired, EMPTY_FLAG) == EMPTY_FLAG)
+                {
+                    _writeCount = 1;
+                    return;
+                }
+            }
+
+            Thread.Yield();
+        }
+    }
+
+    public void WriteUnlock()
+    {
+        int lockCount = --_writeCount;
+        if(lockCount == 0)
+            Interlocked.Exchange(ref _flag, EMPTY_FLAG);
+    }
+
+    public void ReadLock()
+    {
+
+        // check that same thread has already WriteLock
+        int lockThreadId = (_flag & WRITE_MASK) >> 16;
+        if (Thread.CurrentThread.ManagedThreadId == lockThreadId)
+        {
+            Interlocked.Increment(ref _flag);
+            return;
+        }
+
+        // noone has WriteLock, then add 1 to ReadCount
+        while (true)
+        {
+            for(int i=0; i<MAX_SPIN_COUNT; i++)
+            {
+                int expected = (_flag & READ_MASK);
+                if (Interlocked.CompareExchange(ref _flag, expected + 1, expected) == expected)
+                    return;
+            }
+
+            Thread.Yield();
+        }
+    }
+
+    public void ReadUnlock()
+    {
+        Interlocked.Decrement(ref _flag);
+    }
+}
+{% endhighlight %}
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static volatile int count = 0;
+    static Lock _lock = new Lock();
+
+    static void Main(string[] args)
+    {
+        Task t1 = new Task(delegate ()
+        {
+            for (int i = 0; i < 100000; i++)
+            {
+                _lock.WriteLock();
+                count++;
+                _lock.WriteUnlock();
+            }
+        });
+
+        Task t2 = new Task(delegate ()
+        {
+            for (int i = 0; i < 100000; i++)
+            {
+                _lock.WriteLock();
+                count--;
+                _lock.WriteUnlock();
+            }
+        });
+
+        t1.Start();
+        t2.Start();
+
+        Task.WaitAll(t1, t2);
+
+        Console.WriteLine(count);
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/28.jpg"><img src="/assets/img/posts/cshap_multi_thread/28.jpg"></a>
+	<figcaption>C# Multi Thread</figcaption>
+</figure>
+
+# Thread Local Storage
+  - Global variables that are uniquely accessible
+
+### Test
+
+* ServerCore\Program.cs
+{% highlight C# %}
+class Program
+{
+    static ThreadLocal<string> ThreadName = new ThreadLocal<string>(() => { return $"My Name Is {Thread.CurrentThread.ManagedThreadId}"; });
+
+    static void WhoAmI()
+    {
+        bool repeat = ThreadName.IsValueCreated;
+        if(repeat)
+            Console.WriteLine(ThreadName.Value + "(repeat)");
+        else
+            Console.WriteLine(ThreadName.Value);
+    }
+
+    static void Main(string[] args)
+    {
+        ThreadPool.SetMinThreads(1, 1);
+        ThreadPool.SetMaxThreads(3, 3);
+        Parallel.Invoke(WhoAmI, WhoAmI, WhoAmI, WhoAmI, WhoAmI, WhoAmI, WhoAmI, WhoAmI);
+
+        ThreadName.Dispose();
+    }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/cshap_multi_thread/29.jpg"><img src="/assets/img/posts/cshap_multi_thread/29.jpg"></a>
 	<figcaption>C# Multi Thread</figcaption>
 </figure>
 
