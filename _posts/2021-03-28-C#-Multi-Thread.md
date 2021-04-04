@@ -186,7 +186,8 @@ static void Main(string[] args)
     ThreadPool.SetMinThreads(1, 1);
     ThreadPool.SetMaxThreads(5, 5);
 
-    for (int i = 0; i < 5; i++)
+    // There is left thread to work
+    for (int i = 0; i < 4; i++)
         ThreadPool.QueueUserWorkItem((obj) => { while (true) { } });
 
     ThreadPool.QueueUserWorkItem(MainThread);
@@ -416,7 +417,7 @@ class Program
 
     static void Thread_2()
     {
-        x = 1; // Storex
+        x = 1; // Store x
         r2 = y; // Load y
     }
 
@@ -459,7 +460,7 @@ class Program
   - Visibility
 
 * Full memory Barrier(ASM MFENCE, C# Thread.MemoryBarrier)
-  - ban Store and Load.
+  - ban Store and Load
 
 * Store Memory Barrier (ASM SFENCE)
   - ban only Store
@@ -610,7 +611,7 @@ class Program
 
 * Monitor
   - if code is too long to make interlocked, we can use `Monitor`
-  - `Enter` means lock the task and `Exit` means solve the task
+  - `Enter` means lock the task and `Exit` means release the task
   - after `Exit`, other tasks are running
 
 ### Test
@@ -628,7 +629,7 @@ class Program
         {
             Monitor.Enter(_obj); // Lock
             number++;
-            Monitor.Exit(_obj); // Solve
+            Monitor.Exit(_obj); // Release
         }
     }
 
@@ -707,7 +708,7 @@ class Program
 </figure>
 
 ## DeadLock
-  - if there are two keys and two process and each process got one key, then this program never gonna finish.
+  - if there are two keys and two process and each process got one key, then this program never gonna finish
 
 ### Test
 
@@ -881,7 +882,7 @@ class Program
 	<figcaption>C# Multi Thread</figcaption>
 </figure>
 
-  - this happened because this process is not atomic.
+  - this happened because this process is not atomic
 
 * Interlocked.Exchange
 
