@@ -250,7 +250,7 @@ class PlayerInfoReq : Packet
         count += 2;
         count += 2;
 
-        this.playerId = BitConverter.ToUInt16(new ReadOnlySpan<byte>(s.Array, s.Offset + count, s.Count - count));
+        this.playerId = BitConverter.ToInt64(new ReadOnlySpan<byte>(s.Array, s.Offset + count, s.Count - count));
         count += 8;
     }
 
@@ -272,7 +272,6 @@ class PlayerInfoReq : Packet
             return null;
 
         return SendBufferHelper.Close(count);
-
     }
 }
 
@@ -355,7 +354,7 @@ class PlayerInfoReq: Packet
         count += 2;
 
         // to check there is enough space
-        this.playerId = BitConverter.ToUInt16(new ReadOnlySpan<byte>(s.Array, s.Offset + count, s.Count - count));
+        this.playerId = BitConverter.ToInt64(new ReadOnlySpan<byte>(s.Array, s.Offset + count, s.Count - count));
         count += 8;
     }
 
@@ -425,6 +424,1553 @@ class ServerSession : Session
 <figure class="half">
   <a href="/assets/img/posts/cshap_serialization/2.jpg"><img src="/assets/img/posts/cshap_serialization/2.jpg"></a>
   <a href="/assets/img/posts/cshap_serialization/3.jpg"><img src="/assets/img/posts/cshap_serialization/3.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+## resizable data
+  - ushort is 2 bytes, and long is 8bytes
+  - but you cannot decide string
+
+* Serve\ClientSession.cs
+{% highlight C# %}
+public abstract class Packet
+{
+    public ushort size;
+    public ushort packetId;
+
+    public abstract ArraySegment<byte> Write();
+    public abstract void Read(ArraySegment<byte> s);
+}
+
+class PlayerInfoReq : Packet
+{
+    public long playerId;
+    public string name;
+
+    public PlayerInfoReq()
+    {
+        this.packetId = (ushort)PacketID.PlayerInfoReq;
+    }
+
+    public override void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+    }
+
+    public override ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+
+        ushort count = 0;
+        bool success = true;
+
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.packetId);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+
+        ushort nameLen = (ushort)Encoding.Unicode.GetByteCount(this.name);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        Array.Copy(Encoding.Unicode.GetBytes(this.name), 0, segment.Array, count, nameLen);
+        count += nameLen;
+
+        success &= BitConverter.TryWriteBytes(s, count);
+
+        if (success == false)
+            return null;
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ClientSession : PacketSession
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+        Thread.Sleep(5000);
+        Disconnect();
+    }
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
+
+        switch ((PacketID)id)
+        {
+            case PacketID.PlayerInfoReq:
+                {
+                    PlayerInfoReq p = new PlayerInfoReq();
+                    p.Read(buffer);
+                    Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+                }
+                break;
+        }
+
+        Console.WriteLine($"RecvPacketId: {id}, RecvPacketSize: {size}");
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+public abstract class Packet
+{
+    public ushort size;
+    public ushort packetId;
+
+    public abstract ArraySegment<byte> Write();
+    public abstract void Read(ArraySegment<byte> s);
+}
+
+class PlayerInfoReq: Packet
+{
+    public long playerId;
+    public string name;
+
+    public PlayerInfoReq()
+    {
+        this.packetId = (ushort)PacketID.PlayerInfoReq;
+    }
+
+    public override void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        // Get string from bytes
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+    }
+
+    public override ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+
+        // count is packet size
+        ushort count = 0;
+        bool success = true;
+
+        // to specify scope of segment and use Slice
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.packetId);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+            
+        // get bytes from string
+        // copy data first and then put data
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+
+        success &= BitConverter.TryWriteBytes(s, count);
+
+        if (success == false)
+            return null;
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ServerSession : Session
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+
+        PlayerInfoReq packet = new PlayerInfoReq() { playerId = 1001, name="ABCD" };
+
+        {
+            ArraySegment<byte> s = packet.Write();
+
+            if(s != null)
+                Send(s);
+        }
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override int OnRecv(ArraySegment<byte> buffer)
+    {
+        string recvData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+        Console.WriteLine($"[From Server] {recvData}");
+        return buffer.Count;
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+### Test
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/5.jpg"><img src="/assets/img/posts/cshap_serialization/5.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/6.jpg"><img src="/assets/img/posts/cshap_serialization/6.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+## List Packet
+
+* Server\ClientSession.cs
+{% highlight C# %}
+public abstract class Packet
+{
+    public ushort size;
+    public ushort packetId;
+
+    public abstract ArraySegment<byte> Write();
+    public abstract void Read(ArraySegment<byte> s);
+}
+
+class PlayerInfoReq : Packet
+{
+    public long playerId;
+    public string name;
+
+    public struct SkillInfo
+    {
+        public int id;
+        public short level;
+        public float duration;
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            bool success = true;
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), id);
+            count += sizeof(int);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), level);
+            count += sizeof(short);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), duration);
+            count += sizeof(float);
+            return success;
+        }
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            id = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+            count += sizeof(int);
+            level = BitConverter.ToInt16(s.Slice(count, s.Length - count));
+            count += sizeof(short);
+            duration = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+            count += sizeof(float);
+        }
+    }
+
+    public List<SkillInfo> skills = new List<SkillInfo>();
+
+    public PlayerInfoReq()
+    {
+        this.packetId = (ushort)PacketID.PlayerInfoReq;
+    }
+
+    public override void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+
+        // string
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+        count += nameLen;
+
+        // skill list
+        skills.Clear();
+        ushort skillLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        for (int i = 0; i < skillLen; i++)
+        {
+            SkillInfo skill = new SkillInfo();
+            skill.Read(s, ref count);
+            skills.Add(skill);
+        }
+    }
+
+    public override ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+
+        ushort count = 0;
+        bool success = true;
+
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.packetId);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+
+        // string
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+
+        // skill list
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)skills.Count);
+        count += sizeof(ushort);
+        foreach (SkillInfo skill in skills)
+            success &= skill.Write(s, ref count);
+
+        success &= BitConverter.TryWriteBytes(s, count);
+
+        if (success == false)
+            return null;
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ClientSession : PacketSession
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+        Thread.Sleep(5000);
+        Disconnect();
+    }
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
+
+        switch ((PacketID)id)
+        {
+            case PacketID.PlayerInfoReq:
+                {
+                    PlayerInfoReq p = new PlayerInfoReq();
+                    p.Read(buffer);
+                    Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+
+                    foreach(PlayerInfoReq.SkillInfo skill in p.skills)
+                    {
+                        Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})");
+                    }
+                }
+                break;
+
+        }
+
+        Console.WriteLine($"RecvPacketId: {id}, RecvPacketSize: {size}");
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+public abstract class Packet
+{
+    public ushort size;
+    public ushort packetId;
+
+    public abstract ArraySegment<byte> Write();
+    public abstract void Read(ArraySegment<byte> s);
+}
+
+class PlayerInfoReq: Packet
+{
+    public long playerId;
+    public string name;
+        
+    public struct SkillInfo
+    {
+        public int id;
+        public short level;
+        public float duration;
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            bool success = true;
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), id);
+            count += sizeof(int);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), level);
+            count += sizeof(short);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), duration);
+            count += sizeof(float);
+            return success;
+        }
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            id = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+            count += sizeof(int);
+            level = BitConverter.ToInt16(s.Slice(count, s.Length - count));
+            count += sizeof(short);
+            // ToSingle is for float, ToDouble is for double
+            duration = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+            count += sizeof(float);
+        }
+    }
+
+    public List<SkillInfo> skills = new List<SkillInfo>();
+
+    public PlayerInfoReq()
+    {
+        this.packetId = (ushort)PacketID.PlayerInfoReq;
+    }
+
+    public override void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+        count += nameLen;
+
+        // skill list
+        // initialization
+        skills.Clear();
+        ushort skillLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        for(int i=0; i<skillLen; i++)
+        {
+            SkillInfo skill = new SkillInfo();
+            skill.Read(s, ref count);
+            skills.Add(skill);
+        }
+    }
+
+    public override ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+
+        ushort count = 0;
+        bool success = true;
+
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.packetId);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+            
+        // string
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+
+        // skill list
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)skills.Count);
+        count += sizeof(ushort);
+        foreach(SkillInfo skill in skills)
+            success &= skill.Write(s, ref count);
+
+        success &= BitConverter.TryWriteBytes(s, count);
+
+        if (success == false)
+            return null;
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ServerSession : Session
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+
+        PlayerInfoReq packet = new PlayerInfoReq() { playerId = 1001, name="ABCD" };
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 101, level = 1, duration = 3.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 201, level = 2, duration = 4.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 301, level = 3, duration = 5.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 401, level = 4, duration = 6.0f });
+        {
+            ArraySegment<byte> s = packet.Write();
+
+            if(s != null)
+                Send(s);
+        }
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override int OnRecv(ArraySegment<byte> buffer)
+    {
+        string recvData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+        Console.WriteLine($"[From Server] {recvData}");
+        return buffer.Count;
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+### Test
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/4.jpg"><img src="/assets/img/posts/cshap_serialization/4.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/7.jpg"><img src="/assets/img/posts/cshap_serialization/7.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+# Packet Generator
+
+## PacketFormat
+  - Create PacketFormat Console app project
+
+<figure>
+  <a href="/assets/img/posts/cshap_serialization/9.jpg"><img src="/assets/img/posts/cshap_serialization/9.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+class PlayerInfoReq
+{
+    public long playerId;
+    public string name;
+    
+    public struct SkillInfo
+    {
+        public int id;
+        public short level;
+        public float duration;
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            bool success = true;
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), id);
+            count += sizeof(int);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), level);
+            count += sizeof(short);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), duration);
+            count += sizeof(float);
+            return success;
+        }
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            id = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+            count += sizeof(int);
+            level = BitConverter.ToInt16(s.Slice(count, s.Length - count));
+            count += sizeof(short);
+            duration = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+            count += sizeof(float);
+        }
+    }
+
+    public List<SkillInfo> skills = new List<SkillInfo>();
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+        count += nameLen;
+
+        // skill list
+        skills.Clear();
+        ushort skillLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        for(int i=0; i<skillLen; i++)
+        {
+            SkillInfo skill = new SkillInfo();
+            skill.Read(s, ref count);
+            skills.Add(skill);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+
+        ushort count = 0;
+        bool success = true;
+
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.PlayerInfoReq);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+        
+        // string
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+
+        // skill list
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)skills.Count);
+        count += sizeof(ushort);
+        foreach(SkillInfo skill in skills)
+            success &= skill.Write(s, ref count);
+
+        success &= BitConverter.TryWriteBytes(s, count);
+
+        if (success == false)
+            return null;
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ServerSession : Session
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+
+        PlayerInfoReq packet = new PlayerInfoReq() { playerId = 1001, name="ABCD" };
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 101, level = 1, duration = 3.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 201, level = 2, duration = 4.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 301, level = 3, duration = 5.0f });
+        packet.skills.Add(new PlayerInfoReq.SkillInfo() { id = 401, level = 4, duration = 6.0f });
+        {
+            ArraySegment<byte> s = packet.Write();
+
+            if(s != null)
+                Send(s);
+        }
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override int OnRecv(ArraySegment<byte> buffer)
+    {
+        string recvData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+        Console.WriteLine($"[From Server] {recvData}");
+        return buffer.Count;
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+* PacketFormat\PDL.xml
+  - for Session automatic
+  - packet definition
+
+{% highlight xml %}
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+  <packet name="PlayerInfoReq">
+    <long name="playerId"/>
+    <string name="name"/>
+    <list name="skill">
+      <int name="id"/>
+      <short name="level"/>
+      <float name="duration"/>
+    </list>
+  </packet>
+</PDL>
+{% endhighlight %}
+
+  - copy `PDL.xml` to `\PacketGenerator\bin\Debug\netcoreapp3.1`
+<figure>
+  <a href="/assets/img/posts/cshap_serialization/10.jpg"><img src="/assets/img/posts/cshap_serialization/10.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+* PacketForamt\Program.cs
+{% highlight C# %}
+class Program
+{
+    static void Main(string[] args)
+    {
+        // parsing xml
+        XmlReaderSettings settings = new XmlReaderSettings()
+        {
+            IgnoreComments = true,
+            IgnoreWhitespace = true
+        };
+        
+        // skip dispose in code
+        using(XmlReader r = XmlReader.Create("PDL.xml", settings))
+        {
+            r.MoveToContent();
+
+            while (r.Read())
+            {
+                // r.Depth == 1 : this is packet
+                // r.NodeType == XmlNodeType.Element : this is start tag
+                if (r.Depth == 1 && r.NodeType == XmlNodeType.Element)
+                    ParsePacket(r);
+            }
+        }
+    }
+
+    public static void ParsePacket(XmlReader r)
+    {
+        // r.NodeType == XmlNodeType.EndElement : this is end tag
+        if (r.NodeType == XmlNodeType.EndElement)
+            return;
+
+        if (r.Name.ToLower() != "packet")
+        {
+            Console.WriteLine("Invalied packet node");
+            return;
+        }
+
+        string packetName = r["name"];
+        if (string.IsNullOrEmpty(packetName))
+        {
+            Console.WriteLine("Packet without name");
+            return;
+        }
+
+        ParseMembers(r);
+    }
+
+    public static void ParseMembers(XmlReader r)
+    {
+        string packetName = r["name"];
+
+        // depth of inside packet
+        int depth = r.Depth + 1;
+        while (r.Read())
+        {
+            if (r.Depth != depth)
+                break;
+
+            // member name check
+            string memberName = r["name"];
+            if (string.IsNullOrEmpty(memberName))
+            {
+                Console.WriteLine("Member without name");
+                return;
+            }
+
+            // member type check
+            string memberType = r.Name.ToLower();
+            switch (memberType)
+            {
+                case "bool":
+                case "byte":
+                case "short":
+                case "ushort":
+                case "int":
+                case "long":
+                case "float":
+                case "double":
+                case "string":
+                case "list":
+                    break;
+                default:
+                    break;
+
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* PacketGenerator\PacketFormat.cs
+  - you can define several lines of string by `@`
+  - you should `{{` and `}}` here
+
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet name
+    // {1} Member variable
+    // {2} Member variable Read
+    // {3} Member variable Write
+    public static string packetFormat =
+@"
+class {0}
+{{
+    {1}   
+
+    public void Read(ArraySegment<byte> segment)
+    {{
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+
+        {2}
+    }}
+
+    public ArraySegment<byte> Write()
+    {{
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+        count += sizeof(ushort);
+
+        {3}
+
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
+    }}
+}}
+";
+    // {0} variable type
+    // {1} variable name
+    public static string memberFormat = 
+@"public {0} {1}";
+
+    // {0} variable name
+    // {1} To~ variable type
+    // {2} vatiable type
+    public static string readFormat =
+@"this.{0} = BitConverter.{1}(s.Slice(count, s.Length - count));
+count += sizeof({2});";
+
+    // {0} variable name
+    public static string readStringFormat =
+@"ushort {0}Len = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+count += sizeof(ushort);
+this.{0} = Encoding.Unicode.GetString(s.Slice(count, {0}Len));
+count += {0}Len;";
+
+    // {0} variable name
+    // {1} variable type
+    public static string writeFormat =
+@"success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.{0});
+count += sizeof({1});";
+
+    // {0} variable name
+    public static string writeStringFormat =
+@"ushort {0}Len = (ushort)Encoding.Unicode.GetBytes(this.{0}, 0, this.{0}.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), {0}Len);
+count += sizeof(ushort);
+count += {0}Len;";
+}
+{% endhighlight %}
+
+## Packet Generator
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Name
+    // {1} Member Variable
+    // {2} Member Variable Read
+    // {3} Member Variable Write
+    public static string packetFormat =
+@"
+class {0}
+{{
+    {1}   
+    
+    public void Read(ArraySegment<byte> segment)
+    {{
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+
+        {2}
+    }}
+
+    public ArraySegment<byte> Write()
+    {{
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+        count += sizeof(ushort);
+
+        {3}
+
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
+    }}
+}}
+";
+    // {0} Variable Type
+    // {1} Variable Name
+    public static string memberFormat = 
+@"public {0} {1};";
+
+
+    // {0} List Name[Capital]
+    // {1} List Name[small]
+    // {2} Member Variables
+    // {3} Member Variables Read
+    // {4} Member Variables Write
+    public static string memberListFormat =
+@" 
+public struct {0}
+{{
+    {2}
+
+    public void Read(ReadOnlySpan<byte> s, ref ushort count)
+    {{
+        {3}
+    }}
+
+    public bool Write(Span<byte> s, ref ushort count)
+    {{
+        bool success = true;
+        {4}
+        return success;
+    }}
+}}
+
+public List<{0}> {1}s = new List<{0}>();
+";
+
+    // {0} Variable Name
+    // {1} To~ Variable Type
+    // {2} Vatiable Type
+    public static string readFormat =
+@"this.{0} = BitConverter.{1}(s.Slice(count, s.Length - count));
+count += sizeof({2});";
+
+    // {0} Variable Name
+    public static string readStringFormat =
+@"ushort {0}Len = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+count += sizeof(ushort);
+this.{0} = Encoding.Unicode.GetString(s.Slice(count, {0}Len));
+count += {0}Len;";
+
+    // {0} List Name[Capital]
+    // {1} List Name[small]
+    public static string readListFormat =
+@"this.{1}s.Clear();
+ushort {1}Len = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+count += sizeof(ushort);
+for(int i=0; i<{1}Len; i++)
+{{
+    {0} {1} = new {0}();
+    {1}.Read(s, ref count);
+    {1}s.Add({1});
+}}";
+
+    // {0} Variable Name
+    // {1} Variable Type
+    public static string writeFormat =
+ @"success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.{0});
+count += sizeof({1});";
+
+    // {0} Variable Name
+    public static string writeStringFormat =
+@"ushort {0}Len = (ushort)Encoding.Unicode.GetBytes(this.{0}, 0, this.{0}.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), {0}Len);
+count += sizeof(ushort);
+count += {0}Len;";
+
+    // {0} List Name[Capital]
+    // {1} List Name[small]
+    public static string writeListFormat =
+@"success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.{1}s.Count);
+count += sizeof(ushort);
+foreach({0} {1} in {1}s)
+    success &= {1}.Write(s, ref count);";
+}
+{% endhighlight %}
+
+* PacketGenerator\Program.cs
+{% highlight C# %}
+class Program
+{
+    static string genPackets;
+
+    static void Main(string[] args)
+    {
+        XmlReaderSettings settings = new XmlReaderSettings()
+        {
+            IgnoreComments = true,
+            IgnoreWhitespace = true
+        };
+        
+        using(XmlReader r = XmlReader.Create("PDL.xml", settings))
+        {
+            r.MoveToContent();
+
+            while (r.Read())
+            {
+                if (r.Depth == 1 && r.NodeType == XmlNodeType.Element)
+                    ParsePacket(r);
+            }
+
+            // Create File
+            File.WriteAllText("GenPackets.cs", genPackets);
+        }
+    }
+
+    public static void ParsePacket(XmlReader r)
+    {
+        if (r.NodeType == XmlNodeType.EndElement)
+            return;
+
+        if (r.Name.ToLower() != "packet")
+        {
+            Console.WriteLine("Invalied packet node");
+            return;
+        }
+
+        string packetName = r["name"];
+        if (string.IsNullOrEmpty(packetName))
+        {
+            Console.WriteLine("Packet without name");
+            return;
+        }
+
+        // save Member Variables, Member Variable Read, Member Variable Write
+        Tuple<string, string, string> t = ParseMembers(r);
+        // save packet
+        // Packet Format,  Packet Name, Member Variables, Member Variable Read, Member Variable Write
+        genPackets += string.Format(PacketFormat.packetFormat, packetName, t.Item1, t.Item2, t.Item3);
+    }
+
+    public static Tuple<string, string, string> ParseMembers(XmlReader r)
+    {
+        string packetName = r["name"];
+
+        string memberCode = "";
+        string readCode = "";
+        string writeCode = "";
+
+        int depth = r.Depth + 1;
+        while (r.Read())
+        {
+            if (r.Depth != depth)
+                break;
+
+            string memberName = r["name"];
+            if (string.IsNullOrEmpty(memberName))
+            {
+                Console.WriteLine("Member without name");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(memberCode) == false)
+                memberCode += Environment.NewLine;
+            if (string.IsNullOrEmpty(readCode) == false)
+                readCode += Environment.NewLine;
+            if (string.IsNullOrEmpty(writeCode) == false)
+                writeCode += Environment.NewLine;
+
+            string memberType = r.Name.ToLower();
+            switch (memberType)
+            {
+                case "bool":
+                case "byte":
+                case "short":
+                case "ushort":
+                case "int":
+                case "long":
+                case "float":
+                case "double":
+                    memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
+                    readCode += string.Format(PacketFormat.readFormat, memberName, ToMemberType(memberType), memberType);
+                    writeCode += string.Format(PacketFormat.writeFormat, memberName, memberType);
+                    break;
+                case "string":
+                    memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
+                    readCode += string.Format(PacketFormat.readStringFormat, memberName);
+                    writeCode += string.Format(PacketFormat.writeStringFormat, memberName);
+                    break;
+                case "list":
+                    Tuple<string, string, string> t = ParseList(r);
+                    memberCode += t.Item1;
+                    readCode += t.Item2;
+                    writeCode += t.Item3;
+                    break;
+                default:
+                    break;
+
+            }
+        }
+
+        memberCode = memberCode.Replace("\n", "\n\t");
+        readCode = readCode.Replace("\n", "\n\t\t");
+        writeCode = writeCode.Replace("\n", "\n\t\t");
+        return new Tuple<string, string, string>(memberCode, readCode, writeCode);
+    }
+
+    public static Tuple<string, string, string> ParseList(XmlReader r)
+    {
+        string listName = r["name"];
+        if (string.IsNullOrEmpty(listName))
+        {
+            Console.WriteLine("List without name");
+            return null;
+        }
+
+        Tuple<string, string, string> t = ParseMembers(r);
+
+        string memberCode = string.Format(PacketFormat.memberListFormat,
+            FirstCharToUpper(listName), 
+            FirstCharToLower(listName), 
+            t.Item1, 
+            t.Item2, 
+            t.Item3);
+
+        string readCode = string.Format(PacketFormat.readListFormat,
+            FirstCharToUpper(listName),
+            FirstCharToLower(listName));
+
+        string writeCode = string.Format(PacketFormat.writeListFormat,
+            FirstCharToUpper(listName),
+            FirstCharToLower(listName));
+
+        return new Tuple<string, string, string>(memberCode, readCode, writeCode);
+    }
+
+    public static string ToMemberType(string memberType)
+    {
+        switch (memberType)
+        {
+            case "bool":
+                return "ToBoolean";
+            case "short":
+                return "ToInt16";
+            case "ushort":
+                return "ToUInt16";
+            case "int":
+                return "ToInt32";
+            case "long":
+                return "ToInt64";
+            case "float":
+                return "ToSingle";
+            case "double":
+                return "ToDouble";
+            default:
+                return "";
+        }
+    }
+
+    public static string FirstCharToUpper(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "";
+        return input[0].ToString().ToUpper() + input.Substring(1);
+    }
+
+    public static string FirstCharToLower(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "";
+        return input[0].ToString().ToLower() + input.Substring(1);
+    }
+}
+{% endhighlight %}
+
+* Excute Packet Generator project
+  - as result, it makes `GenPacket.cs`
+  - copy whole code in `GenPacket.cs` and paste it on `ClientSession.cs` and `ServerSession.cs` 
+
+<figure>
+  <a href="/assets/img/posts/cshap_serialization/13.jpg"><img src="/assets/img/posts/cshap_serialization/13.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+* Server\ClientSession.cs
+{% highlight C# %}
+class PlayerInfoReq
+{
+    public long playerId;
+    public string name;
+
+    public struct Skill
+    {
+        public int id;
+        public short level;
+        public float duration;
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            this.id = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+            count += sizeof(int);
+            this.level = BitConverter.ToInt16(s.Slice(count, s.Length - count));
+            count += sizeof(short);
+            this.duration = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+            count += sizeof(float);
+        }
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            bool success = true;
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.id);
+            count += sizeof(int);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.level);
+            count += sizeof(short);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.duration);
+            count += sizeof(float);
+            return success;
+        }
+    }
+
+    public List<Skill> skills = new List<Skill>();
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+        count += nameLen;
+        this.skills.Clear();
+        ushort skillLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        for (int i = 0; i < skillLen; i++)
+        {
+            Skill skill = new Skill();
+            skill.Read(s, ref count);
+            skills.Add(skill);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.PlayerInfoReq);
+        count += sizeof(ushort);
+
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.skills.Count);
+        count += sizeof(ushort);
+        foreach (Skill skill in skills)
+            success &= skill.Write(s, ref count);
+
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ClientSession : PacketSession
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+        Thread.Sleep(5000);
+        Disconnect();
+    }
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
+
+        switch ((PacketID)id)
+        {
+            case PacketID.PlayerInfoReq:
+                {
+                    PlayerInfoReq p = new PlayerInfoReq();
+                    p.Read(buffer);
+                    Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+
+                    foreach(PlayerInfoReq.Skill skill in p.skills)
+                    {
+                        Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})");
+                    }
+                }
+                break;
+        }
+
+        Console.WriteLine($"RecvPacketId: {id}, RecvPacketSize: {size}");
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+class PlayerInfoReq
+{
+    public long playerId;
+    public string name;
+
+    public struct Skill
+    {
+        public int id;
+        public short level;
+        public float duration;
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            this.id = BitConverter.ToInt32(s.Slice(count, s.Length - count));
+            count += sizeof(int);
+            this.level = BitConverter.ToInt16(s.Slice(count, s.Length - count));
+            count += sizeof(short);
+            this.duration = BitConverter.ToSingle(s.Slice(count, s.Length - count));
+            count += sizeof(float);
+        }
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            bool success = true;
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.id);
+            count += sizeof(int);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.level);
+            count += sizeof(short);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.duration);
+            count += sizeof(float);
+            return success;
+        }
+    }
+
+    public List<Skill> skills = new List<Skill>();
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
+
+        this.playerId = BitConverter.ToInt64(s.Slice(count, s.Length - count));
+        count += sizeof(long);
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        this.name = Encoding.Unicode.GetString(s.Slice(count, nameLen));
+        count += nameLen;
+        this.skills.Clear();
+        ushort skillLen = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
+        count += sizeof(ushort);
+        for (int i = 0; i < skillLen; i++)
+        {
+            Skill skill = new Skill();
+            skill.Read(s, ref count);
+            skills.Add(skill);
+        }
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.PlayerInfoReq);
+        count += sizeof(ushort);
+
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), this.playerId);
+        count += sizeof(long);
+        ushort nameLen = (ushort)Encoding.Unicode.GetBytes(this.name, 0, this.name.Length, segment.Array, segment.Offset + count + sizeof(ushort));
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), nameLen);
+        count += sizeof(ushort);
+        count += nameLen;
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)this.skills.Count);
+        count += sizeof(ushort);
+        foreach (Skill skill in skills)
+            success &= skill.Write(s, ref count);
+
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
+    }
+}
+
+
+public enum PacketID
+{
+    PlayerInfoReq = 1,
+    PlayerInfoOk = 2,
+}
+
+class ServerSession : Session
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+
+        PlayerInfoReq packet = new PlayerInfoReq() { playerId = 1001, name="ABCD" };
+        packet.skills.Add(new PlayerInfoReq.Skill() { id = 101, level = 1, duration = 3.0f });
+        packet.skills.Add(new PlayerInfoReq.Skill() { id = 201, level = 2, duration = 4.0f });
+        packet.skills.Add(new PlayerInfoReq.Skill() { id = 301, level = 3, duration = 5.0f });
+        packet.skills.Add(new PlayerInfoReq.Skill() { id = 401, level = 4, duration = 6.0f });
+        {
+            ArraySegment<byte> s = packet.Write();
+
+            if(s != null)
+                Send(s);
+        }
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override int OnRecv(ArraySegment<byte> buffer)
+    {
+        string recvData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+        Console.WriteLine($"[From Server] {recvData}");
+        return buffer.Count;
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+### Test
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/11.jpg"><img src="/assets/img/posts/cshap_serialization/11.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/12.jpg"><img src="/assets/img/posts/cshap_serialization/12.jpg"></a>
 	<figcaption>C# Serialization</figcaption>
 </figure>
 
