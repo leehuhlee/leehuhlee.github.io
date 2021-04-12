@@ -1295,8 +1295,7 @@ class PacketFormat
     // {2} Member variable Read
     // {3} Member variable Write
     public static string packetFormat =
-@"
-class {0}
+@"class {0}
 {{
     {1}   
 
