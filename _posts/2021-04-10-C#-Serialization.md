@@ -1298,35 +1298,39 @@ class PacketFormat
 @"class {0}
 {
     {
-    {1}   
+        {1}   
 
-    public void Read(ArraySegment<byte> segment)
-    {{
-        ushort count = 0;
-        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        count += sizeof(ushort);
-        count += sizeof(ushort);
+        public void Read(ArraySegment<byte> segment)
+        {
+            {
+            ushort count = 0;
+            ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+            count += sizeof(ushort);
+            count += sizeof(ushort);
 
-        {2}
-    }}
+            {2}
+            }
+        }
 
-    public ArraySegment<byte> Write()
-    {{
-        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-        ushort count = 0;
-        bool success = true;
-        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-        count += sizeof(ushort);
-        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
-        count += sizeof(ushort);
+        public ArraySegment<byte> Write()
+        {
+            {
+            ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+            ushort count = 0;
+            bool success = true;
+            Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+            count += sizeof(ushort);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+            count += sizeof(ushort);
 
-        {3}
+            {3}
 
-        success &= BitConverter.TryWriteBytes(s, count);
-        if (success == false)
-            return null;
-        return SendBufferHelper.Close(count);
-    }}
+            success &= BitConverter.TryWriteBytes(s, count);
+            if (success == false)
+                return null;
+            return SendBufferHelper.Close(count);
+            }
+        }
     }
 }";
 
@@ -1375,40 +1379,45 @@ class PacketFormat
     // {2} Member Variable Read
     // {3} Member Variable Write
     public static string packetFormat =
-@"
-class {0}
-{{
-    {1}   
+@"class {0}
+{
+    {
+        {1}   
     
-    public void Read(ArraySegment<byte> segment)
-    {{
-        ushort count = 0;
-        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        count += sizeof(ushort);
-        count += sizeof(ushort);
+        public void Read(ArraySegment<byte> segment)
+        {   
+            {
+            ushort count = 0;
+            ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+            count += sizeof(ushort);
+            count += sizeof(ushort);
 
-        {2}
-    }}
+            {2}
+            }
+        }
 
-    public ArraySegment<byte> Write()
-    {{
-        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-        ushort count = 0;
-        bool success = true;
-        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-        count += sizeof(ushort);
-        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
-        count += sizeof(ushort);
+        public ArraySegment<byte> Write()
+        {
+            {
+            ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+            ushort count = 0;
+            bool success = true;
+            Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+            count += sizeof(ushort);
+            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+            count += sizeof(ushort);
 
-        {3}
+            {3}
 
-        success &= BitConverter.TryWriteBytes(s, count);
-        if (success == false)
-            return null;
-        return SendBufferHelper.Close(count);
-    }}
-}}
-";
+            success &= BitConverter.TryWriteBytes(s, count);
+            if (success == false)
+                return null;
+            return SendBufferHelper.Close(count);
+            }
+        }
+    }   
+}";
+
     // {0} Variable Type
     // {1} Variable Name
     public static string memberFormat = 
@@ -1421,26 +1430,30 @@ class {0}
     // {3} Member Variables Read
     // {4} Member Variables Write
     public static string memberListFormat =
-@" 
-public struct {0}
-{{
-    {2}
+@"public struct {0}
+{   
+    {
+        {2}
 
-    public void Read(ReadOnlySpan<byte> s, ref ushort count)
-    {{
-        {3}
-    }}
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {
+            {
+                {3}
+            }
+        }
 
-    public bool Write(Span<byte> s, ref ushort count)
-    {{
-        bool success = true;
-        {4}
-        return success;
-    }}
-}}
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            {
+                bool success = true;
+                {4}
+                return success;
+            }
+        }
+    }
+}
 
-public List<{0}> {1}s = new List<{0}>();
-";
+public List<{0}> {1}s = new List<{0}>();";
 
     // {0} Variable Name
     // {1} To~ Variable Type
@@ -1463,11 +1476,13 @@ count += {0}Len;";
 ushort {1}Len = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 count += sizeof(ushort);
 for(int i=0; i<{1}Len; i++)
-{{
-    {0} {1} = new {0}();
-    {1}.Read(s, ref count);
-    {1}s.Add({1});
-}}";
+{
+    {
+        {0} {1} = new {0}();
+        {1}.Read(s, ref count);
+        {1}s.Add({1});  
+    }
+}";
 
     // {0} Variable Name
     // {1} Variable Type
