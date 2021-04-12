@@ -1296,7 +1296,8 @@ class PacketFormat
     // {3} Member variable Write
     public static string packetFormat =
 @"class {0}
-{{
+{
+    {
     {1}   
 
     public void Read(ArraySegment<byte> segment)
@@ -1326,7 +1327,8 @@ class PacketFormat
             return null;
         return SendBufferHelper.Close(count);
     }}
-}}";
+    }
+}";
 
     // {0} variable type
     // {1} variable name
