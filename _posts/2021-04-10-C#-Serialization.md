@@ -1326,8 +1326,8 @@ class PacketFormat
             return null;
         return SendBufferHelper.Close(count);
     }}
-}}
-";
+}}";
+
     // {0} variable type
     // {1} variable name
     public static string memberFormat = 
