@@ -1990,6 +1990,178 @@ class ServerSession : Session
 	<figcaption>C# Serialization</figcaption>
 </figure>
 
+## Byte Packet
 
+* PacketGenerator\bin\Debug\netcoreapp3.1\PDL.xml
+{% highlight C# %}
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+  <packet name="PlayerInfoReq">
+    <byte name="testByte"/>
+    <long name="playerId"/>
+    <string name="name"/>
+    <list name="skill">
+      <int name="id"/>
+      <short name="level"/>
+      <float name="duration"/>
+      <list name="attribute">
+        <int name="att"/>
+      </list>
+    </list>
+  </packet>
+  <packet name="Test">
+    <int name="textInt"/>
+  </packet>
+</PDL>
+{% endhighlight %}
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+// {0} Packet Name/Number List
+// {1} Packet List
+class PacketFormat
+{
+    public static string fileFormat =
+@"using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Net;
+using ServerCore;
+
+public enum PacketID
+{
+    {
+        {0}
+    }
+}
+
+{1}";
+
+    // {0} Packet Name
+    // {1} Packet Number
+    public static string packetEnumFormat = 
+@"{0} = {1},";
+
+...
+
+    // {0} Variable Name
+    // {1} Variable Type
+    public static string readByteFormat =
+@"this.{0} = ({1})segment.Array[segment.Offset + count];
+count += sizeof({1});";
+
+...
+
+    // {0} Variable Name
+    // {1} Variable Type
+    public static string writeByteFormat =
+@"segment.Array[segment.Offset + count] = ({1})this.{0} ;
+count += sizeof({1});";
+
+...
+{% endhighlight %}
+
+* PacketGenerator\Program.cs
+{% highlight C# %}
+class Program
+{
+    static string genPackets;
+    static ushort packetId;
+    static string packetEnums;
+
+    static void Main(string[] args)
+    {
+        ...
+        
+        using(XmlReader r = XmlReader.Create("PDL.xml", settings))
+        {
+           ...
+
+            string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
+            File.WriteAllText("GenPackets.cs", fileText);
+        }
+    }
+
+    public static void ParsePacket(XmlReader r)
+    {
+        ...
+        packetEnums += string.Format(PacketFormat.packetEnumFormat, packetName, ++packetId) + Environment.NewLine + "\t";
+    }
+
+    public static Tuple<string, string, string> ParseMembers(XmlReader r)
+    {
+        ...
+        while (r.Read())
+        {
+            ...
+            switch (memberType)
+            {
+                case "byte":
+                case "sbyte":
+                    memberCode += string.Format(PacketFormat.memberFormat, memberType, memberName);
+                    readCode += string.Format(PacketFormat.readByteFormat, memberName, memberType);
+                    writeCode += string.Format(PacketFormat.writeByteFormat, memberName, memberType);
+                    break;
+                ...
+
+            }
+        }
+    }
+{% endhighlight %}
+
+* Server\ClientSession.cs
+  - copy `GenPacket.cs` and paste it
+  - change `struct` to `class`
+{% highlight C# %}
+...
+class ClientSession : PacketSession
+{
+   ...
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+       ...
+
+        switch ((PacketID)id)
+        {
+            case PacketID.PlayerInfoReq:
+                {
+                    ...
+                    foreach(PlayerInfoReq.Skill skill in p.skills)
+                    {
+                        Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})({skill.attributes.Count})");
+                    }
+                }
+                break;
+
+        }
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+class ServerSession : Session
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        ...
+        var skill = new PlayerInfoReq.Skill() { id = 101, level = 1, duration = 3.0f };
+        skill.attributes.Add(new PlayerInfoReq.Skill.Attribute() { att = 7 });
+        packet.skills.Add(skill);
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+### Test
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/14.jpg"><img src="/assets/img/posts/cshap_serialization/14.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/15.jpg"><img src="/assets/img/posts/cshap_serialization/15.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
