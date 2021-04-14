@@ -2044,6 +2044,34 @@ public enum PacketID
 
 ...
 
+    public static string memberListFormat =
+@"public class {0}
+{
+    {
+        {2}
+
+        public void Read(ReadOnlySpan<byte> s, ref ushort count)
+        {   
+            {
+                {3}
+            }
+        }
+
+        public bool Write(Span<byte> s, ref ushort count)
+        {
+            {
+                bool success = true;
+                {4}
+                return success;
+            }
+        }   
+    }
+}
+
+public List<{0}> {1}s = new List<{0}>();";
+
+...
+
     // {0} Variable Name
     // {1} Variable Type
     public static string readByteFormat =
@@ -2111,7 +2139,7 @@ class Program
 
 * Server\ClientSession.cs
   - copy `GenPacket.cs` and paste it
-  - change `struct` to `class`
+
 {% highlight C# %}
 ...
 class ClientSession : PacketSession
@@ -2161,6 +2189,272 @@ class ServerSession : Session
 <figure class="half">
   <a href="/assets/img/posts/cshap_serialization/14.jpg"><img src="/assets/img/posts/cshap_serialization/14.jpg"></a>
   <a href="/assets/img/posts/cshap_serialization/15.jpg"><img src="/assets/img/posts/cshap_serialization/15.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+# batch file
+  - Create `DummyClient\Packet\GenPackets.cs` and `Server\Packet\GenPackets.cs`
+
+<figure>
+  <a href="/assets/img/posts/cshap_serialization/16.jpg"><img src="/assets/img/posts/cshap_serialization/16.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+* PacketGenerator\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static void Main(string[] args)
+    {
+        // define path for PDL
+        string pdlPath = "../PDL.xml";
+
+        XmlReaderSettings settings = new XmlReaderSettings()
+        {
+            IgnoreComments = true,
+            IgnoreWhitespace = true
+        };
+
+        // you can change path by argument
+        if (args.Length >= 1)
+            pdlPath = args[0];
+            
+        using(XmlReader r = XmlReader.Create(pdlPath, settings))
+        {
+           ...
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+## bin folder
+  - you can make your debug files on bin folder by setting
+
+<figure>
+  <a href="/assets/img/posts/cshap_serialization/17.jpg"><img src="/assets/img/posts/cshap_serialization/17.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
+* PacketGenerator\PacketGenerator.csproj
+{% highlight C# %}
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    // set flag false for appending target framework to output path
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+
+</Project>
+{% endhighlight %}
+
+## batch file
+* Common\Packet\GenPackets.bat
+{% highlight bat %}
+START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
+XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
+XCOPY /Y GenPackets.cs "../../Server/Packet"
+{% endhighlight %}
+  - XCOPY : copy file
+  - /Y : rewrite, if there is already the file
+
+# Packet Handler and Manager
+  - make Packet case automatically
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    public static string fileFormat =
+@"using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Net;
+using ServerCore;
+
+...
+
+// base packet for all packets
+interface IPacket
+{
+    {
+        ushort Protocol {{ get; }}
+        void Read(ArraySegment<byte> segment);
+        ArraySegment<byte> Write();
+    }
+}
+
+
+{1}";
+
+public static string packetFormat =
+@"class {0} : IPacket
+{
+    {
+        ...
+
+        public ushort Protocol 
+        {
+            { 
+                get 
+                {
+                    { 
+                        return (ushort)PacketID.{0}; 
+                    }
+                }
+            }
+        }
+    
+        ...
+
+    }
+}";
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+  - set namespace to `Server`
+
+{% highlight C# %}
+class PacketHandler
+{
+    public static void PlayerInfoReqHandler(PacketSession session, IPacket packet)
+    {
+        PlayerInfoReq p = packet as PlayerInfoReq;
+
+        Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+
+        foreach (PlayerInfoReq.Skill skill in p.skills)
+        {
+            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})({skill.attributes.Count})");
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Packet\PacketManager.cs
+  - set namespace to `Server`
+
+{% highlight C# %}
+class PacketManager
+{
+    // PacketManager exists only one
+    #region Singleton
+    static PacketManager _instance;
+    
+    public static PacketManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+                _instance = new PacketManager();
+            return _instance;
+        }
+    }
+    #endregion
+
+    Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>>();
+    Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+
+    // for automatic packet
+    public void Register()
+    {
+        _onRecv.Add((ushort)PacketID.PlayerInfoReq, MakePacket<PlayerInfoReq>);
+        _handler.Add((ushort)PacketID.PlayerInfoReq, PacketHandler.PlayerInfoReqHandler);
+
+    }
+
+    public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
+    {
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
+
+        // change switch case to action
+        // search by _onRecv because _onRecv has MakePacket
+        Action<PacketSession, ArraySegment<byte>> action = null;
+        if (_onRecv.TryGetValue(id, out action))
+            action.Invoke(session, buffer);
+    }
+
+    // Condition: T should make interface IPacket, and can use new method
+    void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T: IPacket, new()
+    {
+        // make packet
+        T pkt = new T();
+        pkt.Read(buffer);
+
+        // call handler
+        Action<PacketSession, IPacket> action = null;
+        if (_handler.TryGetValue(pkt.Protocol, out action))
+            action.Invoke(session, pkt);
+    }
+}
+{% endhighlight %}
+
+* Server\ClientSession.cs
+{% highlight C# %}
+class ClientSession : PacketSession
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+        Thread.Sleep(5000);
+        Disconnect();
+    }
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        PacketManager.Instance.OnRecvPacket(this, buffer);
+
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+
+    public override void OnSend(int numOfBytes)
+    {
+        Console.WriteLine($"Transferred bytes: {numOfBytes}");
+    }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    static Listener _listener = new Listener();
+
+    static void Main(string[] args)
+    {
+        // Initialize without multi thread
+        PacketManager.Instance.Register();
+        ...
+    }
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+  - Delete part of `GenPacket.cs`
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/18.jpg"><img src="/assets/img/posts/cshap_serialization/18.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/19.jpg"><img src="/assets/img/posts/cshap_serialization/19.jpg"></a>
 	<figcaption>C# Serialization</figcaption>
 </figure>
 
