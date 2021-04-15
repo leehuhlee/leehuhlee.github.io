@@ -2290,7 +2290,12 @@ using ServerCore;
 interface IPacket
 {
     {
-        ushort Protocol {{ get; }}
+        ushort Protocol 
+        {
+            { 
+                get; 
+            }
+        }
         void Read(ArraySegment<byte> segment);
         ArraySegment<byte> Write();
     }
