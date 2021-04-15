@@ -2534,7 +2534,6 @@ class PacketManager
     public static string managerRegisterFormat =
 @"        _onRecv.Add((ushort)PacketID.{0}, MakePacket<{0}>);
         _handler.Add((ushort)PacketID.{0}, PacketHandler.{0}Handler);";
-
         ...
 }
 {% endhighlight %}
