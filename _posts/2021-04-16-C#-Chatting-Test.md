@@ -197,10 +197,7 @@ class Program
         _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
         Console.WriteLine("Listening...");
 
-        while (true)
-        {
-
-        }
+        while (true) { }
     }
 }
 {% endhighlight %}
