@@ -1973,7 +1973,7 @@ class ServerSession : Session
 ## Byte Packet
 
 * PacketGenerator\bin\Debug\netcoreapp3.1\PDL.xml
-{% highlight C# %}
+{% highlight xml %}
 <?xml version="1.0" encoding="utf-8" ?>
 <PDL>
   <packet name="PlayerInfoReq">
@@ -2211,7 +2211,7 @@ class Program
 </figure>
 
 * PacketGenerator\PacketGenerator.csproj
-{% highlight C# %}
+{% highlight csproj %}
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -2234,7 +2234,7 @@ class Program
 
 ## batch file
 * Common\Packet\GenPackets.bat
-{% highlight C# %}
+{% highlight bat %}
 START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
 XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
 XCOPY /Y GenPackets.cs "../../Server/Packet"
@@ -2501,7 +2501,7 @@ class PacketManager
 * PacketGenerator\PDL.xml
   - `C_` is for client
   - `S_` is for server
-{% highlight C# %}
+{% highlight xml %}
 <?xml version="1.0" encoding="utf-8" ?>
 <PDL>
   <packet name="C_PlayerInfoReq">
@@ -2561,7 +2561,7 @@ class Program
 {% endhighlight %}
 
 * Common\Packet\GenPackets.bat
-{% highlight C#}
+{% highlight bat}
 START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
 XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
 XCOPY /Y GenPackets.cs "../../Server/Packet"
