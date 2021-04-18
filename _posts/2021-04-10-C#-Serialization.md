@@ -2234,7 +2234,7 @@ class Program
 
 ## batch file
 * Common\Packet\GenPackets.bat
-{% highlight bat %}
+{% highlight C# %}
 START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
 XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
 XCOPY /Y GenPackets.cs "../../Server/Packet"
@@ -2561,7 +2561,7 @@ class Program
 {% endhighlight %}
 
 * Common\Packet\GenPackets.bat
-{% highlight bat}
+{% highlight C#}
 START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
 XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
 XCOPY /Y GenPackets.cs "../../Server/Packet"
