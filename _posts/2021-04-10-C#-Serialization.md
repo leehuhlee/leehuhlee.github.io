@@ -2550,16 +2550,34 @@ class Program
 }
 {% endhighlight %}
 
-* Common\Packet\GenPackets.bat
-{% highlight bat}
-START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
-XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
-XCOPY /Y GenPackets.cs "../../Server/Packet"
-XCOPY /Y ClientPacketManager.cs "../../DummyClient/Packet"
-XCOPY /Y ServerPacketManager.cs "../../Server/Packet"
+
+* Server\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void C_PlayerInfoReqHandler(PacketSession session, IPacket packet)
+    {
+        C_PlayerInfoReq p = packet as C_PlayerInfoReq;
+
+        Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+
+        foreach (C_PlayerInfoReq.Skill skill in p.skills)
+        {
+            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})({skill.attributes.Count})");
+        }
+    }
+
+    public static void TestHandler(PacketSession session, IPacket packet) { }
+}
 {% endhighlight %}
 
-
+* DummyClient\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void S_TestHandler(PacketSession session, IPacket packet){ }
+}
+{% endhighlight %}
 
 <figure class="half">
   <a href="/assets/img/posts/cshap_serialization/20.jpg"><img src="/assets/img/posts/cshap_serialization/20.jpg"></a>
