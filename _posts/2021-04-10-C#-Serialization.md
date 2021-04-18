@@ -2488,4 +2488,31 @@ class PacketManager
 }
 {% endhighlight %}
 
+* PacketGenerator\PDL.xml
+  - `C_` is for client
+  - `S_` is for server
+{% highlight xml %}
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+  <packet name="C_PlayerInfoReq">
+    <byte name="testByte"/>
+    <long name="playerId"/>
+    <string name="name"/>
+    <list name="skill">
+      <int name="id"/>
+      <short name="level"/>
+      <float name="duration"/>
+      <list name="attribute">
+        <int name="att"/>
+      </list>
+    </list>
+  </packet>
+  <packet name="S_Test">
+    <int name="textInt"/>
+  </packet>
+</PDL>
+{% endhighlight %}
+
+
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
