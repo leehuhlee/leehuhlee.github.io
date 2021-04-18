@@ -2550,6 +2550,21 @@ class Program
 }
 {% endhighlight %}
 
+* Common\Packet\GenPackets.bat
+{% highlight bat}
+START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
+XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
+XCOPY /Y GenPackets.cs "../../Server/Packet"
+XCOPY /Y ClientPacketManager.cs "../../DummyClient/Packet"
+XCOPY /Y ServerPacketManager.cs "../../Server/Packet"
+{% endhighlight %}
 
+
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/20.jpg"><img src="/assets/img/posts/cshap_serialization/20.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/21.jpg"><img src="/assets/img/posts/cshap_serialization/21.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
