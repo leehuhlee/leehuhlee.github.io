@@ -2428,4 +2428,179 @@ class Program
 	<figcaption>C# Serialization</figcaption>
 </figure>
 
+## Packet Manager
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Assign
+    public static string managerFormat =
+@"using ServerCore;
+using System;
+using System.Collections.Generic;
+
+class PacketManager
+{
+
+    #region Singleton
+    static PacketManager _instance;
+    
+    public static PacketManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+                _instance = new PacketManager();
+            return _instance;
+        }
+    }
+    #endregion
+
+    Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>>();
+    Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+
+    public void Register()
+    {
+        {0}
+    }
+
+    public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
+    {   
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
+
+        Action<PacketSession, ArraySegment<byte>> action = null;
+        if (_onRecv.TryGetValue(id, out action))
+            action.Invoke(session, buffer);
+    }
+
+    void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T: IPacket, new()
+    {
+        T pkt = new T();
+        pkt.Read(buffer);
+
+        Action<PacketSession, IPacket> action = null;
+        if (_handler.TryGetValue(pkt.Protocol, out action))
+            action.Invoke(session, pkt);
+    }
+}";
+
+    // {0} Packet Name
+    public static string managerRegisterFormat =
+@"        _onRecv.Add((ushort)PacketID.{0}, MakePacket<{0}>);
+        _handler.Add((ushort)PacketID.{0}, PacketHandler.{0}Handler);";
+        ...
+}
+{% endhighlight %}
+
+* PacketGenerator\PDL.xml
+  - `C_` is for client
+  - `S_` is for server
+{% highlight xml %}
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+  <packet name="C_PlayerInfoReq">
+    <byte name="testByte"/>
+    <long name="playerId"/>
+    <string name="name"/>
+    <list name="skill">
+      <int name="id"/>
+      <short name="level"/>
+      <float name="duration"/>
+      <list name="attribute">
+        <int name="att"/>
+      </list>
+    </list>
+  </packet>
+  <packet name="S_Test">
+    <int name="textInt"/>
+  </packet>
+</PDL>
+{% endhighlight %}
+
+* PacketGenerator\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static string clientRegister;
+    static string serverRegister;
+
+    static void Main(string[] args)
+    {
+        ...
+
+        using(XmlReader r = XmlReader.Create(pdlPath, settings))
+        {
+            ...
+            string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
+            File.WriteAllText("GenPackets.cs", fileText);
+            string ClientManagerText = string.Format(PacketFormat.managerFormat, clientRegister);
+            File.WriteAllText("ClientPacketManager.cs", ClientManagerText);
+            string ServerManagerText = string.Format(PacketFormat.managerFormat, serverRegister);
+            File.WriteAllText("ServerPacketManager.cs", ServerManagerText);
+        }
+    }
+
+    public static void ParsePacket(XmlReader r)
+    {
+        ...
+
+        if(packetName.StartsWith("S_") || packetName.StartsWith("s_"))
+            clientRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
+        else
+            serverRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
+
+    }
+}
+{% endhighlight %}
+
+* Common\Packet\GenPackets.bat
+{% highlight bat}
+START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
+XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
+XCOPY /Y GenPackets.cs "../../Server/Packet"
+XCOPY /Y ClientPacketManager.cs "../../DummyClient/Packet"
+XCOPY /Y ServerPacketManager.cs "../../Server/Packet"
+{% endhighlight %}
+
+* Server\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void C_PlayerInfoReqHandler(PacketSession session, IPacket packet)
+    {
+        C_PlayerInfoReq p = packet as C_PlayerInfoReq;
+
+        Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
+
+        foreach (C_PlayerInfoReq.Skill skill in p.skills)
+        {
+            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})({skill.attributes.Count})");
+        }
+    }
+
+    public static void TestHandler(PacketSession session, IPacket packet) { }
+}
+{% endhighlight %}
+
+* DummyClient\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void S_TestHandler(PacketSession session, IPacket packet){ }
+}
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_serialization/20.jpg"><img src="/assets/img/posts/cshap_serialization/20.jpg"></a>
+  <a href="/assets/img/posts/cshap_serialization/21.jpg"><img src="/assets/img/posts/cshap_serialization/21.jpg"></a>
+	<figcaption>C# Serialization</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
