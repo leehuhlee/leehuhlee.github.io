@@ -1297,40 +1297,34 @@ class PacketFormat
     public static string packetFormat =
 @"class {0}
 {
+    {1}   
+
+    public void Read(ArraySegment<byte> segment)
     {
-        {1}   
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
 
-        public void Read(ArraySegment<byte> segment)
-        {
-            {
-            ushort count = 0;
-            ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-            count += sizeof(ushort);
-            count += sizeof(ushort);
+        {2}
+    }
 
-            {2}
-            }
-        }
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+        count += sizeof(ushort);
 
-        public ArraySegment<byte> Write()
-        {
-            {
-            ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-            ushort count = 0;
-            bool success = true;
-            Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-            count += sizeof(ushort);
-            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
-            count += sizeof(ushort);
+        {3}
 
-            {3}
-
-            success &= BitConverter.TryWriteBytes(s, count);
-            if (success == false)
-                return null;
-            return SendBufferHelper.Close(count);
-            }
-        }
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
     }
 }";
 
@@ -1381,41 +1375,35 @@ class PacketFormat
     public static string packetFormat =
 @"class {0}
 {
-    {
-        {1}   
+    {1}   
     
-        public void Read(ArraySegment<byte> segment)
-        {   
-            {
-            ushort count = 0;
-            ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-            count += sizeof(ushort);
-            count += sizeof(ushort);
+    public void Read(ArraySegment<byte> segment)
+    {
+        ushort count = 0;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        count += sizeof(ushort);
 
-            {2}
-            }
-        }
+        {2}
+    }
 
-        public ArraySegment<byte> Write()
-        {
-            {
-            ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-            ushort count = 0;
-            bool success = true;
-            Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-            count += sizeof(ushort);
-            success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
-            count += sizeof(ushort);
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        bool success = true;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += sizeof(ushort);
+        success &= BitConverter.TryWriteBytes(s.Slice(count, s.Length - count), (ushort)PacketID.{0});
+        count += sizeof(ushort);
 
-            {3}
+        {3}
 
-            success &= BitConverter.TryWriteBytes(s, count);
-            if (success == false)
-                return null;
-            return SendBufferHelper.Close(count);
-            }
-        }
-    }   
+        success &= BitConverter.TryWriteBytes(s, count);
+        if (success == false)
+            return null;
+        return SendBufferHelper.Close(count);
+    }
 }";
 
     // {0} Variable Type
@@ -1432,24 +1420,18 @@ class PacketFormat
     public static string memberListFormat =
 @"public struct {0}
 {   
+    {2}
+
+    public void Read(ReadOnlySpan<byte> s, ref ushort count)
     {
-        {2}
+        {3}
+    }
 
-        public void Read(ReadOnlySpan<byte> s, ref ushort count)
-        {
-            {
-                {3}
-            }
-        }
-
-        public bool Write(Span<byte> s, ref ushort count)
-        {
-            {
-                bool success = true;
-                {4}
-                return success;
-            }
-        }
+    public bool Write(Span<byte> s, ref ushort count)
+    {
+        bool success = true;
+        {4}
+        return success;
     }
 }
 
@@ -1477,11 +1459,9 @@ ushort {1}Len = BitConverter.ToUInt16(s.Slice(count, s.Length - count));
 count += sizeof(ushort);
 for(int i=0; i<{1}Len; i++)
 {
-    {
-        {0} {1} = new {0}();
-        {1}.Read(s, ref count);
-        {1}s.Add({1});  
-    }
+    {0} {1} = new {0}();
+    {1}.Read(s, ref count);
+    {1}s.Add({1});  
 }";
 
     // {0} Variable Name
@@ -2030,9 +2010,7 @@ using ServerCore;
 
 public enum PacketID
 {
-    {
-        {0}
-    }
+    {0}
 }
 
 {1}";
@@ -2047,24 +2025,18 @@ public enum PacketID
     public static string memberListFormat =
 @"public class {0}
 {
+    {2}
+
+    public void Read(ReadOnlySpan<byte> s, ref ushort count)
+    {   
+        {3}
+    }
+
+    public bool Write(Span<byte> s, ref ushort count)
     {
-        {2}
-
-        public void Read(ReadOnlySpan<byte> s, ref ushort count)
-        {   
-            {
-                {3}
-            }
-        }
-
-        public bool Write(Span<byte> s, ref ushort count)
-        {
-            {
-                bool success = true;
-                {4}
-                return success;
-            }
-        }   
+        bool success = true;
+        {4}
+        return success;
     }
 }
 
@@ -2307,24 +2279,17 @@ interface IPacket
 public static string packetFormat =
 @"class {0} : IPacket
 {
-    {
-        ...
+    ...
 
-        public ushort Protocol 
-        {
-            { 
-                get 
-                {
-                    { 
-                        return (ushort)PacketID.{0}; 
-                    }
-                }
-            }
+    public ushort Protocol 
+    { 
+        get 
+        { 
+            return (ushort)PacketID.{0}; 
         }
-    
-        ...
-
     }
+    
+    ...
 }";
 {% endhighlight %}
 
@@ -2477,61 +2442,51 @@ using System.Collections.Generic;
 
 class PacketManager
 {
-    {
-        #region Singleton
-        static PacketManager _instance;
+
+    #region Singleton
+    static PacketManager _instance;
     
-        public static PacketManager Instance
+    public static PacketManager Instance
+    {
+        get
         {
-            {
-                get
-                {
-                    {
-                        if (_instance == null)
-                            _instance = new PacketManager();
-                        return _instance;
-                    }
-                }
-            }
+
+            if (_instance == null)
+                _instance = new PacketManager();
+            return _instance;
         }
-        #endregion
+    }
+    #endregion
 
-        Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>>();
-        Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+    Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>>();
+    Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
 
-        public void Register()
-        {
-            {
-                {0}
-            }
-        }
+    public void Register()
+    {
+        {0}
+    }
 
-        public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
-        {   
-            {
-                ushort count = 0;
-                ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
-                count += 2;
-                ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
-                count += 2;
+    public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
+    {   
+        ushort count = 0;
+        ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+        count += 2;
+        ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+        count += 2;
 
-                Action<PacketSession, ArraySegment<byte>> action = null;
-                if (_onRecv.TryGetValue(id, out action))
-                    action.Invoke(session, buffer);
-            }
-        }
+        Action<PacketSession, ArraySegment<byte>> action = null;
+        if (_onRecv.TryGetValue(id, out action))
+            action.Invoke(session, buffer);
+    }
 
-        void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T: IPacket, new()
-        {
-            {
-                T pkt = new T();
-                pkt.Read(buffer);
+    void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T: IPacket, new()
+    {
+        T pkt = new T();
+        pkt.Read(buffer);
 
-                Action<PacketSession, IPacket> action = null;
-                if (_handler.TryGetValue(pkt.Protocol, out action))
-                    action.Invoke(session, pkt);
-            }
-        }
+        Action<PacketSession, IPacket> action = null;
+        if (_handler.TryGetValue(pkt.Protocol, out action))
+            action.Invoke(session, pkt);
     }
 }";
 
@@ -2640,9 +2595,7 @@ class PacketHandler
 {% highlight C# %}
 class PacketHandler
 {
-    public static void S_TestHandler(PacketSession session, IPacket packet)
-    {
-    }
+    public static void S_TestHandler(PacketSession session, IPacket packet){ }
 }
 {% endhighlight %}
 
