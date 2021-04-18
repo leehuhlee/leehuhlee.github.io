@@ -2513,6 +2513,43 @@ class PacketManager
 </PDL>
 {% endhighlight %}
 
+* PacketGenerator\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static string clientRegister;
+    static string serverRegister;
+
+    static void Main(string[] args)
+    {
+        ...
+
+        using(XmlReader r = XmlReader.Create(pdlPath, settings))
+        {
+            ...
+            string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
+            File.WriteAllText("GenPackets.cs", fileText);
+            string ClientManagerText = string.Format(PacketFormat.managerFormat, clientRegister);
+            File.WriteAllText("ClientPacketManager.cs", ClientManagerText);
+            string ServerManagerText = string.Format(PacketFormat.managerFormat, serverRegister);
+            File.WriteAllText("ServerPacketManager.cs", ServerManagerText);
+        }
+    }
+
+    public static void ParsePacket(XmlReader r)
+    {
+        ...
+
+        if(packetName.StartsWith("S_") || packetName.StartsWith("s_"))
+            clientRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
+        else
+            serverRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
+    }
+}
+{% endhighlight %}
+
 
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
