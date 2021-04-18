@@ -312,6 +312,212 @@ public abstract class Session
 }
 {% endhighlight %}
 
+## Client
 
+* DummyClient\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void S_ChatHandler(PacketSession session, IPacket packet)
+    {
+        // send C_chat and reply by S_Chat
+        S_Chat chatPacket = packet as S_Chat;
+        ServerSession serverSession = session as ServerSession;
+
+        Console.WriteLine(chatPacket.chat);
+    }
+}
+{% endhighlight %}
+
+* DummyClient\Program.cs
+{% highlight C# %}
+class Program
+{
+    static void Main(string[] args)
+    {
+        ...
+
+        Connector connector = new Connector();
+
+        // Set count
+        connector.Connect(endPoint, () => { return SessionManager.Instance.Generate(); }, 100);
+
+        while (true)
+        {
+            try
+            {
+                // all sessions send chatting message to server
+                SessionManager.Instance.SendForEach();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+            Thread.Sleep(250);
+        }
+    }
+}
+{% endhighlight %}
+
+* DummyClient\ServerSession.cs
+{% highlight C# %}
+class ServerSession : PacketSession
+{
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+    }
+
+    ...
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        PacketManager.Instance.OnRecvPacket(this, buffer);
+    }
+
+    public override void OnSend(int numOfBytes){ }
+}
+{% endhighlight %}
+
+* DummyClient\SessionManager.cs
+{% highlight C# %}
+class SessionManager
+{
+    static SessionManager _session = new SessionManager();
+    public static SessionManager Instance { get { return _session; } }
+
+    List<ServerSession> _sessions = new List<ServerSession>();
+    // for multi thread
+    object _lock = new object();
+
+    public void SendForEach()
+    {
+        lock (_lock)
+        {
+            foreach(ServerSession session in _sessions)
+            {
+                C_Chat chatPacket = new C_Chat();
+                chatPacket.chat = $"Hello Server!";
+                ArraySegment<byte> segment = chatPacket.Write();
+
+                session.Send(segment);
+            }
+        }
+    }
+
+    public ServerSession Generate()
+    {
+        lock (_lock)
+        {
+            ServerSession session = new ServerSession();
+            _sessions.Add(session);
+            return session;
+        }
+
+    }
+}
+{% endhighlight %}
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Assign
+    public static string managerFormat =
+@"using ServerCore;
+using System;
+using System.Collections.Generic;
+
+class PacketManager
+{
+    #region Singleton
+    static PacketManager _instance = new PacketManager();
+    public static PacketManager Instance { get { return _instance; } }
+    #endregion
+
+    PacketManager()
+    {
+        Register();
+    }
+
+    Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>>>();
+    Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+
+   ...
+}";
+}
+{% endhighlight %}
+
+* Server\GameRoom.cs
+{% highlight C# %}
+class GameRoom
+{
+    List<ClientSession> _sessions = new List<ClientSession>();
+    object _lock = new object();
+
+    public void Broadcast(ClientSession session, string chat)
+    {
+        S_Chat packet = new S_Chat();
+        packet.playerId = session.SessionId;
+        packet.chat = $"{chat} I am {packet.playerId}";
+        ArraySegment<byte> segment = packet.Write();
+
+        // O(N²)
+        lock (_lock)
+        {
+            foreach (ClientSession s in _sessions)
+                s.Send(segment);
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static void Main(string[] args)
+    {
+        // remove Register() for automatic
+        string host = Dns.GetHostName();
+        ...
+    }
+}
+{% endhighlight %}
+
+* ServerCore\Connector.cs
+{% highlight C# %}
+public class Connector
+{
+   ...
+
+    // the initial count value is 1, but you can set the connector count
+    public void Connect(IPEndPoint endPoint, Func<Session> sessionFactory, int count = 1)
+    {
+        for(int i=0; i<count; i++)
+        {
+            Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            _sessionFactory = sessionFactory;
+
+            SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+            args.Completed += OnConnectCompleted;
+            args.RemoteEndPoint = endPoint;
+            args.UserToken = socket;
+
+            RegisterConnect(args);
+        }
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_chatting_test/0.jpg"><img src="/assets/img/posts/cshap_chatting_test/0.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/1.jpg"><img src="/assets/img/posts/cshap_chatting_test/1.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
