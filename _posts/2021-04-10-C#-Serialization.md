@@ -2261,16 +2261,9 @@ using ServerCore;
 // base packet for all packets
 interface IPacket
 {
-    {
-        ushort Protocol 
-        {
-            { 
-                get; 
-            }
-        }
-        void Read(ArraySegment<byte> segment);
-        ArraySegment<byte> Write();
-    }
+    ushort Protocol { get; }
+    void Read(ArraySegment<byte> segment);
+    ArraySegment<byte> Write();
 }
 
 
@@ -2342,7 +2335,6 @@ class PacketManager
     {
         _onRecv.Add((ushort)PacketID.PlayerInfoReq, MakePacket<PlayerInfoReq>);
         _handler.Add((ushort)PacketID.PlayerInfoReq, PacketHandler.PlayerInfoReqHandler);
-
     }
 
     public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
@@ -2389,7 +2381,6 @@ class ClientSession : PacketSession
     public override void OnRecvPacket(ArraySegment<byte> buffer)
     {
         PacketManager.Instance.OnRecvPacket(this, buffer);
-
     }
 
     public override void OnDisconnected(EndPoint endPoint)
@@ -2496,111 +2487,5 @@ class PacketManager
         ...
 }
 {% endhighlight %}
-
-* PacketGenerator\PDL.xml
-  - `C_` is for client
-  - `S_` is for server
-{% highlight xml %}
-<?xml version="1.0" encoding="utf-8" ?>
-<PDL>
-  <packet name="C_PlayerInfoReq">
-    <byte name="testByte"/>
-    <long name="playerId"/>
-    <string name="name"/>
-    <list name="skill">
-      <int name="id"/>
-      <short name="level"/>
-      <float name="duration"/>
-      <list name="attribute">
-        <int name="att"/>
-      </list>
-    </list>
-  </packet>
-  <packet name="S_Test">
-    <int name="textInt"/>
-  </packet>
-</PDL>
-{% endhighlight %}
-
-* PacketGenerator\Program.cs
-{% highlight C# %}
-class Program
-{
-    ...
-
-    static string clientRegister;
-    static string serverRegister;
-
-    static void Main(string[] args)
-    {
-        ...
-
-        using(XmlReader r = XmlReader.Create(pdlPath, settings))
-        {
-            ...
-            string fileText = string.Format(PacketFormat.fileFormat, packetEnums, genPackets);
-            File.WriteAllText("GenPackets.cs", fileText);
-            string ClientManagerText = string.Format(PacketFormat.managerFormat, clientRegister);
-            File.WriteAllText("ClientPacketManager.cs", ClientManagerText);
-            string ServerManagerText = string.Format(PacketFormat.managerFormat, serverRegister);
-            File.WriteAllText("ServerPacketManager.cs", ServerManagerText);
-        }
-    }
-
-    public static void ParsePacket(XmlReader r)
-    {
-        ...
-
-        if(packetName.StartsWith("S_") || packetName.StartsWith("s_"))
-            clientRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
-        else
-            serverRegister += string.Format(PacketFormat.managerRegisterFormat, packetName) + Environment.NewLine;
-
-    }
-}
-{% endhighlight %}
-
-* Common\Packet\GenPackets.bat
-{% highlight bat}
-START ../../PacketGenerator/bin/PacketGenerator.exe ../../PacketGenerator/PDL.xml
-XCOPY /Y GenPackets.cs "../../DummyClient/Packet"
-XCOPY /Y GenPackets.cs "../../Server/Packet"
-XCOPY /Y ClientPacketManager.cs "../../DummyClient/Packet"
-XCOPY /Y ServerPacketManager.cs "../../Server/Packet"
-{% endhighlight %}
-
-* Server\PacketHandler.cs
-{% highlight C# %}
-class PacketHandler
-{
-    public static void C_PlayerInfoReqHandler(PacketSession session, IPacket packet)
-    {
-        C_PlayerInfoReq p = packet as C_PlayerInfoReq;
-
-        Console.WriteLine($"PlaeyrInfoReq: { p.playerId } {p.name}");
-
-        foreach (C_PlayerInfoReq.Skill skill in p.skills)
-        {
-            Console.WriteLine($"Skill({skill.id})({skill.level})({skill.duration})({skill.attributes.Count})");
-        }
-    }
-
-    public static void TestHandler(PacketSession session, IPacket packet) { }
-}
-{% endhighlight %}
-
-* DummyClient\PacketHandler.cs
-{% highlight C# %}
-class PacketHandler
-{
-    public static void S_TestHandler(PacketSession session, IPacket packet){ }
-}
-{% endhighlight %}
-
-<figure class="half">
-  <a href="/assets/img/posts/cshap_serialization/20.jpg"><img src="/assets/img/posts/cshap_serialization/20.jpg"></a>
-  <a href="/assets/img/posts/cshap_serialization/21.jpg"><img src="/assets/img/posts/cshap_serialization/21.jpg"></a>
-	<figcaption>C# Serialization</figcaption>
-</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
