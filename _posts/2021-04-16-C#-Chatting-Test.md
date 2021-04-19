@@ -690,5 +690,195 @@ public class JobQueue : IJobQueue
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
+# Packet Merge-Sending
+
+* DummyClient\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void S_ChatHandler(PacketSession session, IPacket packet)
+    {
+        S_Chat chatPacket = packet as S_Chat;
+        ServerSession serverSession = session as ServerSession;
+    }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+...
+// remove log
+public override void OnSend(int numOfBytes){ }
+{% endhighlight %}
+
+* Server\GameRoom.cs
+{% highlight C# %}
+class GameRoom : IJobQueue
+{
+    List<ClientSession> _sessions = new List<ClientSession>();
+    JobQueue _jobQueue = new JobQueue();
+    // ArraySegment is content of packet(byte)
+    List<ArraySegment<byte>> _pendingList = new List<ArraySegment<byte>>();
+
+    public void Push(Action job)
+    {
+        _jobQueue.Push(job);
+    }
+
+    // Send and Clear
+    // you don't need lock because of JobQueue
+    public void Flush()
+    {
+        foreach (ClientSession s in _sessions)
+            s.Send(_pendingList);
+
+        Console.WriteLine($"Flushed {_pendingList.Count} items");
+        _pendingList.Clear();
+    }
+
+    public void Broadcast(ClientSession session, string chat)
+    {
+        S_Chat packet = new S_Chat();
+        packet.playerId = session.SessionId;
+        packet.chat = $"{chat} I am {packet.playerId}";
+        ArraySegment<byte> segment = packet.Write();
+
+        // Merge
+        _pendingList.Add(segment);
+    }
+    ...
+}
+{% endhighlight %}
+
+
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static void Main(string[] args)
+    {
+       ...
+
+        while (true)
+        {
+            Room.Push(() => Room.Flush());
+            Thread.Sleep(250);
+        }
+    }
+{% endhighlight %}
+
+* ServerCore\Listener.cs
+{% highlight C# %}
+public class Listener
+{
+    ...
+
+    public void Init(IPEndPoint endPoint, Func<Session> sessionFactory, int register = 10, int backlog = 100)
+    {
+        ...
+
+        // backlog: maximal waiting count
+        _listenSocket.Listen(backlog);
+
+        for (int i = 0; i < register; i++)
+        {
+            SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+            args.Completed += new EventHandler<SocketAsyncEventArgs>(OnAcceptCompleted);
+            RegisterAccept(args);
+        }
+    }
+{% endhighlight %}
+
+* ServerCore\SendBuffer.cs
+{% highlight C# %}
+public class SendBufferHelper
+{
+    public static ThreadLocal<SendBuffer> CurrentBuffer = new ThreadLocal<SendBuffer>(() => { return null; });
+
+    // change buffer size
+    public static int ChunkSize { get; set; } = 65535 * 100;
+    ...
+}
+{% endhighlight %}
+
+* ServerCore\Session.cs
+{% highlight C# %}
+public abstract class PacketSession: Session
+{
+    public static readonly int HeaderSize = 2;
+
+    public sealed override int OnRecv(ArraySegment<byte> buffer)
+    {
+        int processLen = 0;
+        // check Packet Count
+        int packetCount = 0;
+
+        while (true)
+        {
+            if (buffer.Count < HeaderSize)
+                break;
+
+            ushort dataSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+            if (buffer.Count < dataSize)
+                break;
+
+            OnRecvPacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
+            packetCount++;
+
+            processLen += dataSize;
+            buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
+        }
+
+        if(packetCount >1)
+            Console.WriteLine($"Packet Merge-Sending : {packetCount}");
+
+        return processLen;
+    }
+
+    public abstract void OnRecvPacket(ArraySegment<byte> buffer);
+
+}
+
+public abstract class Session
+{
+    ...
+
+    // change buffer size
+    RecvBuffer _recvBuffer = new RecvBuffer(65535);
+
+    object _lock = new object();
+    Queue<ArraySegment<byte>> _sendQueue = new Queue<ArraySegment<byte>>();
+    List<ArraySegment<byte>> _pendingList = new List<ArraySegment<byte>>();
+
+    ...
+
+    public void Send(List<ArraySegment<byte>> sendBuffList)
+    {
+        if(sendBuffList.Count == 0)
+            return;
+
+        lock (_lock)
+        {
+            foreach(ArraySegment<byte> sendBuff in sendBuffList)
+                _sendQueue.Enqueue(sendBuff);
+
+            if (_pendingList.Count == 0)
+                RegisterSend();
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_chatting_test/6.jpg"><img src="/assets/img/posts/cshap_chatting_test/6.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/7.jpg"><img src="/assets/img/posts/cshap_chatting_test/7.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
