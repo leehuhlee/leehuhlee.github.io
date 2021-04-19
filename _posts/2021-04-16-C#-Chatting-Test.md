@@ -520,4 +520,175 @@ public class Connector
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
+  - but, this lock machanism is not good
+  - all threads is locked except main thread, so they hier new thread again and again
+
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/2.jpg"><img src="/assets/img/posts/cshap_chatting_test/2.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+## Job Queue
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    public static void C_ChatHandler(PacketSession session, IPacket packet)
+    {
+        ...
+        if (clientSession.Room == null)
+            return;
+            
+        // this room is for null reference exception
+        GameRoom room = clientSession.Room;
+        // push the action
+        room.Push(() => room.Broadcast(clientSession, chatPacket.chat));
+    }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+class ClientSession : PacketSession
+{
+    ...
+
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected: {endPoint}");
+
+        // push the action
+        // they do, when they can do
+        Program.Room.Push(() => Program.Room.Enter(this));
+    }
+
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        PacketManager.Instance.OnRecvPacket(this, buffer);
+    }
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        SessionManager.Instance.Remove(this);
+        if(Room != null)
+        {
+            GameRoom room = Room;
+            room.Push(() => room.Leave(this));
+            Room = null;
+        }
+
+        Console.WriteLine($"OnDisconnected: {endPoint}");
+    }
+{% endhighlight %}
+
+* Server\GameRoom.cs
+{% highlight C# %}
+class GameRoom : IJobQueue
+{
+    List<ClientSession> _sessions = new List<ClientSession>();
+    // remove lock because JobQueue has lock
+    JobQueue _jobQueue = new JobQueue();
+
+    public void Push(Action job)
+    {
+        _jobQueue.Push(job);
+    }
+
+    public void Broadcast(ClientSession session, string chat)
+    {
+        S_Chat packet = new S_Chat();
+        packet.playerId = session.SessionId;
+        packet.chat = $"{chat} I am {packet.playerId}";
+        ArraySegment<byte> segment = packet.Write();
+
+        foreach (ClientSession s in _sessions)
+            s.Send(segment);
+    }
+
+    public void Enter(ClientSession session)
+    {
+        _sessions.Add(session);
+        session.Room = this;
+    }
+
+    public void Leave(ClientSession session)
+    {
+        _sessions.Remove(session);
+    }
+}
+{% endhighlight %}
+
+* ServerCore\JobQueue.cs
+{% highlight C# %}
+public interface IJobQueue
+{
+    void Push(Action job);
+}
+
+public class JobQueue : IJobQueue
+{
+    Queue<Action> _jobQueue = new Queue<Action>();
+    // for multi thread
+    object _lock = new object();
+    // controle queue that stock in JobQueue to start
+    bool _flush = false;
+
+    public void Push(Action job)
+    {
+        bool flush = false;
+        lock (_lock)
+        {
+            _jobQueue.Enqueue(job);
+            if (_flush == false)
+                flush = _flush = true;
+        }
+
+        if (flush)
+            Flush();
+    }
+
+    // do action;
+    void Flush()
+    {
+        while (true)
+        {
+            // use lock when pop is excuted
+            // because other thread can use push and they push job in JobQueue
+            Action action = Pop();
+            if (action == null)
+                return;
+
+            action.Invoke();
+        }
+    }
+
+    Action Pop()
+    {
+        lock (_lock)
+        {
+            if (_jobQueue.Count == 0)
+            {
+                // for next thread
+                _flush = false;
+                return null;
+            }
+
+            return _jobQueue.Dequeue();
+        }
+    }
+
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="third">
+  <a href="/assets/img/posts/cshap_chatting_test/3.jpg"><img src="/assets/img/posts/cshap_chatting_test/3.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/4.jpg"><img src="/assets/img/posts/cshap_chatting_test/4.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/5.jpg"><img src="/assets/img/posts/cshap_chatting_test/5.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
