@@ -881,4 +881,182 @@ public abstract class Session
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
+# Job Timer
+
+* Server\JobTimer.cs
+{% highlight C# %}
+// JobTimerElem will be used in PriorityQueu, so it should support Icomparable Interface
+struct JobTimerElem : IComparable<JobTimerElem>
+{
+    // excute Time
+    public int execTick; 
+    public Action action;
+
+    public int CompareTo(JobTimerElem other)
+    {
+        // return smaller
+        return other.execTick - execTick;
+    }
+}
+
+class JobTimer
+{
+    PriorityQueue<JobTimerElem> _pq = new PriorityQueue<JobTimerElem>();
+    // for multi thread
+    object _lock = new object();
+
+    public static JobTimer Instance { get; } = new JobTimer();
+
+    public void Push(Action action, int tickAfter = 0) 
+    {
+        JobTimerElem job;
+        job.execTick = System.Environment.TickCount + tickAfter;
+        job.action = action;
+
+        lock (_lock)
+        {
+            _pq.Push(job);
+        }
+    }
+
+    public void Flush()
+    {
+        while (true)
+        {
+            int now = System.Environment.TickCount;
+
+            JobTimerElem job;
+
+            lock (_lock)
+            {
+                if (_pq.Count == 0)
+                    break;
+
+                job = _pq.Peek();
+                // this job is not for now
+                if (job.execTick > now)
+                    break;
+
+                _pq.Pop();
+            }
+
+            job.action.Invoke();
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    static Listener _listener = new Listener();
+    public static GameRoom Room= new GameRoom();
+
+    static void FlushRoom()
+    {
+        Room.Push(() => Room.Flush());
+        // for next job
+        JobTimer.Instance.Push(FlushRoom, 250);
+    }
+
+    static void Main(string[] args)
+    {
+        ...
+        Console.WriteLine("Listening...");
+
+        // excute directly
+        JobTimer.Instance.Push(FlushRoom);
+        // Use PriorityQueue as reservation system
+        // Fist in First Out
+        while (true)
+        {
+            JobTimer.Instance.Flush();
+        }
+    }
+}
+{% endhighlight %}
+
+* ServerCore\PriorityQueue.cs
+  - PriorityQueue is on <a href="https://leehuhlee.github.io/C-AStar-Maze/">A* Maze</a> Post
+{% highlight C# %}
+public class PriorityQueue<T> where T : IComparable<T>
+{
+    List<T> _heap = new List<T>();
+
+    public int Count { get { return _heap.Count; } }
+
+    // O(logN)
+    public void Push(T data)
+    {
+        _heap.Add(data);
+
+        int now = _heap.Count - 1;
+        while (now > 0)
+        {
+            int next = (now - 1) / 2;
+            if (_heap[now].CompareTo(_heap[next]) < 0)
+                break; // 실패
+
+            T temp = _heap[now];
+            _heap[now] = _heap[next];
+            _heap[next] = temp;
+
+            now = next;
+        }
+    }
+
+    // O(logN)
+    public T Pop()
+    {
+        T ret = _heap[0];
+
+        int lastIndex = _heap.Count - 1;
+        _heap[0] = _heap[lastIndex];
+        _heap.RemoveAt(lastIndex);
+        lastIndex--;
+
+        int now = 0;
+        while (true)
+        {
+            int left = 2 * now + 1;
+            int right = 2 * now + 2;
+
+            int next = now;
+            if (left <= lastIndex && _heap[next].CompareTo(_heap[left]) < 0)
+                next = left;
+            if (right <= lastIndex && _heap[next].CompareTo(_heap[right]) < 0)
+                next = right;
+
+            if (next == now)
+                break;
+
+            T temp = _heap[now];
+            _heap[now] = _heap[next];
+            _heap[next] = temp;
+            now = next;
+        }
+
+        return ret;
+    }
+
+    // not remove just read
+    // return oldest
+    public T Peek()
+    {
+        if (_heap.Count == 0)
+            return default(T);
+        return _heap[0];
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_chatting_test/8.jpg"><img src="/assets/img/posts/cshap_chatting_test/8.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/9.jpg"><img src="/assets/img/posts/cshap_chatting_test/9.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
