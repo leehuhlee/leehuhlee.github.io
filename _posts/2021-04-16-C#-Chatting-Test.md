@@ -1059,7 +1059,9 @@ public class PriorityQueue<T> where T : IComparable<T>
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
-# System Link with Unity
+# Unity
+
+## System Link
 
 * PacketGenerator\PacketFormat.cs
   - `Span` and `TryWriteBytes` is not applied in Unity
@@ -1335,12 +1337,297 @@ public class NetworkManager : MonoBehaviour
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
-
-
 ### Test
 
 <figure>
   <a href="/assets/img/posts/cshap_chatting_test/10.jpg"><img src="/assets/img/posts/cshap_chatting_test/10.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+## Player
+  - Create Cylinder in Unity and change name to `Player`
+
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/15.jpg"><img src="/assets/img/posts/cshap_chatting_test/15.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+* Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_ChatHandler(PacketSession session, IPacket packet)
+	{
+		S_Chat chatPacket = packet as S_Chat;
+		ServerSession serverSession = session as ServerSession;
+
+        {
+			Debug.Log(chatPacket.chat);
+
+            // find game object and print
+			GameObject go = GameObject.Find("Player");
+			if (go == null)
+				Debug.Log("Player not found");
+			else
+				Debug.Log("Player found");
+		}
+	}
+}
+{% endhighlight %}
+  - when main thread is busy, then the job is continue excuted on other thread
+  - but in Unity, other thread cannot be accessed on part which related with Game
+
+* Assets\Scripts\PacketQueue.cs
+  - so make packet, and save this packet on queue
+  - and when unity main thread is working status, excute 
+{% highlight C# %}
+public class PacketQueue
+{
+    // for free access
+    public static PacketQueue Instance { get; } = new PacketQueue();
+
+    Queue<IPacket> _packetQueue = new Queue<IPacket>();
+    // for multi Thread
+    object _lock = new object();
+
+    // packet push
+    public void Push(IPacket packet)
+    {
+        lock (_lock)
+        {
+            _packetQueue.Enqueue(packet);
+        }
+    }
+
+    // packet pop
+    public IPacket Pop()
+    {
+        lock (_lock)
+        {
+            if (_packetQueue.Count == 0)
+                return null;
+
+            return _packetQueue.Dequeue();
+        }
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager : MonoBehaviour
+{
+    ServerSession _session = new ServerSession();
+
+    void Start()
+    {
+        string host = Dns.GetHostName();
+        IPHostEntry ipHost = Dns.GetHostEntry(host);
+        IPAddress ipAddr = ipHost.AddressList[0];
+        IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+        Connector connector = new Connector();
+
+        connector.Connect(endPoint,
+            () => { return _session; },
+                    1);
+
+        StartCoroutine("CoSendPacket");
+    }
+
+    void Update()
+    {
+        IPacket packet = PacketQueue.Instance.Pop();
+        if (packet != null)
+        {
+            PacketManager.Instance.HandlePacket(_session, packet);
+        }
+    }
+
+    IEnumerator CoSendPacket()
+    {
+        while(true)
+        {
+            yield return new WaitForSeconds(3.0f);
+
+            C_Chat chatPacket = new C_Chat();
+            chatPacket.chat = "Hello Unity!";
+            ArraySegment<byte> segment = chatPacket.Write();
+
+            _session.Send(segment);
+        }
+    }
+}
+{% endhighlight %}
+  
+* PacketGenerator\ClientPacketManager.cs
+  - for automatic, you should call `PacketHandler` from `ClientPacketManager`
+  - for automatic, you should edit `PacketFormet` to edit `ClientPacketManager` from `Server` solution
+
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Asign
+    public static string managerFormat =
+@"using ServerCore;
+...
+
+class PacketManager
+{
+	...
+
+    // Func is delegate
+    // Func is already defined type
+	Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>> _makeFunc = new Dictionary<ushort, Func<PacketSession, ArraySegment<byte>, IPacket>>();
+	Dictionary<ushort, Action<PacketSession, IPacket>> _handler = new Dictionary<ushort, Action<PacketSession, IPacket>>();
+		
+...
+
+    // onRecvCallback is an option about how to process
+	public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer, Action<PacketSession, IPacket> onRecvCallback = null)
+	{
+		...
+		ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+		count += 2;
+
+		Func<PacketSession, ArraySegment<byte>, IPacket> func = null;
+		if (_makeFunc.TryGetValue(id, out func))
+        {
+            // make packet
+			IPacket packet = func.Invoke(session, buffer);
+
+            // for other job
+			if (onRecvCallback != null)
+				onRecvCallback.Invoke(session, packet);
+            // call handler
+			else
+				HandlePacket(session, packet);
+		}
+	}
+
+    // separate make packet and call handler
+	T MakePacket<T>(PacketSession session, ArraySegment<byte> buffer) where T : IPacket, new()
+	{
+		T pkt = new T();
+		pkt.Read(buffer);
+		return pkt;
+	}
+
+	public void HandlePacket(PacketSession session, IPacket packet)
+	{
+		Action<PacketSession, IPacket> action = null;
+		if (_handler.TryGetValue(packet.Protocol, out action))
+			action.Invoke(session, packet);
+	}
+}";
+
+    // {0} Packet Name
+    public static string managerRegisterFormat =
+@"		_makeFunc.Add((ushort)PacketID.{0}, MakePacket<{0}>);
+		_handler.Add((ushort)PacketID.{0}, PacketHandler.{0}Handler);";
+
+...
+
+public interface IPacket
+{
+	...
+}
+...
+";
+...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Network\ServerSession.cs
+  - next step of `OnRecvPacket`
+
+{% highlight C# %}
+class ServerSession : PacketSession
+{
+    ...
+    public override void OnRecvPacket(ArraySegment<byte> buffer)
+    {
+        // push packet on PacketQueue
+        PacketManager.Instance.OnRecvPacket(this, buffer, (s, p) => PacketQueue.Instance.Push(p));
+    }
+    ...
+}
+{% endhighlight %}
+
+* NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager : MonoBehaviour
+{
+    ...
+
+    void Start()
+    {
+        ...
+
+        Connector connector = new Connector();
+
+        connector.Connect(endPoint,
+            () => { return _session; },
+                    1);
+
+        StartCoroutine("CoSendPacket");
+    }
+
+    // call pop and handler
+    void Update()
+    {
+        IPacket packet = PacketQueue.Instance.Pop();
+        if (packet != null)
+        {
+            PacketManager.Instance.HandlePacket(_session, packet);
+        }
+    }
+
+    // for send
+    IEnumerator CoSendPacket()
+    {
+        while(true)
+        {
+            // per 3 sec
+            yield return new WaitForSeconds(3.0f);
+
+            // for send packet
+            C_Chat chatPacket = new C_Chat();
+            chatPacket.chat = "Hello Unity!";
+            // extract to ArraySegment<byte>
+            // write on send buffer
+            ArraySegment<byte> segment = chatPacket.Write();
+
+            _session.Send(segment);
+        }
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\Network\SendBuffer.cs
+{% highlight C# %}
+public class SendBufferHelper
+{
+    ...
+    public static int ChunkSize { get; set; } = 65535;
+    ...
+}
+
+...
+{% endhighlight %}
+
+* NetworkManager.cs
+{% highlight C# %}
+
+{% endhighlight %}
+
+
+### Test
+  - execute `Server` from `Server` solution
+  - execute Unity
+  
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/14.jpg"><img src="/assets/img/posts/cshap_chatting_test/14.jpg"></a>
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
 
