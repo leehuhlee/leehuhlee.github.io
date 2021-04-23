@@ -1460,6 +1460,14 @@ public class NetworkManager : MonoBehaviour
 }
 {% endhighlight %}
   
+  - Create empty game object and change name to `NetworkManager`
+  - drag and drop `NetworkManager.cs` to `NetworkManager`
+
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/20.jpg"><img src="/assets/img/posts/cshap_chatting_test/20.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+  
 * PacketGenerator\ClientPacketManager.cs
   - for automatic, you should call `PacketHandler` from `ClientPacketManager`
   - for automatic, you should edit `PacketFormet` to edit `ClientPacketManager` from `Server` solution
@@ -1630,5 +1638,536 @@ public class SendBufferHelper
   <a href="/assets/img/posts/cshap_chatting_test/14.jpg"><img src="/assets/img/posts/cshap_chatting_test/14.jpg"></a>
 	<figcaption>C# Chatting Test</figcaption>
 </figure>
+
+## Server
+
+* PacketGenerator\PDL.xml
+  - we used `S_Chat` and `C_Chat`  for just chatting message
+  - now, we will change for player(Enter, Leave and Move)
+{% highlight xml %}
+<?xml version="1.0" encoding="utf-8" ?>
+<PDL>
+  <packet name="S_BroadcastEnterGame">
+    <int name="playerId"/>
+    <float name="posX"/>
+    <float name="posY"/>
+    <float name="posZ"/>
+  </packet>
+  <packet name="C_LeaveGame">
+  </packet>
+  <packet name="S_BroadcastLeaveGame">
+    <int name="playerId"/>
+  </packet>
+  <packet name="S_PlayerList">
+    <list name="player">
+      <bool name="isSelf"/>
+      <int name="playerId"/>
+      <float name="posX"/>
+      <float name="posY"/>
+      <float name="posZ"/>
+    </list>
+  </packet>
+  <packet name="C_Move">
+    <float name="posX"/>
+    <float name="posY"/>
+    <float name="posZ"/>
+  </packet>
+  <packet name="S_BroadcastMove">
+    <int name="playerId"/>
+    <float name="posX"/>
+    <float name="posY"/>
+    <float name="posZ"/>
+  </packet>
+</PDL>
+{% endhighlight %}
+
+  - `S_BroadcastEnterGame` is for broadcasting new player info to all players
+  - `C_LeaveGame` is for getting leave claim from client
+  - `S_BroadcastLeaveGame` is for broadcasting leaving player info to all players
+  - `S_PlayerList` is for sending all players info to new player and `isSelf` is for checking it is playerself
+  - `C_Move` is for getting move claim from client and it dosen't have playerId because it has already client session
+  - `S_BroadcastMove` is for broadcasting player move to all players
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Asign
+    public static string managerFormat =
+@"using ServerCore;
+using System;
+using System.Collections.Generic;
+
+public class PacketManager
+...
+":
+
+    // {0} Packet Name
+    // {1} Member Variable
+    // {2} Member Variable Read
+    // {3} Member Variable Write
+    public static string packetFormat =
+@"
+
+public class {0} : IPacket
+...
+";
+
+...
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+class ClientSession : PacketSession
+{
+    ...
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
+    ...
+}
+{% endhighlight %}
+
+* Server\GameRoom.cs
+{% highlight C# %}
+class GameRoom : IJobQueue
+{
+    ...
+
+    public void Flush()
+    {
+        // N ^ 2
+        foreach (ClientSession s in _sessions)
+            s.Send(_pendingList);
+        // remove print
+
+        _pendingList.Clear();
+    }
+
+    // broadcasting when it flush
+    public void Broadcast(ArraySegment<byte> segment)
+    {
+        _pendingList.Add(segment);			
+    }
+
+    public void Enter(ClientSession session)
+    {
+        // add player
+        _sessions.Add(session);
+        session.Room = this;
+
+        // send all player list to new player
+        S_PlayerList players = new S_PlayerList();
+        foreach (ClientSession s in _sessions)
+        {
+            players.players.Add(new S_PlayerList.Player()
+            {
+                isSelf = (s == session),
+                playerId = s.SessionId,
+                posX = s.PosX,
+                posY = s.PosY,
+                posZ = s.PosZ
+            });
+        }
+
+        session.Send(players.Write());
+
+        // send new layer info to all player
+        S_BroadcastEnterGame enter = new S_BroadcastEnterGame();
+        enter.playerId = session.SessionId;
+        enter.posX = 0;
+        enter.posY = 0;
+        enter.posZ = 0;
+        Broadcast(enter.Write());
+    }
+
+    public void Leave(ClientSession session)
+    {
+        // remove player
+        _sessions.Remove(session);
+
+        // broadcast to all
+        S_BroadcastLeaveGame leave = new S_BroadcastLeaveGame();
+        leave.playerId = session.SessionId;
+        Broadcast(leave.Write());
+    }
+
+    public void Move(ClientSession session, C_Move packet)
+    {
+        // change position
+        session.PosX = packet.posX;
+        session.PosY = packet.posY;
+        session.PosZ = packet.posZ;
+
+        // broadcast to all
+        S_BroadcastMove move = new S_BroadcastMove();
+        move.playerId = session.SessionId;
+        move.posX = session.PosX;
+        move.posY = session.PosY;
+        move.posZ = session.PosZ;
+        Broadcast(move.Write());
+    }
+}
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void C_LeaveGameHandler(PacketSession session, IPacket packet)
+	{
+		ClientSession clientSession = session as ClientSession;
+
+		if (clientSession.Room == null)
+			return;
+
+		GameRoom room = clientSession.Room;
+		room.Push(() => room.Leave(clientSession));
+	}
+
+	public static void C_MoveHandler(PacketSession session, IPacket packet)
+	{
+		C_Move movePacket = packet as C_Move;
+		ClientSession clientSession = session as ClientSession;
+
+		if (clientSession.Room == null)
+			return;
+
+        Console.WriteLine($"{movePacket.posX}, {movePacket.posY}, {movePacket.posZ}");
+
+		GameRoom room = clientSession.Room;
+		room.Push(() => room.Move(clientSession, movePacket));
+	}
+}
+{% endhighlight %}
+
+* DummyClient\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_BroadcastEnterGameHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastEnterGame pkt = packet as S_BroadcastEnterGame;
+		ServerSession serverSession = session as ServerSession;
+	}
+
+	public static void S_BroadcastLeaveGameHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastLeaveGame pkt = packet as S_BroadcastLeaveGame;
+		ServerSession serverSession = session as ServerSession;
+	}
+
+	public static void S_PlayerListHandler(PacketSession session, IPacket packet)
+	{
+		S_PlayerList pkt = packet as S_PlayerList;
+		ServerSession serverSession = session as ServerSession;
+	}
+
+	public static void S_BroadcastMoveHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastMove pkt = packet as S_BroadcastMove;
+		ServerSession serverSession = session as ServerSession;
+	}
+}
+{% endhighlight %}
+
+* DummyClient\SessionManager.cs
+{% highlight C# %}
+class SessionManager
+{
+    static SessionManager _session = new SessionManager();
+    public static SessionManager Instance { get { return _session; } }
+
+    List<ServerSession> _sessions = new List<ServerSession>();
+    object _lock = new object();
+    Random _rand = new Random();
+
+    public void SendForEach()
+    {
+        lock (_lock)
+        {
+            foreach (ServerSession session in _sessions)
+            {
+                C_Move movePacket = new C_Move();
+                movePacket.posX = _rand.Next(-50, 50);
+                movePacket.posY = 0;
+                movePacket.posZ = _rand.Next(-50, 50); 
+
+                session.Send(movePacket.Write());
+            }
+        }
+    }
+
+    public ServerSession Generate()
+    {
+        lock (_lock)
+        {
+            ServerSession session = new ServerSession();
+            _sessions.Add(session);
+            return session;
+        }
+    }
+}
+{% endhighlight %}
+
+### Test
+  - execute `Server` anc `DummyClient` from `Server` solution
+
+<figure class="half">
+  <a href="/assets/img/posts/cshap_chatting_test/16.jpg"><img src="/assets/img/posts/cshap_chatting_test/16.jpg"></a>
+  <a href="/assets/img/posts/cshap_chatting_test/17.jpg"><img src="/assets/img/posts/cshap_chatting_test/17.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+## Client
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+
+	public static void C_MoveHandler(PacketSession session, IPacket packet)
+	{
+		...
+
+		if (clientSession.Room == null)
+			return;
+
+        // remove print
+
+		GameRoom room = clientSession.Room;
+		room.Push(() => room.Move(clientSession, movePacket));
+	}
+}
+{% endhighlight %}
+
+* Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_BroadcastEnterGameHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastEnterGame pkt = packet as S_BroadcastEnterGame;
+		ServerSession serverSession = session as ServerSession;
+
+		PlayerManager.Instance.EnterGame(pkt);
+	}
+
+	public static void S_BroadcastLeaveGameHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastLeaveGame pkt = packet as S_BroadcastLeaveGame;
+		ServerSession serverSession = session as ServerSession;
+
+		PlayerManager.Instance.LeaveGame(pkt);
+	}
+
+	public static void S_PlayerListHandler(PacketSession session, IPacket packet)
+	{
+		S_PlayerList pkt = packet as S_PlayerList;
+		ServerSession serverSession = session as ServerSession;
+
+		PlayerManager.Instance.Add(pkt);
+	}
+
+	public static void S_BroadcastMoveHandler(PacketSession session, IPacket packet)
+	{
+		S_BroadcastMove pkt = packet as S_BroadcastMove;
+		ServerSession serverSession = session as ServerSession;
+
+		PlayerManager.Instance.Move(pkt);
+	}
+}
+{% endhighlight %}
+
+* Unity UI
+  - Create Plane and resize to (10, 10, 10) and set position to (0, 0, 0)
+  - Create Material in Assets and change name to `Floor` and Albedo(color) to blue
+
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/21.jpg"><img src="/assets/img/posts/cshap_chatting_test/21.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+* Assets\Scripts\Player.cs
+  - this is for normal player
+{% highlight C# %}
+public class Player : MonoBehaviour
+{
+    public int PlayerId { get; set; }
+}
+{% endhighlight %}
+
+* Assets\Scripts\MyPlayer.cs
+  - this is for player you have
+{% highlight C# %}
+public class MyPlayer : Player
+{
+    NetworkManager _network;
+
+    void Start()
+    {
+        StartCoroutine("CoSendPacket");
+        _network = GameObject.Find("NetworkManager").GetComponent<NetworkManager>();
+    }
+
+    // for move
+    IEnumerator CoSendPacket()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(0.25f);
+
+            C_Move movePacket = new C_Move();
+            movePacket.posX = UnityEngine.Random.Range(-50, 50);
+            movePacket.posY = 0;
+            movePacket.posZ = UnityEngine.Random.Range(-50, 50);
+
+            _network.Send(movePacket.Write());
+        }
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager : MonoBehaviour
+{
+    ...
+
+    void Update()
+    {
+        List<IPacket> list = PacketQueue.Instance.PopAll();
+        foreach (IPacket packet in list)
+            PacketManager.Instance.HandlePacket(_session, packet);
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\PlayerManager.cs
+
+  - Create `Player` prefab
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/19.jpg"><img src="/assets/img/posts/cshap_chatting_test/19.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
+
+{% highlight C# %}
+public class PlayerManager
+{
+    MyPlayer _myPlayer;
+    Dictionary<int, Player> _players = new Dictionary<int, Player>();
+
+    public static PlayerManager Instance { get; } = new PlayerManager();
+
+    public void Add(S_PlayerList packet)
+    {
+        Object obj = Resources.Load("Player");
+
+        foreach(S_PlayerList.Player p in packet.players)
+        {
+            GameObject go = Object.Instantiate(obj) as GameObject;
+
+            // check this is my player
+            if (p.isSelf)
+            {
+                MyPlayer myPlayer = go.AddComponent<MyPlayer>();
+                myPlayer.PlayerId = p.playerId;
+                myPlayer.transform.position = new Vector3(p.posX, p.posY, p.posZ);
+                _myPlayer = myPlayer;
+            }
+            else
+            {
+                Player player = go.AddComponent<MyPlayer>();
+                player.PlayerId = p.playerId;
+                player.transform.position = new Vector3(p.posX, p.posY, p.posZ);
+                _players.Add(p.playerId, player);
+            }
+        }
+    }
+
+    public void Move(S_BroadcastMove packet)
+    {
+        // check this is my player
+        if (_myPlayer.PlayerId == packet.playerId)
+        {
+            _myPlayer.transform.position = new Vector3(packet.posX, packet.posY, packet.posZ);
+        }
+        else
+        {
+            Player player = null;
+            if(_players.TryGetValue(packet.playerId, out player))
+            {
+                player.transform.position = new Vector3(packet.posX, packet.posY, packet.posZ);
+            }
+        }
+    }
+
+    public void EnterGame(S_BroadcastEnterGame packet)
+    {
+        if (_myPlayer.PlayerId == packet.playerId)
+            return;
+
+        Object obj = Resources.Load("Player");
+        GameObject go = Object.Instantiate(obj) as GameObject;
+
+        Player player = go.AddComponent<MyPlayer>();
+        player.transform.position = new Vector3(packet.posX, packet.posY, packet.posZ);
+        _players.Add(packet.playerId, player);
+    }
+
+    public void LeaveGame(S_BroadcastLeaveGame packet)
+    {
+        if(_myPlayer.PlayerId == packet.playerId)
+        {
+            GameObject.Destroy(_myPlayer.gameObject);
+            _myPlayer = null;
+        }
+        else
+        {
+            Player player = null;
+            if(_players.TryGetValue(packet.playerId, out player))
+            {
+                GameObject.Destroy(player.gameObject);
+                _players.Remove(packet.playerId);
+
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\PacketQueue.cs
+{% highlight C# %}
+public class PacketQueue
+{
+    ...
+    public List<IPacket> PopAll()
+    {
+        List<IPacket> list = new List<IPacket>();
+
+        lock (_lock)
+        {
+            while(_packetQueue.Count>0)
+                list.Add(_packetQueue.Dequeue());
+        }
+
+        return list;
+    }
+}
+{% endhighlight %}
+
+### Test
+  - you can change number of DummyClient Session count
+
+<iframe width="560" height="315" src="/assets/video/posts/cshap_chatting_test/Chatting-Test.mp4" frameborder="0"> </iframe>
+
+<figure>
+  <a href="/assets/img/posts/cshap_chatting_test/18.jpg"><img src="/assets/img/posts/cshap_chatting_test/18.jpg"></a>
+	<figcaption>C# Chatting Test</figcaption>
+</figure>
+
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
