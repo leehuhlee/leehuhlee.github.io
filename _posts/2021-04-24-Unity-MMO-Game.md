@@ -47,4 +47,58 @@ comments: false
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+# Tile
+
+## Tile Map
+
+* Grid
+  - [2D Object]-[Tilemap]
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/6.jpg"><img src="/assets/img/posts/unity_mmogame/6.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Palette
+  - [window]-[2D]-[Tile Palette]
+  - Create Tile and change name to `Palette_Map`
+  - Save on `Resources\Tiles\Palettes`
+  - Drag `Assets\TinyRPGTown\Artwork\tileset` and drop on `TilePalette` window
+  - Save tiles on `Resources\Tiles\Tiles_Map`
+  - Make your map
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/5.jpg"><img src="/assets/img/posts/unity_mmogame/5.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/7.jpg"><img src="/assets/img/posts/unity_mmogame/7.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/8.jpg"><img src="/assets/img/posts/unity_mmogame/8.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+## Tile Environment
+
+* Grid
+  - copy `Tilemap_Base` and change name to `Tilemap_Env`
+  - change layer to `1`
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/10.jpg"><img src="/assets/img/posts/unity_mmogame/10.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/12.jpg"><img src="/assets/img/posts/unity_mmogame/12.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Palette
+  - Create Tile and change name to `Palette_Env`
+  - Save on `Resources\Tiles\Palettes`
+  - Select `Palette_Evn`
+  - Drag `Assets\TinyRPGTown\Artwork\Sprites\barrel` and `building` and drop on `TilePalette` window
+  - Save tiles on `Resources\Tiles\Tiles_Env`
+  - Make your map
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/11.jpg"><img src="/assets/img/posts/unity_mmogame/11.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/13.jpg"><img src="/assets/img/posts/unity_mmogame/13.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
