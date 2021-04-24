@@ -353,6 +353,7 @@ public class PlayerController : MonoBehaviour
 }
 {% endhighlight %}
   - set `Grid`
+
 <figure>
   <a href="/assets/img/posts/unity_mmogame/25.jpg"><img src="/assets/img/posts/unity_mmogame/25.jpg"></a>
 	<figcaption>Unity MMO Game</figcaption>
@@ -362,7 +363,82 @@ public class PlayerController : MonoBehaviour
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Player-Move.mp4" frameborder="0"> </iframe>
 
+## Player Animation
 
+* Create Clips
+  - Create new Animation Controller in `Resources\Animations` and change name to `PlayerAnimController`
+  - Create Clips in `Resources\Animations\Player`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/26.jpg"><img src="/assets/img/posts/unity_mmogame/26.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+    ...
+    Animator _animator;
+
+    MoveDir _dir = MoveDir.Down;
+
+    public MoveDir Dir
+    {
+        get { return _dir; }
+        set 
+        {
+            if (_dir == value)
+                return;
+
+            switch (value)
+            {
+                case MoveDir.Up:
+                    _animator.Play("WALK_BACK");
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("WALK_FRONT");
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("WALK_RIGHT");
+                    transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("WALK_RIGHT");
+                    transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                    break;
+                case MoveDir.None:
+                    if(_dir == MoveDir.Up)
+                    {
+                        _animator.Play("IDLE_BACK");
+                        transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                    }
+                    else if (_dir == MoveDir.Down)
+                    {
+                        _animator.Play("IDLE_FRONT");
+                        transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                    }
+                    else if (_dir == MoveDir.Left)
+                    {
+                        _animator.Play("IDLE_RIGHT");
+                        transform.localScale = new Vector3(-1.0f, 1.0f, 1.0f);
+                    }
+                    else
+                    {
+                        _animator.Play("IDLE_RIGHT");
+                        transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                    }
+                    break;
+            }
+
+            _dir = value;
+        }
+    }
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Player-Animation.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
