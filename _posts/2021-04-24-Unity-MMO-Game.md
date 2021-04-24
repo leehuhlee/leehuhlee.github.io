@@ -162,4 +162,63 @@ public class TestCollision : MonoBehaviour
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+## Map Tool
+
+* Assets\Editor\MapEditor.cs
+{% highlight C# %}
+public class MapEditor
+{
+
+// it is not excuted in release mode
+#if UNITY_EDITOR
+
+    // %: Ctrl, #: Shift, &: Alt
+    [MenuItem("Tools/GenerateMap %#g")]
+    private static void GenerateMap()
+    {
+        // find Prefabs/Map
+        GameObject[] gameObjects = Resources.LoadAll<GameObject>("Prefabs/Map");
+
+        foreach(GameObject go in gameObjects)
+        {
+            // find Tilemap_Collision in Prefabs/Map
+            Tilemap tm = Util.FindChild<Tilemap>(go, "Tilemap_Collision", true);
+
+            // write file
+            using (var writer = File.CreateText($"Assets/Resources/Map/{go.name}.txt"))
+            {
+                writer.WriteLine(tm.cellBounds.xMin);
+                writer.WriteLine(tm.cellBounds.xMax);
+                writer.WriteLine(tm.cellBounds.yMin);
+                writer.WriteLine(tm.cellBounds.yMax);
+
+                for (int y = tm.cellBounds.yMax; y >= tm.cellBounds.yMin; y--)
+                {
+                    for (int x = tm.cellBounds.xMin; x <= tm.cellBounds.xMax; x++)
+                    {
+                        TileBase tile = tm.GetTile(new Vector3Int(x, y, 0));
+                        if (tile != null)
+                            writer.Write("1");
+                        else
+                            writer.Write("0");
+                    }
+
+                    writer.WriteLine();
+                }
+            }
+        }
+    }
+
+#endif
+
+}
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/21.jpg"><img src="/assets/img/posts/unity_mmogame/21.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/22.jpg"><img src="/assets/img/posts/unity_mmogame/22.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
