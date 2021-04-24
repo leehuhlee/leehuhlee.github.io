@@ -47,12 +47,13 @@ comments: false
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
-# Tile
+# Tilemap
 
-## Tile Map
+## Tilemap Map
 
 * Grid
   - [2D Object]-[Tilemap]
+ - Create Tilemap
 
 <figure>
   <a href="/assets/img/posts/unity_mmogame/6.jpg"><img src="/assets/img/posts/unity_mmogame/6.jpg"></a>
@@ -61,7 +62,7 @@ comments: false
 
 * Palette
   - [window]-[2D]-[Tile Palette]
-  - Create Tile and change name to `Palette_Map`
+  - Create new Palette and change name to `Palette_Map`
   - Save on `Resources\Tiles\Palettes`
   - Drag `Assets\TinyRPGTown\Artwork\tileset` and drop on `TilePalette` window
   - Save tiles on `Resources\Tiles\Tiles_Map`
@@ -74,11 +75,12 @@ comments: false
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
-## Tile Environment
+## Tilemap Environment
 
 * Grid
-  - copy `Tilemap_Base` and change name to `Tilemap_Env`
+  - Create Tilemap and change name to `Tilemap_Env`
   - change layer to `1`
+
 <figure class="half">
   <a href="/assets/img/posts/unity_mmogame/10.jpg"><img src="/assets/img/posts/unity_mmogame/10.jpg"></a>
   <a href="/assets/img/posts/unity_mmogame/12.jpg"><img src="/assets/img/posts/unity_mmogame/12.jpg"></a>
@@ -86,7 +88,7 @@ comments: false
 </figure>
 
 * Palette
-  - Create Tile and change name to `Palette_Env`
+  - Create new Palette and change name to `Palette_Env`
   - Save on `Resources\Tiles\Palettes`
   - Select `Palette_Evn`
   - Drag `Assets\TinyRPGTown\Artwork\Sprites\barrel` and `building` and drop on `TilePalette` window
@@ -99,6 +101,65 @@ comments: false
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+## Tilemap Collision
 
+* Grid
+  - Create Tilemap and change name to `Tilemap_Collision`
+  - change layer to `10`
+  
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/15.jpg"><img src="/assets/img/posts/unity_mmogame/15.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/16.jpg"><img src="/assets/img/posts/unity_mmogame/16.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Palette
+  - Select `Palette_Evn`
+  - Drag `Assets\TinyRPGTown\Artwork\Sprites\rock` and drop on `TilePalette` window
+  - Save tiles on `Resources\Tiles\Tiles_Env`
+  - Make your map
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/17.jpg"><img src="/assets/img/posts/unity_mmogame/17.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/18.jpg"><img src="/assets/img/posts/unity_mmogame/18.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+### Test
+
+* Assets\Scripts\TestCollision.cs
+{% highlight C# %}
+public class TestCollision : MonoBehaviour
+{
+    public Tilemap _tilemap;
+    public TileBase _tile;
+
+    void Start()
+    {
+        // set tile on specified position
+        _tilemap.SetTile(new Vector3Int(0, 0, 0), _tile);
+    }
+
+    void Update()
+    {
+        // scan all map and get position if tile is setted
+        List<Vector3Int> blocked = new List<Vector3Int>();
+
+        foreach(Vector3Int pos in _tilemap.cellBounds.allPositionsWithin)
+        {
+            TileBase tile = _tilemap.GetTile(pos);
+            if (tile != null)
+                blocked.Add(pos);
+        }
+    }
+}
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/19.jpg"><img src="/assets/img/posts/unity_mmogame/19.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/14.jpg"><img src="/assets/img/posts/unity_mmogame/14.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/20.jpg"><img src="/assets/img/posts/unity_mmogame/20.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
