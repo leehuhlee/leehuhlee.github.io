@@ -974,4 +974,187 @@ public class MonsterController : CreatureController
 }
 {% endhighlight %}
 
+## Object Manager
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+    protected override void Init()
+    {
+        base.Init();
+        // initial monster
+        State = CreatureState.Idle;
+        Dir = MoveDir.None;
+    }
+    ...
+}
+{% endhighlight %}
+
+* Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    #region Contents
+    MapManager _map = new MapManager();
+    ObjectManager _obj = new ObjectManager();
+
+    public static MapManager Map { get { return Instance._map; } }
+    public static ObjectManager Object { get { return Instance._obj; } }
+	  #endregion
+  ...
+}
+{% endhighlight %}
+
+
+* Scripts\Managers\ObjectManager.cs
+  - manage collision with objects
+
+{% highlight C# %}
+public class ObjectManager
+{
+    List<GameObject> _objects = new List<GameObject>();
+
+    public void Add(GameObject go)
+    {
+        _objects.Add(go);
+    }
+
+    public void Remove(GameObject go)
+    {
+        _objects.Remove(go);
+    }
+
+    // find collision object by position
+    public GameObject Find(Vector3Int cellPos)
+    {
+        foreach(GameObject obj in _objects)
+        {
+            CreatureController cc = obj.GetComponent<CreatureController>();
+            if (cc == null)
+                continue;
+
+            if (cc.CellPos == cellPos)
+                return obj;
+        }
+
+        return null;
+    }
+
+    public void Clear()
+    {
+        _objects.Clear();
+    }
+}
+{% endhighlight %}
+
+
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    public float _speed = 5.0f;
+
+    // open CellPos for Find
+    public Vector3Int CellPos { get; set; } = Vector3Int.zero;
+    protected Animator _animator;
+    protected SpriteRenderer _sprite;
+    ...
+
+    protected virtual void Init()
+    {
+        _animator = GetComponent<Animator>();
+        _sprite = GetComponent<SpriteRenderer>();
+        Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+        transform.position = pos;
+    }
+
+    void UpdatePosition()
+    {
+        ...
+        Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+        Vector3 moveDir = destPos - transform.position;
+        ...
+    }
+
+    void UpdateIsMoving()
+    {
+        if ( State == CreatureState.Idle && _dir != MoveDir.None)
+        {
+            Vector3Int destPos = CellPos;
+            ...
+
+            State = CreatureState.Moving;
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                // move if there is not objects
+                if(Managers.Object.Find(destPos) == null)
+                {
+                    CellPos = destPos;
+                }
+                
+            }
+
+        }
+    }
+}
+{% endhighlight %}
+
+* Prefabs
+  - Create `Player` and `Monster` Prefab in `Prefabs\Creature`
+  - Remove `Player` and `Monster` in Hierarchy
+
+* GameScene.cs
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    protected override void Init()
+    {
+        ...
+
+        Managers.Map.LoadMap(1);
+
+        // Create Player by Prefab
+        GameObject player = Managers.Resource.Instantiate("Creature/Player");
+        player.name = "Player";
+        Managers.Object.Add(player);
+
+        // Create Monsters by Prefab
+        for(int i=0; i < 5; i++)
+        {
+            GameObject monster = Managers.Resource.Instantiate("Creature/Monster");
+            monster.name = $"Monster_{i + 1}";
+
+            Vector3Int pos = new Vector3Int()
+            {
+                x = Random.Range(Managers.Map.MinX, Managers.Map.MaxX),
+                y = Random.Range(Managers.Map.MinY, Managers.Map.MaxY)
+            };
+
+            MonsterController mc = monster.GetComponent<MonsterController>();
+            mc.CellPos = pos;
+
+            Managers.Object.Add(monster);
+        }
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/30.jpg"><img src="/assets/img/posts/unity_mmogame/30.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/31.jpg"><img src="/assets/img/posts/unity_mmogame/31.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+### Test
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/29.jpg"><img src="/assets/img/posts/unity_mmogame/29.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
