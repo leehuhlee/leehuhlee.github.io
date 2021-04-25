@@ -440,5 +440,237 @@ public class PlayerController : MonoBehaviour
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Player-Animation.mp4" frameborder="0"> </iframe>
 
+## Map Manager
+
+* Scripts\Managers\Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+    #region Contents
+    MapManager _map = new MapManager();
+
+    public static MapManager Map { get { return Instance._map; } }
+
+  	#endregion
+    ...
+}
+{% endhighlight %}
+
+* Scripts\Managers\Contents\MapManager.cs
+{% highlight C# %}
+public class MapManager
+{
+    public Grid CurrentGrid { get; private set; }
+
+    public int MinX { get; set; }
+    public int MaxX { get; set; }
+    public int MinY { get; set; }
+    public int MaxY { get; set; }
+
+    bool[,] _collision;
+
+    public bool CanGo(Vector3Int cellPos)
+    {
+        if (cellPos.x < MinX || cellPos.x > MaxX)
+            return false;
+        if (cellPos.y < MinY || cellPos.y > MaxY)
+            return false;
+
+        int x = cellPos.x - MinX;
+        int y = MaxY - cellPos.y;
+        return !_collision[y, x];
+    }
+
+    public void LoadMap(int mapId)
+    {
+        DestroyMap();
+
+        string mapName = "Map_" + mapId.ToString("000");
+        GameObject go = Managers.Resource.Instantiate($"Map/{mapName}");
+        go.name = "Map";
+
+        GameObject collision = Util.FindChild(go, "Tilemap_Collision", true);
+        if (collision != null)
+            collision.SetActive(false);
+
+        CurrentGrid = go.GetComponent<Grid>();
+
+        // Collision file load
+        TextAsset txt = Managers.Resource.Load<TextAsset>($"Map/{mapName}");
+        StringReader reader = new StringReader(txt.text);
+
+        MinX = int.Parse(reader.ReadLine());
+        MaxX = int.Parse(reader.ReadLine());
+        MinY = int.Parse(reader.ReadLine());
+        MaxY = int.Parse(reader.ReadLine());
+
+        int xCount = MaxX - MinX + 1;
+        int yCount = MaxY - MinY + 1;
+        _collision = new bool[yCount, xCount];
+        for(int y=0; y<yCount; y++)
+        {
+            string line = reader.ReadLine();
+            for(int x = 0; x<xCount; x++)
+            {
+                _collision[y, x] = (line[x] == '1' ? true : false);
+            }
+        }
+    }
+    
+    public void DestroyMap()
+    {
+        GameObject map = GameObject.Find("Map");
+        if(map != null)
+        {
+            GameObject.Destroy(map);
+            CurrentGrid = null;
+        }
+    }
+}
+
+{% endhighlight %}
+
+* Scripts\Scenes\GameScene.cs
+  - Create Empty Game Object and change name go `GameScene`
+  - add `GameScene.cs` compoenent
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/27.jpg"><img src="/assets/img/posts/unity_mmogame/27.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Game;
+
+        Managers.Map.LoadMap(1);
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : MonoBehaviour
+{
+    // remove Grid
+    public float _speed = 5.0f;
+    ...
+
+    void Start()
+    {
+        _animator = GetComponent<Animator>();
+        Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(_cellPos) + new Vector3(0.5f, 0.5f) ;
+        transform.position = pos;
+    }
+
+    ...
+
+    // camera should follow player
+    void LateUpdate()
+    {
+        Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
+    }
+
+    ...
+
+    void UpdatePosition()
+    {
+        if (_isMoving == false)
+            return;
+
+        Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(_cellPos) + new Vector3(0.5f, 0.5f);
+        Vector3 moveDir = destPos - transform.position;
+        ...
+    }
+
+    // Now you have to check it is collision
+    void UpdateIsMoving()
+    {
+        if (_isMoving == false && _dir != MoveDir.None)
+        {
+            Vector3Int destPos = _cellPos;
+
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    destPos += Vector3Int.up;
+                    break;
+                case MoveDir.Down:
+                    destPos += Vector3Int.down;
+                    break;
+                case MoveDir.Left:
+                    destPos += Vector3Int.left;
+                    break;
+                case MoveDir.Right:
+                    destPos += Vector3Int.right;
+                    break;
+                default:
+                    break;
+            }
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                _cellPos = destPos;
+                _isMoving = true;
+            }
+
+        }
+
+    }
+}
+{% endhighlight %}
+
+* EditorMapEditor.cs
+{% highlight C# %}
+public class MapEditor
+{
+#if UNITY_EDITOR
+
+    [MenuItem("Tools/GenerateMap %#g")]
+    private static void GenerateMap()
+    {
+        GameObject[] gameObjects = Resources.LoadAll<GameObject>("Prefabs/Map");
+
+        foreach(GameObject go in gameObjects)
+        {
+            // Tilemap_Base is bigger then Tilemap_Collision
+            // you have to load Tilemap_Base to check whole map
+            Tilemap tmBase = Util.FindChild<Tilemap>(go, "Tilemap_Base", true);
+            Tilemap tm = Util.FindChild<Tilemap>(go, "Tilemap_Collision", true);
+
+            using (var writer = File.CreateText($"Assets/Resources/Map/{go.name}.txt"))
+            {
+                writer.WriteLine(tmBase.cellBounds.xMin);
+                writer.WriteLine(tmBase.cellBounds.xMax);
+                writer.WriteLine(tmBase.cellBounds.yMin);
+                writer.WriteLine(tmBase.cellBounds.yMax);
+
+                for (int y = tmBase.cellBounds.yMax; y >= tmBase.cellBounds.yMin; y--)
+                {
+                    for (int x = tmBase.cellBounds.xMin; x <= tmBase.cellBounds.xMax; x++)
+                    {
+                       ...
+                    }
+
+                    writer.WriteLine();
+                }
+            }
+        }
+    }
+
+#endif
+}
+{% endhighlight %}
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Map-Manager.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
