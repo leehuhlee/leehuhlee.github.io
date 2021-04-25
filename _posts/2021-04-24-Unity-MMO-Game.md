@@ -1157,4 +1157,261 @@ public class GameScene : BaseScene
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+## Attack
+
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    ...
+    // separate update by state
+    public Vector3Int GetFrontCellPos()
+    {
+        Vector3Int cellPos = CellPos;
+
+        switch (_lastDir)
+        {
+            case MoveDir.Up:
+                cellPos += Vector3Int.up;
+                break;
+            case MoveDir.Down:
+                cellPos += Vector3Int.down;
+                break;
+            case MoveDir.Left:
+                cellPos += Vector3Int.left;
+                break;
+            case MoveDir.Right:
+                cellPos += Vector3Int.right;
+                break;
+        }
+
+        return cellPos;
+    }
+    ...
+
+    protected virtual void UpdateAnimation()
+    {
+        if(_state == CreatureState.Idle)
+        {
+            // use skill on last direction
+            switch (_lastDir)
+            {
+                case MoveDir.Up:
+                    _animator.Play("IDLE_BACK");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("IDLE_FRONT");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("IDLE_RIGHT");
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("IDLE_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else if(_state == CreatureState.Moving)
+        {
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    _animator.Play("WALK_BACK");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("WALK_FRONT");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("WALK_RIGHT");
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("WALK_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else if(_state == CreatureState.Skill)
+        {
+            switch (_lastDir)
+            {
+                case MoveDir.Up:
+                    _animator.Play("ATTACK_BACK");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("ATTACK_FRONT");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("ATTACK_RIGHT");
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("ATTACK_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else
+        {
+            return;
+        }
+    }
+    ...
+
+    protected virtual void UpdateController()
+    {
+        // change method name
+        switch (State)
+        {
+            case CreatureState.Idle:
+                UpdateIdle();
+                break;
+            case CreatureState.Moving:
+                UpdateMoving();
+                break;
+            case CreatureState.Skill:
+                break;
+            case CreatureState.Dead:
+                break;
+        }
+    }
+
+    protected virtual void UpdateIdle()
+    {
+        if (_dir != MoveDir.None)
+        {
+            Vector3Int destPos = CellPos;
+
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    destPos += Vector3Int.up;
+                    break;
+                case MoveDir.Down:
+                    destPos += Vector3Int.down;
+                    break;
+                case MoveDir.Left:
+                    destPos += Vector3Int.left;
+                    break;
+                case MoveDir.Right:
+                    destPos += Vector3Int.right;
+                    break;
+                default:
+                    break;
+            }
+
+            State = CreatureState.Moving;
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                if (Managers.Object.Find(destPos) == null)
+                {
+                    CellPos = destPos;
+                }
+
+            }
+        }
+    }
+
+    protected virtual void UpdateMoving()
+    {
+        Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+        Vector3 moveDir = destPos - transform.position;
+
+        float dist = moveDir.magnitude;
+        if (dist < _speed * Time.deltaTime)
+        {
+            transform.position = destPos;
+            _state = CreatureState.Idle;
+            if (_dir == MoveDir.None)
+                UpdateAnimation();
+        }
+        else
+        {
+            transform.position += moveDir.normalized * _speed * Time.deltaTime;
+            State = CreatureState.Moving;
+        }
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    // for skill tick time 
+    Coroutine _coSkill;
+    ...
+
+    protected override void UpdateController()
+    {
+        switch (State)
+        {
+            // player can use skill when his state is Idle
+            case CreatureState.Idle:
+                GetDirInput();
+                GetIdleInput();
+                break;
+            case CreatureState.Moving:
+                GetDirInput();
+                break;
+        }
+
+        base.UpdateController();
+    }
+    ...
+
+    void GetIdleInput()
+    {
+        if (Input.GetKey(KeyCode.Space))
+        {
+            State = CreatureState.Skill;
+            _coSkill = StartCoroutine("CoStartPunch");
+        }
+    }
+
+    IEnumerator CoStartPunch()
+    {
+        // detection
+        GameObject go = Managers.Object.Find(GetFrontCellPos());
+        if (go != null)
+        {
+            Debug.Log(go.name);
+        }
+
+        // wait time
+        yield return new WaitForSeconds(0.5f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+    }
+}
+{% endhighlight %}
+
+* CreatureController.cs
+{% highlight C# %}
+{% endhighlight %}
+
+* CreatureController.cs
+{% highlight C# %}
+{% endhighlight %}
+
+* CreatureController.cs
+{% highlight C# %}
+{% endhighlight %}
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Attack.mp4" frameborder="0"> </iframe>
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
