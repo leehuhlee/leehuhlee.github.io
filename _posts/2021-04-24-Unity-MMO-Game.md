@@ -669,8 +669,309 @@ public class MapEditor
 #endif
 }
 {% endhighlight %}
+
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Map-Manager.mp4" frameborder="0"> </iframe>
+
+## Separate Controller
+  - create CreatureController to use base controller
+
+* Define.cs
+{% highlight C# %}
+public class Define
+{
+    public enum CreatureState
+    {
+        Idle,
+        Moving,
+        Skill,
+        Dead,
+    }
+    ...
+}
+{% endhighlight %}
+
+* Scripts\Controllers\CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    public float _speed = 5.0f;
+
+    protected Vector3Int _cellPos = Vector3Int.zero;
+    protected Animator _animator;
+    protected SpriteRenderer _sprite;
+
+    CreatureState _state = CreatureState.Idle;
+    public CreatureState State
+    {
+        get { return _state; }
+        set
+        {
+            if (_state == value)
+                return;
+
+            _state = value;
+            UpdateAnimation();
+        }
+    }
+
+    // for Idle Animation Update
+    MoveDir _lastDir = MoveDir.Down;
+    MoveDir _dir = MoveDir.Down;
+
+    public MoveDir Dir
+    {
+        get { return _dir; }
+        set
+        {
+            if (_dir == value)
+                return;
+
+            _dir = value;
+            // save last direction
+            if (value != MoveDir.None)
+                _lastDir = value;
+
+            UpdateAnimation();
+        }
+    }
+
+    protected virtual void UpdateAnimation()
+    {
+        if(_state == CreatureState.Idle)
+        {
+            switch (_lastDir)
+            {
+                case MoveDir.Up:
+                    _animator.Play("IDLE_BACK");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("IDLE_FRONT");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("IDLE_RIGHT");
+                    // reverse x direction
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("IDLE_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else if(_state == CreatureState.Moving)
+        {
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    _animator.Play("WALK_BACK");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Down:
+                    _animator.Play("WALK_FRONT");
+                    _sprite.flipX = false;
+
+                    break;
+                case MoveDir.Left:
+                    _animator.Play("WALK_RIGHT");
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play("WALK_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else if(_state == CreatureState.Skill)
+        {
+            // TODO
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    void Start()
+    {
+        Init();
+    }
+
+    void Update()
+    {
+        UpdateController();
+    }
+
+    protected virtual void Init()
+    {
+        _animator = GetComponent<Animator>();
+        _sprite = GetComponent<SpriteRenderer>();
+        Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(_cellPos) + new Vector3(0.5f, 0.5f);
+        transform.position = pos;
+    }
+
+    protected virtual void UpdateController()
+    {
+        UpdatePosition();
+        UpdateIsMoving();
+    }
+
+    void UpdatePosition()
+    {
+        if (State  != CreatureState.Moving)
+            return;
+
+        Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(_cellPos) + new Vector3(0.5f, 0.5f);
+        Vector3 moveDir = destPos - transform.position;
+
+        float dist = moveDir.magnitude;
+        if (dist < _speed * Time.deltaTime)
+        {
+            transform.position = destPos;
+            // exceptionally controll animation directly
+            _state = CreatureState.Idle;
+            // after moving, change animation to Idle
+            if (_dir == MoveDir.None)
+                UpdateAnimation();
+        }
+        else
+        {
+            transform.position += moveDir.normalized * _speed * Time.deltaTime;
+            State = CreatureState.Moving;
+        }
+    }
+
+    void UpdateIsMoving()
+    {
+        if ( State == CreatureState.Idle && _dir != MoveDir.None)
+        {
+            Vector3Int destPos = _cellPos;
+
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    destPos += Vector3Int.up;
+                    break;
+                case MoveDir.Down:
+                    destPos += Vector3Int.down;
+                    break;
+                case MoveDir.Left:
+                    destPos += Vector3Int.left;
+                    break;
+                case MoveDir.Right:
+                    destPos += Vector3Int.right;
+                    break;
+                default:
+                    break;
+            }
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                _cellPos = destPos;
+                State = CreatureState.Moving;
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    protected override void Init()
+    {
+        base.Init();
+    }
+
+    protected override void UpdateController()
+    {
+        GetDirInput();
+        base.UpdateController();
+    }
+
+    void LateUpdate()
+    {
+        Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
+    }
+
+    void GetDirInput()
+    {
+        if (Input.GetKey(KeyCode.W))
+        {
+            Dir = MoveDir.Up;
+        }
+        else if (Input.GetKey(KeyCode.S))
+        {
+            Dir = MoveDir.Down;
+        }
+        else if (Input.GetKey(KeyCode.A))
+        {
+            Dir = MoveDir.Left;
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            Dir = MoveDir.Right;
+        }
+        else
+        {
+            Dir = MoveDir.None;
+        }
+    }
+}
+{% endhighlight %}
+
+* Scripts\Controllers\MonsterController.cs
+  - Copy `Player` and change name to `Monster`
+  - remove `PlayerController.cs` component and add `MonsterController.cs` component
+  - change color to red
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/28.jpg"><img src="/assets/img/posts/unity_mmogame/28.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+    protected override void Init()
+    {
+        base.Init();
+    }
+
+    protected override void UpdateController()
+    {
+        base.UpdateController();
+    }
+
+    void GetDirInput()
+    {
+        if (Input.GetKey(KeyCode.W))
+        {
+            Dir = MoveDir.Up;
+        }
+        else if (Input.GetKey(KeyCode.S))
+        {
+            Dir = MoveDir.Down;
+        }
+        else if (Input.GetKey(KeyCode.A))
+        {
+            Dir = MoveDir.Left;
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            Dir = MoveDir.Right;
+        }
+        else
+        {
+            Dir = MoveDir.None;
+        }
+    }
+}
+{% endhighlight %}
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
