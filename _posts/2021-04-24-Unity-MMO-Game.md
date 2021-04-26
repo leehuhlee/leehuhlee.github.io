@@ -1735,5 +1735,314 @@ public class PlayerController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Effect.mp4" frameborder="0"> </iframe>
 
+## AI: Patrol
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    ...
+    public virtual CreatureState State
+    {
+        get { return _state; }
+        set
+        {
+            if (_state == value)
+                return;
+
+            _state = value;
+            UpdateAnimation();
+        }
+    }
+    ...
+
+    protected virtual void UpdateIdle()
+    {
+    }
+
+    protected virtual void UpdateMoving()
+    {
+        ...
+        if (dist < _speed * Time.deltaTime)
+        {
+            transform.position = destPos;
+            MoveToNextPos();
+        }
+        ...
+    }
+
+    protected virtual void MoveToNextPos()
+    {
+        if(_dir == MoveDir.None)
+        {
+            State = CreatureState.Idle;
+            return;
+        }
+
+        Vector3Int destPos = CellPos;
+
+        switch (_dir)
+        {
+            case MoveDir.Up:
+                destPos += Vector3Int.up;
+                break;
+            case MoveDir.Down:
+                destPos += Vector3Int.down;
+                break;
+            case MoveDir.Left:
+                destPos += Vector3Int.left;
+                break;
+            case MoveDir.Right:
+                destPos += Vector3Int.right;
+                break;
+            default:
+                break;
+        }
+
+        if (Managers.Map.CanGo(destPos))
+        {
+            if (Managers.Object.Find(destPos) == null)
+            {
+                CellPos = destPos;
+            }
+        }
+    }
+    ...
+}
+
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    ...
+    protected override void UpdateController()
+    {
+        switch (State)
+        {
+            case CreatureState.Idle:
+                GetDirInput();
+                break;
+            case CreatureState.Moving:
+                GetDirInput();
+                break;
+        }
+
+        base.UpdateController();
+    }
+    ...
+
+    protected override void UpdateIdle()
+    {
+        // check where to go
+        if(Dir != MoveDir.None)
+        {
+            State = CreatureState.Moving;
+            return;
+        }
+
+        // check weather state change to skill 
+        if (Input.GetKey(KeyCode.Space))
+        {
+            State = CreatureState.Skill;
+            //_coSkill = StartCoroutine("CoStartPunch");
+            _coSkill = StartCoroutine("CoStartShootArrow");
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+    protected override void Init()
+    {
+        // TODO
+        ...
+        State = CreatureState.Moving;
+        _speed = 15.0f;
+
+        base.Init();
+    }
+
+    protected override void UpdateAnimation()
+    {
+    }
+
+    protected override void MoveToNextPos()
+    {
+        Vector3Int destPos = CellPos;
+
+        switch (_dir)
+        {
+            case MoveDir.Up:
+                destPos += Vector3Int.up;
+                break;
+            case MoveDir.Down:
+                destPos += Vector3Int.down;
+                break;
+            case MoveDir.Left:
+                destPos += Vector3Int.left;
+                break;
+            case MoveDir.Right:
+                destPos += Vector3Int.right;
+                break;
+            default:
+                break;
+        }
+
+        if (Managers.Map.CanGo(destPos))
+        {
+            GameObject go = Managers.Object.Find(destPos);
+            if (Managers.Object.Find(destPos) == null)
+            {
+                CellPos = destPos;
+            }
+            else
+            {
+                CreatureController cc = go.GetComponent<CreatureController>();
+                if (cc != null)
+                    cc.OnDamaged();
+
+                Managers.Resource.Destroy(gameObject);
+            }
+        }
+        else
+        {
+            Managers.Resource.Destroy(gameObject);
+        }
+    }
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+    // Patrol: move randomly
+    Coroutine _coPatrol;
+    Vector3Int _destCellPos;
+
+    public override CreatureState State
+    {
+        get { return _state; }
+        set
+        {
+            if (_state == value)
+                return;
+
+            base.State = value;
+            
+            if (_coPatrol != null)
+            {
+                StopCoroutine(_coPatrol);
+                _coPatrol = null;
+            }
+        }
+    }
+
+    protected override void Init()
+    {
+        base.Init();
+        State = CreatureState.Idle;
+        Dir = MoveDir.None;
+    }
+
+    protected override void UpdateIdle()
+    {
+        base.UpdateIdle();
+
+        if(_coPatrol == null)
+        {
+            _coPatrol = StartCoroutine("CoPatrol");
+        }
+    }
+
+    protected override void MoveToNextPos()
+    {
+        Vector3Int moveCellDir = _destCellPos - CellPos;
+        // TODO:Astar
+        if (moveCellDir.x > 0)
+            Dir = MoveDir.Right;
+        else if (moveCellDir.x < 0)
+            Dir = MoveDir.Left;
+        else if (moveCellDir.y > 0)
+            Dir = MoveDir.Up;
+        else if (moveCellDir.y < 0)
+            Dir = MoveDir.Down;
+        else
+            Dir = MoveDir.None;
+
+        Vector3Int destPos = CellPos;
+
+        switch (_dir)
+        {
+            case MoveDir.Up:
+                destPos += Vector3Int.up;
+                break;
+            case MoveDir.Down:
+                destPos += Vector3Int.down;
+                break;
+            case MoveDir.Left:
+                destPos += Vector3Int.left;
+                break;
+            case MoveDir.Right:
+                destPos += Vector3Int.right;
+                break;
+            default:
+                break;
+        }
+
+        if (Managers.Map.CanGo(destPos) && Managers.Object.Find(destPos) == null)
+        {
+            CellPos = destPos;
+        }
+        else
+        {
+            State = CreatureState.Idle;
+        }
+    }
+
+    public override void OnDamaged()
+    {
+        GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
+        effect.transform.position = transform.position;
+        effect.GetComponent<Animator>().Play("START");
+        GameObject.Destroy(effect, 0.5f);
+
+        Managers.Object.Remove(gameObject);
+        Managers.Resource.Destroy(gameObject);
+    }
+
+    IEnumerator CoPatrol()
+    {
+        int waitSeconds = Random.Range(1, 4);
+        yield return new WaitForSeconds(waitSeconds);
+
+        for(int i=0; i<10; i++)
+        {
+            int xRange = Random.Range(-5, 6);
+            int yRange = Random.Range(-5, 6);
+            Vector3Int randPos = CellPos + new Vector3Int(xRange, yRange, 0);
+
+            if(Managers.Map.CanGo(randPos) && Managers.Object.Find(randPos) == null)
+            {
+                _destCellPos = randPos;
+                State = CreatureState.Moving;
+                // get out from corutine
+                yield break;
+            }
+        }
+        State = CreatureState.Idle;
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-PatrolAI.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
