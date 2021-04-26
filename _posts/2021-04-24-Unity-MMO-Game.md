@@ -1408,6 +1408,7 @@ public class PlayerController : CreatureController
   - set `Pixel Per Unit` of `Tiny RPG Forest\Artwork\sprites\misc\Arrow` to 20
   - Create `Arrow` Prefab and Change `Order in Layer` to 11
   - add `ArrowController.cs` Compoenent in `Arrow` Prefab
+
 <figure class="third">
   <a href="/assets/img/posts/unity_mmogame/32.jpg"><img src="/assets/img/posts/unity_mmogame/32.jpg"></a>
   <a href="/assets/img/posts/unity_mmogame/33.jpg"><img src="/assets/img/posts/unity_mmogame/33.jpg"></a>
@@ -1592,6 +1593,147 @@ public class PlayerController : CreatureController
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Arrow.mp4" frameborder="0"> </iframe>
+
+## Effect
+
+* Animation
+  - Create `Effect\DieEffect` Prefab
+  - Create animation controller and change name to `Resources\Animations\Effect\EffectAnimController`
+  - Add `Animator` Component and link `EffectAnimController`
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/35.jpg"><img src="/assets/img/posts/unity_mmogame/35.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/36.jpg"><img src="/assets/img/posts/unity_mmogame/36.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/38.jpg"><img src="/assets/img/posts/unity_mmogame/38.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+  - Create `Assets\Tiny RPG Forest\Artwork\sprites\misc\enemy-death` sprites to animation and change name to `Start`
+  - change `Pixel Per Unit` of `enemy-death` sprites to 20 
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/37.jpg"><img src="/assets/img/posts/unity_mmogame/37.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    ...
+
+    protected virtual void UpdateDead()
+    {
+
+    }
+    
+    public virtual void OnDamaged()
+    {
+
+    }
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+    ...
+
+    // you can use OnDemaged in others
+    public override void OnDamaged()
+    {
+        GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
+        effect.transform.position = transform.position;
+        effect.GetComponent<Animator>().Play("START");
+        GameObject.Destroy(effect, 0.5f);
+
+        // for destroy monster
+        // you should remove object for collision
+        Managers.Object.Remove(gameObject);
+        Managers.Resource.Destroy(gameObject);
+    }
+}
+{% endhighlight %}
+
+* ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+    ...
+
+    protected override void UpdateIdle()
+    {
+        if (_dir != MoveDir.None)
+        {
+            ...
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                GameObject go = Managers.Object.Find(destPos);
+                if (Managers.Object.Find(destPos) == null)
+                {
+                    CellPos = destPos;
+                }
+                else
+                {
+                    CreatureController cc = go.GetComponent<CreatureController>();
+                    if (cc != null)
+                        cc.OnDamaged();
+
+                    Managers.Resource.Destroy(gameObject);
+                }
+            }
+            else
+            {
+                Managers.Resource.Destroy(gameObject);
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    ...
+
+    IEnumerator CoStartPunch()
+    {
+        GameObject go = Managers.Object.Find(GetFrontCellPos());
+        if (go != null)
+        {
+            CreatureController cc = go.GetComponent<CreatureController>();
+            if (cc != null)
+                cc.OnDamaged();
+        }
+
+        _rangeSkill = false;
+        yield return new WaitForSeconds(0.5f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+    }
+
+    IEnumerator CoStartShootArrow()
+    {
+        GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+        ArrowController ac = go.GetComponent<ArrowController>();
+        ac.Dir = _lastDir;
+        ac.CellPos = CellPos;
+
+        // wait time
+        _rangeSkill = true;
+        yield return new WaitForSeconds(0.3f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Effect.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
