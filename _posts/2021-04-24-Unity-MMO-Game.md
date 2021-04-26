@@ -1157,7 +1157,7 @@ public class GameScene : BaseScene
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
-## Attack
+## Skill : Attack
 
 * CreatureController.cs
 {% highlight C# %}
@@ -1398,20 +1398,200 @@ public class PlayerController : CreatureController
 }
 {% endhighlight %}
 
-* CreatureController.cs
-{% highlight C# %}
-{% endhighlight %}
-
-* CreatureController.cs
-{% highlight C# %}
-{% endhighlight %}
-
-* CreatureController.cs
-{% highlight C# %}
-{% endhighlight %}
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Attack.mp4" frameborder="0"> </iframe>
+
+## Skill : Arrow
+
+* Arrow
+  - set `Pixel Per Unit` of `Tiny RPG Forest\Artwork\sprites\misc\Arrow` to 20
+  - Create `Arrow` Prefab and Change `Order in Layer` to 11
+  - add `ArrowController.cs` Compoenent in `Arrow` Prefab
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/32.jpg"><img src="/assets/img/posts/unity_mmogame/32.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/33.jpg"><img src="/assets/img/posts/unity_mmogame/33.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/34.jpg"><img src="/assets/img/posts/unity_mmogame/34.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Scripts\Controllers\Creature\ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+    protected override void Init()
+    {
+        // TODO
+        // change arrow direction
+        switch (_lastDir)
+        {
+            case MoveDir.Up:
+                transform.rotation = Quaternion.Euler(0, 0, 0);
+                break;
+            case MoveDir.Down:
+                transform.rotation = Quaternion.Euler(0, 0, -180);
+                break;
+            case MoveDir.Left:
+                transform.rotation = Quaternion.Euler(0, 0, 90);
+                break;
+            case MoveDir.Right:
+                transform.rotation = Quaternion.Euler(0, 0, -90);
+                break;
+        }
+        base.Init();
+    }
+
+    protected override void UpdateAnimation()
+    {
+        
+    }
+
+    protected override void UpdateIdle()
+    {
+        if (_dir != MoveDir.None)
+        {
+            Vector3Int destPos = CellPos;
+
+            switch (_dir)
+            {
+                case MoveDir.Up:
+                    destPos += Vector3Int.up;
+                    break;
+                case MoveDir.Down:
+                    destPos += Vector3Int.down;
+                    break;
+                case MoveDir.Left:
+                    destPos += Vector3Int.left;
+                    break;
+                case MoveDir.Right:
+                    destPos += Vector3Int.right;
+                    break;
+                default:
+                    break;
+            }
+
+            State = CreatureState.Moving;
+
+            if (Managers.Map.CanGo(destPos))
+            {
+                GameObject go = Managers.Object.Find(destPos);
+                if (Managers.Object.Find(destPos) == null)
+                {
+                    CellPos = destPos;
+                }
+                else
+                {
+                    Debug.Log(go.name);
+                    Managers.Resource.Destroy(gameObject);
+                }
+            }
+            else
+            {
+                Managers.Resource.Destroy(gameObject);
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    public float _speed = 5.0f;
+
+    public Vector3Int CellPos { get; set; } = Vector3Int.zero;
+    protected Animator _animator;
+    protected SpriteRenderer _sprite;
+
+    protected CreatureState _state = CreatureState.Idle;
+    ...
+
+    protected MoveDir _lastDir = MoveDir.Down;
+    protected MoveDir _dir = MoveDir.Down;
+    ...
+}
+{% endhighlight %}
+
+* PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    Coroutine _coSkill;
+    bool _rangeSkill = false;
+    ...
+
+    protected override void UpdateAnimation()
+    {
+        ...
+        else if (_state == CreatureState.Skill)
+        {
+            switch (_lastDir)
+            {
+                case MoveDir.Up:
+                    _animator.Play(_rangeSkill ? "ATTACK_WEAPON_BACK" : "ATTACK_BACK");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Down:
+                    _animator.Play(_rangeSkill ? "ATTACK_WEAPON_FRONT" : "ATTACK_FRONT");
+                    _sprite.flipX = false;
+                    break;
+                case MoveDir.Left:
+                    _animator.Play(_rangeSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+                    _sprite.flipX = true;
+                    break;
+                case MoveDir.Right:
+                    _animator.Play(_rangeSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+                    _sprite.flipX = false;
+                    break;
+            }
+        }
+        else
+        {
+            return;
+        }
+    }
+    ...
+
+    void GetIdleInput()
+    {
+        if (Input.GetKey(KeyCode.Space))
+        {
+            State = CreatureState.Skill;
+            //_coSkill = StartCoroutine("CoStartPunch");
+            _coSkill = StartCoroutine("CoStartShootArrow");
+        }
+    }
+
+    IEnumerator CoStartPunch()
+    {
+        ...
+
+        _rangeSkill = false;
+        yield return new WaitForSeconds(0.5f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+    }
+
+    IEnumerator CoStartShootArrow()
+    {
+        GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+        ArrowController ac = go.GetComponent<ArrowController>();
+        ac.Dir = _lastDir;
+        ac.CellPos = CellPos;
+
+        // wait time
+        _rangeSkill = true;
+        yield return new WaitForSeconds(0.3f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Arrow.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
