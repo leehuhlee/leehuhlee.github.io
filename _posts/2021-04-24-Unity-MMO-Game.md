@@ -2492,4 +2492,159 @@ public class MonsterController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-SearchAI.mp4" frameborder="0"> </iframe>
 
+## AI: Skill
+
+* CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    ...
+	public MoveDir GetDirFromVec(Vector3Int dir) 
+	{
+		if (dir.x > 0)
+			return MoveDir.Right;
+		else if (dir.x < 0)
+			return MoveDir.Left;
+		else if (dir.y > 0)
+			return MoveDir.Up;
+		else if (dir.y < 0)
+			return MoveDir.Down;
+		else
+			return MoveDir.None;
+	}
+	...
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	Coroutine _coSkill;
+	Coroutine _coPatrol;
+	Coroutine _coSearch;
+	...
+
+	[SerializeField]
+	float _skillRange = 1.0f;
+
+	[SerializeField]
+	bool _rangedSkill = false;
+
+	...
+	protected override void Init()
+	{
+		base.Init();
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.None;
+
+		_speed = 3.0f;
+        _rangedSkill = (Random.Range(0, 2) == 0 ? true : false);
+
+        if (_rangedSkill)
+			_skillRange = 10.0f;
+		else
+			_skillRange = 1.0f;
+	}
+	...
+
+	protected override void MoveToNextPos()
+	{
+		Vector3Int destPos = _destCellPos;
+		if (_target != null)
+		{
+			destPos = _target.GetComponent<CreatureController>().CellPos;
+
+			Vector3Int dir = destPos - CellPos;
+            if (dir.magnitude <= _skillRange && (dir.x ==0 || dir.y==0))
+            {
+				Dir = GetDirFromVec(dir);
+				State = CreatureState.Skill;
+
+				if (_rangedSkill)
+					_coSkill = StartCoroutine("CoStartShootArrow");
+				else
+					_coSkill = StartCoroutine("CoStartPunch");
+				return;
+            }
+		}
+
+		List<Vector3Int> path = Managers.Map.FindPath(CellPos, destPos, ignoreDestCollision: true);
+		if (path.Count < 2 || (_target != null && path.Count > 20))
+		{
+			_target = null;
+			State = CreatureState.Idle;
+			return;
+		}
+
+		Vector3Int nextPos = path[1];
+		Vector3Int moveCellDir = nextPos - CellPos;
+
+		Dir = GetDirFromVec(moveCellDir);
+
+		if (Managers.Map.CanGo(nextPos) && Managers.Object.Find(nextPos) == null)
+		{
+			CellPos = nextPos;
+		}
+		else
+		{
+			State = CreatureState.Idle;
+		}
+	}
+    ...
+
+	IEnumerator CoPatrol()
+	{
+		...
+		for (int i = 0; i < 10; i++)
+		{
+			...
+
+			if (Managers.Map.CanGo(randPos) && Managers.Object.Find(randPos) == null)
+			{
+				_destCellPos = randPos;
+				State = CreatureState.Moving;
+				yield break;
+			}
+		}
+
+		State = CreatureState.Idle;
+	}
+
+	...
+
+	IEnumerator CoStartPunch()
+	{
+		GameObject go = Managers.Object.Find(GetFrontCellPos());
+		if (go != null)
+		{
+			CreatureController cc = go.GetComponent<CreatureController>();
+			if (cc != null)
+				cc.OnDamaged();
+		}
+
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+
+	IEnumerator CoStartShootArrow()
+	{
+		GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+		ArrowController ac = go.GetComponent<ArrowController>();
+		ac.Dir = _lastDir;
+		ac.CellPos = CellPos;
+
+		yield return new WaitForSeconds(0.3f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-SkillAI.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
