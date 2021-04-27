@@ -885,7 +885,7 @@ public abstract class Session
 
 * Server\JobTimer.cs
 {% highlight C# %}
-// JobTimerElem will be used in PriorityQueu, so it should support Icomparable Interface
+// JobTimerElem will be used in PriorityQueue, so it should support Icomparable Interface
 struct JobTimerElem : IComparable<JobTimerElem>
 {
     // excute Time

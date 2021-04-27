@@ -2044,5 +2044,452 @@ public class MonsterController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-PatrolAI.mp4" frameborder="0"> </iframe>
 
+## AI: Search
+  - add A* Algorithm
+  - PriorityQueue is on <a href="https://leehuhlee.github.io/C-AStar-Maze/">A* Maze</a> Post
+
+* Scripts\Utils\PriorityQueue.cs
+{% highlight C# %}
+public class PriorityQueue<T> where T : IComparable<T>
+{
+	List<T> _heap = new List<T>();
+
+	public void Push(T data)
+	{
+		_heap.Add(data);
+
+		int now = _heap.Count - 1;
+		while (now > 0)
+		{
+			int next = (now - 1) / 2;
+			if (_heap[now].CompareTo(_heap[next]) < 0)
+				break;
+
+			T temp = _heap[now];
+			_heap[now] = _heap[next];
+			_heap[next] = temp;
+
+			now = next;
+		}
+	}
+
+	public T Pop()
+	{
+		T ret = _heap[0];
+
+		int lastIndex = _heap.Count - 1;
+		_heap[0] = _heap[lastIndex];
+		_heap.RemoveAt(lastIndex);
+		lastIndex--;
+
+		int now = 0;
+		while (true)
+		{
+			int left = 2 * now + 1;
+			int right = 2 * now + 2;
+
+			int next = now;
+			if (left <= lastIndex && _heap[next].CompareTo(_heap[left]) < 0)
+				next = left;
+			if (right <= lastIndex && _heap[next].CompareTo(_heap[right]) < 0)
+				next = right;
+
+			if (next == now)
+				break;
+
+			T temp = _heap[now];
+			_heap[now] = _heap[next];
+			_heap[next] = temp;
+			now = next;
+		}
+
+		return ret;
+	}
+
+	public int Count { get { return _heap.Count; } }
+}
+{% endhighlight %}
+
+* MapController.cs
+{% highlight C# %}
+public struct Pos
+{
+	public Pos(int y, int x) { Y = y; X = x; }
+	public int Y;
+	public int X;
+}
+
+public struct PQNode : IComparable<PQNode>
+{
+	public int F;
+	public int G;
+	public int Y;
+	public int X;
+
+	public int CompareTo(PQNode other)
+	{
+		if (F == other.F)
+			return 0;
+		return F < other.F ? 1 : -1;
+	}
+}
+
+public class MapManager
+{
+	public Grid CurrentGrid { get; private set; }
+
+	public int MinX { get; set; }
+	public int MaxX { get; set; }
+	public int MinY { get; set; }
+	public int MaxY { get; set; }
+
+	public int SizeX { get { return MaxX - MinX + 1; } }
+	public int SizeY { get { return MaxY - MinY + 1; } }
+
+	bool[,] _collision;
+
+	public bool CanGo(Vector3Int cellPos)
+	{
+		if (cellPos.x < MinX || cellPos.x > MaxX)
+			return false;
+		if (cellPos.y < MinY || cellPos.y > MaxY)
+			return false;
+
+		int x = cellPos.x - MinX;
+		int y = MaxY - cellPos.y;
+		return !_collision[y, x];
+	}
+
+	public void LoadMap(int mapId)
+	{
+		DestroyMap();
+
+		string mapName = "Map_" + mapId.ToString("000");
+		GameObject go = Managers.Resource.Instantiate($"Map/{mapName}");
+		go.name = "Map";
+
+		GameObject collision = Util.FindChild(go, "Tilemap_Collision", true);
+		if (collision != null)
+			collision.SetActive(false);
+
+		CurrentGrid = go.GetComponent<Grid>();
+
+		// Collision 관련 파일
+		TextAsset txt = Managers.Resource.Load<TextAsset>($"Map/{mapName}");
+		StringReader reader = new StringReader(txt.text);
+
+		MinX = int.Parse(reader.ReadLine());
+		MaxX = int.Parse(reader.ReadLine());
+		MinY = int.Parse(reader.ReadLine());
+		MaxY = int.Parse(reader.ReadLine());
+
+		int xCount = MaxX - MinX + 1;
+		int yCount = MaxY - MinY + 1;
+		_collision = new bool[yCount, xCount];
+
+		for (int y = 0; y < yCount; y++)
+		{
+			string line = reader.ReadLine();
+			for (int x = 0; x < xCount; x++)
+			{
+				_collision[y, x] = (line[x] == '1' ? true : false);
+			}
+		}
+	}
+
+	public void DestroyMap()
+	{
+		GameObject map = GameObject.Find("Map");
+		if (map != null)
+		{
+			GameObject.Destroy(map);
+			CurrentGrid = null;
+		}
+	}
+
+	#region A* PathFinding
+
+	// U D L R
+	int[] _deltaY = new int[] { 1, -1, 0, 0 };
+	int[] _deltaX = new int[] { 0, 0, -1, 1 };
+	int[] _cost = new int[] { 10, 10, 10, 10 };
+
+    // startCellPos is monster position
+    // destCellPos is player position
+    // ignoreDestCollision is for ignoring collision of last position(player)
+	public List<Vector3Int> FindPath(Vector3Int startCellPos, Vector3Int destCellPos, bool ignoreDestCollision = false)
+	{
+		List<Pos> path = new List<Pos>();
+
+		bool[,] closed = new bool[SizeY, SizeX]; // CloseList
+
+		int[,] open = new int[SizeY, SizeX]; // OpenList
+		for (int y = 0; y < SizeY; y++)
+			for (int x = 0; x < SizeX; x++)
+				open[y, x] = Int32.MaxValue;
+
+		Pos[,] parent = new Pos[SizeY, SizeX];
+
+		PriorityQueue<PQNode> pq = new PriorityQueue<PQNode>();
+
+		// CellPos -> ArrayPos
+		Pos pos = Cell2Pos(startCellPos);
+		Pos dest = Cell2Pos(destCellPos);
+
+		open[pos.Y, pos.X] = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X));
+		pq.Push(new PQNode() { F = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)), G = 0, Y = pos.Y, X = pos.X });
+		parent[pos.Y, pos.X] = new Pos(pos.Y, pos.X);
+
+		while (pq.Count > 0)
+		{
+			PQNode node = pq.Pop();
+			if (closed[node.Y, node.X])
+				continue;
+
+			closed[node.Y, node.X] = true;
+			if (node.Y == dest.Y && node.X == dest.X)
+				break;
+
+			for (int i = 0; i < _deltaY.Length; i++)
+			{
+				Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
+
+				if (!ignoreDestCollision || next.Y != dest.Y || next.X != dest.X)
+				{
+					if (CanGo(Pos2Cell(next)) == false) // CellPos
+						continue;
+				}
+				
+				if (closed[next.Y, next.X])
+					continue;
+
+				int g = 0;// node.G + _cost[i];
+				int h = 10 * ((dest.Y - next.Y) * (dest.Y - next.Y) + (dest.X - next.X) * (dest.X - next.X));
+				if (open[next.Y, next.X] < g + h)
+					continue;
+
+				open[dest.Y, dest.X] = g + h;
+				pq.Push(new PQNode() { F = g + h, G = g, Y = next.Y, X = next.X });
+				parent[next.Y, next.X] = new Pos(node.Y, node.X);
+			}
+		}
+
+		return CalcCellPathFromParent(parent, dest);
+	}
+
+	List<Vector3Int> CalcCellPathFromParent(Pos[,] parent, Pos dest)
+	{
+		List<Vector3Int> cells = new List<Vector3Int>();
+
+		int y = dest.Y;
+		int x = dest.X;
+		while (parent[y, x].Y != y || parent[y, x].X != x)
+		{
+			cells.Add(Pos2Cell(new Pos(y, x)));
+			Pos pos = parent[y, x];
+			y = pos.Y;
+			x = pos.X;
+		}
+		cells.Add(Pos2Cell(new Pos(y, x)));
+		cells.Reverse();
+
+		return cells;
+	}
+
+	Pos Cell2Pos(Vector3Int cell)
+	{
+		// CellPos -> ArrayPos
+		return new Pos(MaxY - cell.y, cell.x - MinX);
+	}
+
+	Vector3Int Pos2Cell(Pos pos)
+	{
+		// ArrayPos -> CellPos
+		return new Vector3Int(pos.X + MinX, MaxY - pos.Y, 0);
+	}
+
+	#endregion
+}
+{% endhighlight %}
+
+* ObjectManager.cs
+{% highlight C# %}
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ObjectManager
+{
+	...
+	public GameObject Find(Vector3Int cellPos)
+	{
+		foreach (GameObject obj in _objects)
+		{
+			CreatureController cc = obj.GetComponent<CreatureController>();
+			if (cc == null)
+				continue;
+
+			if (cc.CellPos == cellPos)
+				return obj;
+		}
+
+		return null;
+	}
+
+    // delegate
+    // act with GameObject and return bool
+	public GameObject Find(Func<GameObject, bool> condition)
+	{
+		foreach (GameObject obj in _objects)
+		{
+			if (condition.Invoke(obj))
+				return obj;
+		}
+
+		return null;
+	}
+    ...
+}
+{% endhighlight %}
+
+* MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	Coroutine _coPatrol;
+	Coroutine _coSearch;
+
+	[SerializeField]
+	Vector3Int _destCellPos;
+
+	[SerializeField]
+	GameObject _target;
+
+	[SerializeField]
+	float _searchRange = 5.0f;
+
+	public override CreatureState State
+	{
+		get { return _state; }
+		set
+		{
+			if (_state == value)
+				return;
+
+			base.State = value;
+
+			if (_coPatrol != null)
+			{
+				StopCoroutine(_coPatrol);
+				_coPatrol = null;
+			}
+
+			if (_coSearch != null)
+			{
+				StopCoroutine(_coSearch);
+				_coSearch = null;
+			}
+		}
+	}
+
+	protected override void Init()
+	{
+		base.Init();
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.None;
+
+		_speed = 3.0f;
+	}
+
+	protected override void UpdateIdle()
+	{
+		base.UpdateIdle();
+
+		if (_coPatrol == null)
+		{
+			_coPatrol = StartCoroutine("CoPatrol");
+		}
+
+		if (_coSearch == null)
+		{
+			_coSearch = StartCoroutine("CoSearch");
+		}
+	}
+
+	protected override void MoveToNextPos()
+	{
+		Vector3Int destPos = _destCellPos;
+		if (_target != null)
+		{
+			destPos = _target.GetComponent<CreatureController>().CellPos;
+		}
+
+		List<Vector3Int> path = Managers.Map.FindPath(CellPos, destPos, ignoreDestCollision: true);
+        // 0 means Idle
+        // 1 means it coudln't find path
+        // 11 means player is too far
+		if (path.Count < 2 || (_target != null && path.Count > 10))
+		{
+			_target = null;
+			State = CreatureState.Idle;
+			return;
+		}
+
+		Vector3Int nextPos = path[1];
+		Vector3Int moveCellDir = nextPos - CellPos;
+
+		if (moveCellDir.x > 0)
+			Dir = MoveDir.Right;
+		else if (moveCellDir.x < 0)
+			Dir = MoveDir.Left;
+		else if (moveCellDir.y > 0)
+			Dir = MoveDir.Up;
+		else if (moveCellDir.y < 0)
+			Dir = MoveDir.Down;
+		else
+			Dir = MoveDir.None;
+
+		if (Managers.Map.CanGo(nextPos) && Managers.Object.Find(nextPos) == null)
+		{
+			CellPos = nextPos;
+		}
+		else
+		{
+			State = CreatureState.Idle;
+		}
+	}
+	...
+
+	IEnumerator CoSearch()
+	{
+		while (true)
+		{
+			yield return new WaitForSeconds(1);
+
+			if (_target != null)
+				continue;
+
+			_target = Managers.Object.Find((go) =>
+			{
+				PlayerController pc = go.GetComponent<PlayerController>();
+				if (pc == null)
+					return false;
+
+				Vector3Int dir = (pc.CellPos - CellPos);
+				if (dir.magnitude > _searchRange)
+					return false;
+
+				return true;
+			});
+		}
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-SearchAI.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
