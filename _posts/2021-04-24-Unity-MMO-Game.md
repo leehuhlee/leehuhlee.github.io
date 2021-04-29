@@ -9,7 +9,9 @@ comments: false
 
 <center>Reference by <a href="https://www.inflearn.com/course/%EC%9C%A0%EB%8B%88%ED%8B%B0-mmorpg-%EA%B0%9C%EB%B0%9C-part7/dashboard">[C#과 유니티로 만드는 MMORPG 게임 개발 시리즈] Part7: MMO 컨텐츠 구현 (Unity + C# 서버 연동 기초)</a></center>
 
-# Set for 2D
+# Client
+
+## Set for 2D
 
 * Project Settings
   - [Window]-[Project Settings]-[Editor]
@@ -46,8 +48,6 @@ comments: false
   <a href="/assets/img/posts/unity_mmogame/4.jpg"><img src="/assets/img/posts/unity_mmogame/4.jpg"></a>
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
-
-# Tilemap
 
 ## Tilemap Map
 
@@ -2646,5 +2646,517 @@ public class MonsterController : CreatureController
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-SkillAI.mp4" frameborder="0"> </iframe>
+
+# Server
+
+## Protobuf in Server
+* Create `Common` folder
+* Download <a href="https://github.com/protocolbuffers/protobuf/releases/tag/v3.12.3">Google Protobuf protoc-3.12.3-winXX.zip</a> on Common folder
+* Download `Google.Protobuf` in Nuget Package Manager
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/41.jpg"><img src="/assets/img/posts/unity_mmogame/41.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/42.jpg"><img src="/assets/img/posts/unity_mmogame/42.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/43.jpg"><img src="/assets/img/posts/unity_mmogame/43.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+syntax = "proto3";
+
+package Protocol;
+import "google/protobuf/timestamp.proto";
+option csharp_namespace = "Google.Protobuf.Protocol";
+
+enum MsgId {
+  PERSON = 0;
+  C_CHAT = 1;
+  S_CHAT = 2;
+  S_ENTER_GAME = 3;
+}
+
+message C_Chat {
+  string context = 1;
+}
+
+message S_Chat {
+  string context = 1;
+}
+
+message S_EnterGame {
+  string context = 1;
+}
+
+message Person {
+  int32 packetHeader = 1;
+  string name = 2;
+  int32 id = 3;  // Unique ID number for this person.
+  string email = 4;
+
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+
+  message PhoneNumber {
+    string number = 1;
+    PhoneType type = 2;
+  }
+
+  repeated PhoneNumber phones = 5;
+  google.protobuf.Timestamp last_updated = 6;
+}
+
+// Our address book file is just one of these.
+message AddressBook {
+  repeated Person people = 1;
+}
+{% endhighlight %}
+
+* Common\protoc-3.12.3-win64\bin\GenProto.bat
+{% highlight bat %}
+protoc.exe -I=./ --csharp_out=./ ./Protocol.proto 
+IF ERRORLEVEL 1 PAUSE
+
+START ../../../Server/PacketGenerator/bin/PacketGenerator.exe ./Protocol.proto
+XCOPY /Y Protocol.cs "../../../Client/Assets/Scripts/Packet"
+XCOPY /Y Protocol.cs "../../../Server/Server/Packet"
+XCOPY /Y ClientPacketManager.cs "../../../Client/Assets/Scripts/Packet"
+XCOPY /Y ServerPacketManager.cs "../../../Server/Server/Packet"
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+namespace Server
+{
+	class ClientSession : PacketSession
+	{
+		public int SessionId { get; set; }
+
+		public override void OnConnected(EndPoint endPoint)
+		{
+			Console.WriteLine($"OnConnected : {endPoint}");
+
+			// PROTO Test
+			S_Chat chat = new S_Chat()
+			{
+				Context = "Hello!"
+			};
+
+			ushort size = (ushort)chat.CalculateSize();
+			byte[] sendBuffer = new byte[size + 4];
+			Array.Copy(BitConverter.GetBytes(size + 4), 0, sendBuffer, 0, sizeof(ushort));
+			ushort protocolId = (ushort)MsgId.SChat;
+			Array.Copy(BitConverter.GetBytes(protocolId), 0, sendBuffer, 2, sizeof(ushort));
+			Array.Copy(chat.ToByteArray(), 0, sendBuffer, 4, size);
+
+			Send(new ArraySegment<byte>(sendBuffer));			
+		}
+
+		public override void OnRecvPacket(ArraySegment<byte> buffer)
+		{
+			PacketManager.Instance.OnRecvPacket(this, buffer);
+		}
+
+		public override void OnDisconnected(EndPoint endPoint)
+		{
+			SessionManager.Instance.Remove(this);
+
+			Console.WriteLine($"OnDisconnected : {endPoint}");
+		}
+
+		public override void OnSend(int numOfBytes){}
+	}
+}
+{% endhighlight %}
+
+* PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+namespace PacketGenerator
+{
+	class PacketFormat
+	{
+		// {0} Packet Assign
+		public static string managerFormat =
+@"using Google.Protobuf;
+using Google.Protobuf.Protocol;
+using ServerCore;
+using System;
+using System.Collections.Generic;
+
+class PacketManager
+{
+	#region Singleton
+	static PacketManager _instance = new PacketManager();
+	public static PacketManager Instance { get { return _instance; } }
+	#endregion
+
+	PacketManager()
+	{
+		Register();
+	}
+
+	Dictionary<ushort, Action<PacketSession, ArraySegment<byte>, ushort>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>, ushort>>();
+	Dictionary<ushort, Action<PacketSession, IMessage>> _handler = new Dictionary<ushort, Action<PacketSession, IMessage>>();
+		
+	public void Register()
+	{{0}
+	}
+
+	public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
+	{
+		ushort count = 0;
+
+		ushort size = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+		count += 2;
+		ushort id = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+		count += 2;
+
+		Action<PacketSession, ArraySegment<byte>, ushort> action = null;
+		if (_onRecv.TryGetValue(id, out action))
+			action.Invoke(session, buffer, id);
+	}
+
+	void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer, ushort id) where T : IMessage, new()
+	{
+		T pkt = new T();
+		pkt.MergeFrom(buffer.Array, buffer.Offset + 4, buffer.Count - 4);
+		Action<PacketSession, IMessage> action = null;
+		if (_handler.TryGetValue(id, out action))
+			action.Invoke(session, pkt);
+	}
+
+	public Action<PacketSession, IMessage> GetPacketHandler(ushort id)
+	{
+		Action<PacketSession, IMessage> action = null;
+		if (_handler.TryGetValue(id, out action))
+			return action;
+		return null;
+	}
+}";
+
+		// {0} MsgId
+		// {1} Packet Name 
+		public static string managerRegisterFormat =
+@"		
+		_onRecv.Add((ushort)MsgId.{0}, MakePacket<{1}>);
+		_handler.Add((ushort)MsgId.{0}, PacketHandler.{1}Handler);";
+
+	}
+}
+{% endhighlight %}
+
+* PacketGenerator\Program.cs
+{% highlight C# %}
+namespace PacketGenerator
+{
+	class Program
+	{
+		static string clientRegister;
+		static string serverRegister;
+
+		static void Main(string[] args)
+		{
+			string file = "../../../Common/protoc-3.12.3-win64/bin/Protocol.proto";
+			if (args.Length >= 1)
+				file = args[0];
+
+			bool startParsing = false;
+			foreach (string line in File.ReadAllLines(file))
+			{
+				if (!startParsing && line.Contains("enum MsgId"))
+				{
+					startParsing = true;
+					continue;
+				}
+
+				if (!startParsing)
+					continue;
+
+				if (line.Contains("}"))
+					break;
+
+				string[] names = line.Trim().Split(" =");
+				if (names.Length == 0)
+					continue;
+
+                // Client deals with Server message
+				string name = names[0];
+				if (name.StartsWith("S_"))
+				{
+					string[] words = name.Split("_");
+
+					string msgName = "";
+					foreach (string word in words)
+						msgName += FirstCharToUpper(word);
+
+					string packetName = $"S_{msgName.Substring(1)}";
+					clientRegister += string.Format(PacketFormat.managerRegisterFormat, msgName, packetName);
+				}
+                // Server deals with Client message
+				else if (name.StartsWith("C_"))
+				{
+					string[] words = name.Split("_");
+
+					string msgName = "";
+					foreach (string word in words)
+						msgName += FirstCharToUpper(word);
+
+					string packetName = $"C_{msgName.Substring(1)}";
+					serverRegister += string.Format(PacketFormat.managerRegisterFormat, msgName, packetName);
+				}
+			}
+
+			string clientManagerText = string.Format(PacketFormat.managerFormat, clientRegister);
+			File.WriteAllText("ClientPacketManager.cs", clientManagerText);
+			string serverManagerText = string.Format(PacketFormat.managerFormat, serverRegister);
+			File.WriteAllText("ServerPacketManager.cs", serverManagerText);
+		}
+
+		public static string FirstCharToUpper(string input)
+		{
+			if (string.IsNullOrEmpty(input))
+				return "";
+			return input[0].ToString().ToUpper() + input.Substring(1).ToLower();
+		}
+	}
+}
+{% endhighlight %}
+
+* Server\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void C_ChatHandler(PacketSession session, IMessage packet)
+	{
+		S_Chat chatPacket = packet as S_Chat;
+		ClientSession serverSession = session as ClientSession;
+
+		Console.WriteLine(chatPacket.Context);
+	}
+}
+{% endhighlight %}
+
+## Protobuf in Client
+
+* Scripts\Managers\Contents\NetworkManager.cs
+- NetworkManager is on <a href="https://leehuhlee.github.io/C-Chatting-Test//">Chatting Test</a> Post
+
+{% highlight C# %}
+public class NetworkManager
+{
+	ServerSession _session = new ServerSession();
+
+	public void Send(ArraySegment<byte> sendBuff)
+	{
+		_session.Send(sendBuff);
+	}
+
+	public void Init()
+	{
+		string host = Dns.GetHostName();
+		IPHostEntry ipHost = Dns.GetHostEntry(host);
+		IPAddress ipAddr = ipHost.AddressList[0];
+		IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+		Connector connector = new Connector();
+
+		connector.Connect(endPoint,
+			() => { return _session; },
+			1);
+	}
+
+	public void Update()
+	{
+		List<PacketMessage> list = PacketQueue.Instance.PopAll();
+		foreach (PacketMessage packet in list)
+		{
+			Action<PacketSession, IMessage> handler = PacketManager.Instance.GetPacketHandler(packet.Id);
+			if (handler != null)
+				handler.Invoke(_session, packet.Message);
+		}	
+	}
+}
+{% endhighlight %}
+
+* Scripts\Managers\Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    static Managers s_instance;
+    static Managers Instance { get { Init(); return s_instance; } }
+
+    #region Contents
+    MapManager _map = new MapManager();
+    ObjectManager _obj = new ObjectManager();
+    NetworkManager _network = new NetworkManager();
+
+    public static MapManager Map { get { return Instance._map; } }
+    public static ObjectManager Object { get { return Instance._obj; } }
+    public static NetworkManager Network { get { return Instance._network; } }
+	#endregion
+
+	#region Core
+	DataManager _data = new DataManager();
+    PoolManager _pool = new PoolManager();
+    ResourceManager _resource = new ResourceManager();
+    SceneManagerEx _scene = new SceneManagerEx();
+    SoundManager _sound = new SoundManager();
+    UIManager _ui = new UIManager();
+
+    public static DataManager Data { get { return Instance._data; } }
+    public static PoolManager Pool { get { return Instance._pool; } }
+    public static ResourceManager Resource { get { return Instance._resource; } }
+    public static SceneManagerEx Scene { get { return Instance._scene; } }
+    public static SoundManager Sound { get { return Instance._sound; } }
+    public static UIManager UI { get { return Instance._ui; } }
+	#endregion
+
+	void Start()
+    {
+        Init();
+	}
+
+    void Update()
+    {
+        _network.Update();
+    }
+
+    static void Init()
+    {
+        if (s_instance == null)
+        {
+			GameObject go = GameObject.Find("@Managers");
+            if (go == null)
+            {
+                go = new GameObject { name = "@Managers" };
+                go.AddComponent<Managers>();
+            }
+
+            DontDestroyOnLoad(go);
+            s_instance = go.GetComponent<Managers>();
+
+            s_instance._network.Init();
+            s_instance._data.Init();
+            s_instance._pool.Init();
+            s_instance._sound.Init();
+        }		
+	}
+
+    public static void Clear()
+    {
+        Sound.Clear();
+        Scene.Clear();
+        UI.Clear();
+        Pool.Clear();
+    }
+}
+{% endhighlight %}
+
+* Scripts\Packet\PacketQueue.cs
+{% highlight C# %}
+public class PacketMessage
+{
+	public ushort Id { get; set; }
+	public IMessage Message { get; set; }
+}
+
+public class PacketQueue
+{
+	public static PacketQueue Instance { get; } = new PacketQueue();
+
+	Queue<PacketMessage> _packetQueue = new Queue<PacketMessage>();
+	object _lock = new object();
+
+	public void Push(ushort id, IMessage packet)
+	{
+		lock (_lock)
+		{
+			_packetQueue.Enqueue(new PacketMessage() { Id = id, Message = packet });
+		}
+	}
+
+	public PacketMessage Pop()
+	{
+		lock (_lock)
+		{
+			if (_packetQueue.Count == 0)
+				return null;
+
+			return _packetQueue.Dequeue();
+		}
+	}
+
+	public List<PacketMessage> PopAll()
+	{
+		List<PacketMessage> list = new List<PacketMessage>();
+
+		lock (_lock)
+		{
+			while (_packetQueue.Count > 0)
+				list.Add(_packetQueue.Dequeue());
+		}
+
+		return list;
+	}
+}
+{% endhighlight %}
+
+* Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_ChatHandler(PacketSession session, IMessage packet)
+	{
+		S_Chat chatPacket = packet as S_Chat;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log(chatPacket.Context);
+	}
+
+	public static void S_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		S_EnterGame enterGamePacket = packet as S_EnterGame;
+		ServerSession serverSession = session as ServerSession;
+	}
+}
+{% endhighlight %}
+
+* Libs
+  - Create `Assets\Libs` folder
+  - Copy `Server\Server\bin\Release\netcoreapp3.1\Google.Protobuf.dll` and `ServerCore.dll`, Paste on `Libs`
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/44.jpg"><img src="/assets/img/posts/unity_mmogame/44.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/45.jpg"><img src="/assets/img/posts/unity_mmogame/45.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+  - Download `System.Buffers` and `System.Runtime.CompilerServices.Unsafe` in Nuget Package Manager
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/46.jpg"><img src="/assets/img/posts/unity_mmogame/46.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/47.jpg"><img src="/assets/img/posts/unity_mmogame/47.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+  - Find each `.dll` files from `C:\Users\leehu\.nuget\packages` and copy on `Libs`
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/48.jpg"><img src="/assets/img/posts/unity_mmogame/48.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/49.jpg"><img src="/assets/img/posts/unity_mmogame/49.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/50.jpg"><img src="/assets/img/posts/unity_mmogame/50.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/39.jpg"><img src="/assets/img/posts/unity_mmogame/39.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/40.jpg"><img src="/assets/img/posts/unity_mmogame/40.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
