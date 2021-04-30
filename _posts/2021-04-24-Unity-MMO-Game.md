@@ -2802,7 +2802,8 @@ class PacketManager
 	Dictionary<ushort, Action<PacketSession, IMessage>> _handler = new Dictionary<ushort, Action<PacketSession, IMessage>>();
 		
 	public void Register()
-	{{0}
+    {
+	    {0}
 	}
 
 	public void OnRecvPacket(PacketSession session, ArraySegment<byte> buffer)
