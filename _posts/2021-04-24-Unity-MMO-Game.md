@@ -3160,4 +3160,142 @@ class PacketHandler
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+## MultiPlay Environment
+
+## Packet Send
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+class ClientSession : PacketSession
+{
+    public int SessionId { get; set; }
+
+    public void Send(IMessage packet)
+    {
+        // Find Packet Id By Packet Name
+        string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+        MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+
+        ushort size = (ushort)packet.CalculateSize();
+        byte[] sendBuffer = new byte[size + 4];
+        Array.Copy(BitConverter.GetBytes(size + 4), 0, sendBuffer, 0, sizeof(ushort));
+        Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+        Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
+        Send(new ArraySegment<byte>(sendBuffer));
+    }
+
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        // PROTO Test
+        S_Chat chat = new S_Chat()
+        {
+            Context = "Hello!"
+        };
+        Send(chat);
+    }
+    ...
+}
+{% endhighlight %}
+
+## Security
+* Delete `ServerCore.dll` from `Libs`
+* Copy `Session.cs`, `RecvBuffer.cs` and `Connector.cs`, Paste them to `Assets\Scripts\ServerCore`
+* Change `Console.WriteLine` to `Debug.Log`
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/55.jpg"><img src="/assets/img/posts/unity_mmogame/55.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/56.jpg"><img src="/assets/img/posts/unity_mmogame/56.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+## Build
+* [Fild]-[Build Settings]
+* Remove Scenes without `Scenes/Game` and Click Build on `Assets\Builds\WinXX\TestBuild`
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/51.jpg"><img src="/assets/img/posts/unity_mmogame/51.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/52.jpg"><img src="/assets/img/posts/unity_mmogame/52.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+## Multiplay
+
+* Scripts\Scenes\GameScene.cs
+{% highlight C# %}
+protected override void Init()
+{
+    base.Init();
+
+    SceneType = Define.Scene.Game;
+
+    Managers.Map.LoadMap(1);
+
+    // Window Size
+    Screen.SetResolution(640, 480, false);
+}
+{% endhighlight %}
+
+* Assets\Editor\MultiplayersBuildandRun.cs
+{% highlight C# %}
+public class MultiplayersBuildAndRun
+{
+    [MenuItem("Tools/Run Multiplayer/2 Players")]
+    static void PerformWin64Build2()
+    {
+        PerformWin64Build(2);
+    }
+
+    [MenuItem("Tools/Run Multiplayer/3 Players")]
+    static void PerformWin64Build3()
+    {
+        PerformWin64Build(3);
+    }
+
+    [MenuItem("Tools/Run Multiplayer/4 Players")]
+    static void PerformWin64Build4()
+    {
+        PerformWin64Build(4);
+    }
+
+    static void PerformWin64Build(int playerCount)
+    {
+        EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows);
+
+        for(int i= 1; i<= playerCount; i++)
+        {
+            BuildPipeline.BuildPlayer(GetScenePaths(), "Builds/Win64/" + GetProjectName() + i.ToString() + "/" + GetProjectName() + i.ToString() + ".exe", BuildTarget.StandaloneWindows64, BuildOptions.AutoRunPlayer);
+        }
+    }
+
+    static string GetProjectName()
+    {
+        string[] s = Application.dataPath.Split('/');
+        return s[s.Length - 2];
+    }
+
+    static string[] GetScenePaths()
+    {
+        string[] scenes = new string[EditorBuildSettings.scenes.Length];
+
+        for (int i = 0; i < scenes.Length; i++)
+        {
+            scenes[i] = EditorBuildSettings.scenes[i].path;
+        }
+
+        return scenes;
+    }
+}
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/53.jpg"><img src="/assets/img/posts/unity_mmogame/53.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/54.jpg"><img src="/assets/img/posts/unity_mmogame/54.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
