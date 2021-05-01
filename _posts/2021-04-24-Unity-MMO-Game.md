@@ -3296,6 +3296,353 @@ public class MultiplayersBuildAndRun
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
 
+## Enter Game
 
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public class ClientSession : PacketSession
+{
+    public Player MyPlayer { get; set; }
+    public int SessionId { get; set; }
+
+    public void Send(IMessage packet)
+    {
+        string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+        MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+
+        ushort size = (ushort)packet.CalculateSize();
+        byte[] sendBuffer = new byte[size + 4];
+        Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+        Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+        Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
+        Send(new ArraySegment<byte>(sendBuffer));
+    }
+
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        // PROTO Test
+        MyPlayer = PlayerManager.Instance.Add();
+        {
+            MyPlayer.Info.Name = $"Player_{MyPlayer.Info.PlayerId}";
+            MyPlayer.Info.PosX = 0;
+            MyPlayer.Info.PosY = 0;
+            MyPlayer.Session = this;
+        }
+
+        RoomManager.Instance.Find(1).EnterGame(MyPlayer);
+    }
+    ...
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        RoomManager.Instance.Find(1).LeaveGame(MyPlayer.Info.PlayerId);
+        
+        SessionManager.Instance.Remove(this);
+
+        Console.WriteLine($"OnDisconnected : {endPoint}");
+    }
+    ...
+}
+{% endhighlight %}
+
+* Protocol.proto
+{% highlight C# %}
+...
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+}
+
+message S_EnterGame {
+  PlayerInfo player  = 1;
+}
+
+message S_LeaveGame{
+}
+
+message S_Spawn{
+  repeated PlayerInfo players = 1;
+}
+
+message S_Despawn{
+  repeated int32 playerIds = 1;
+}
+
+message C_Move{
+  int32 posX = 1;
+  int32 posY = 2;
+}
+
+message S_Move{
+  int32 playerId = 1;
+  int32 posX = 2;
+  int32 posY = 3;
+}
+
+message PlayerInfo{
+  int32 playerId = 1;
+  string name = 2;
+  int32 posX = 3;
+  int32 posY = 4;
+}
+{% endhighlight %}
+
+  - execute `GenProto.bat`
+
+* Server\Game\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    object _lock = new object();
+    public int RoomId { get; set; }
+
+    List<Player> _players = new List<Player>();
+
+    public void EnterGame(Player newPlayer)
+    {
+        if (newPlayer == null)
+            return;
+
+        lock (_lock)
+        {
+            _players.Add(newPlayer);
+            newPlayer.Room = this;
+
+            // send information to me
+            {
+                S_EnterGame enterPacket = new S_EnterGame();
+                enterPacket.Player = newPlayer.Info;
+                newPlayer.Session.Send(enterPacket);
+
+                S_Spawn spawnPacket = new S_Spawn();
+                foreach(Player p in _players)
+                {
+                    if (newPlayer != p)
+                        spawnPacket.Players.Add(p.Info);
+                }
+                newPlayer.Session.Send(spawnPacket);
+            }
+
+            // send information to others
+            {
+                S_Spawn spawnPacket = new S_Spawn();
+                spawnPacket.Players.Add(newPlayer.Info);
+                foreach(Player p in _players)
+                {
+                    if (newPlayer != p)
+                        p.Session.Send(spawnPacket);
+                }
+            }
+        }
+    }
+
+    public void LeaveGame(int playerId)
+    {
+        lock (_lock)
+        {
+            Player player = _players.Find(p => p.Info.PlayerId == playerId);
+            if (player == null)
+                return;
+
+            _players.Remove(player);
+            player.Room = null;
+
+            // send information to me
+            {
+                S_LeaveGame leavePacket = new S_LeaveGame();
+                player.Session.Send(leavePacket);
+            }
+
+            // send information to others
+            {
+                S_Despawn despawnPacket = new S_Despawn();
+                despawnPacket.PlayerIds.Add(player.Info.PlayerId);
+                foreach(Player p in _players)
+                {
+                    if(player != p)
+                        p.Session.Send(despawnPacket);
+                }
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\RoomManager.cs
+{% highlight C# %}
+public class RoomManager
+{
+    public static RoomManager Instance { get; } = new RoomManager();
+
+    object _lock = new object();
+    Dictionary<int, GameRoom> _rooms = new Dictionary<int, GameRoom>();
+    int _roomId = 1;
+
+    public GameRoom Add()
+    {
+        GameRoom gameRoom = new GameRoom();
+
+        lock (_lock)
+        {
+            gameRoom.RoomId = _roomId;
+            _rooms.Add(_roomId, gameRoom);
+            _roomId++;
+        }
+
+        return gameRoom;
+    }
+
+    public bool Remove(int roomId)
+    {
+        lock (_lock)
+        {
+            return _rooms.Remove(roomId);
+        }
+    }
+
+    public GameRoom Find(int roomId)
+    {
+        lock (_lock)
+        {
+            GameRoom room = null;
+            if (_rooms.TryGetValue(roomId, out room))
+                return room;
+
+            return null;
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Player.cs
+{% highlight C# %}
+public class Player
+{
+    public PlayerInfo Info { get; set; } = new PlayerInfo();
+    public GameRoom Room { get; set; }
+    public ClientSession Session { get; set; }
+}
+{% endhighlight %}
+
+* Server\Game\PlayerManager.cs
+{% highlight C# %}
+public class PlayerManager
+{
+    public static PlayerManager Instance { get; } = new PlayerManager();
+
+    object _lock = new object();
+    Dictionary<int, Player> _players = new Dictionary<int, Player>();
+    int _playerId = 1; // TODO
+
+    public Player Add()
+    {
+        Player player = new Player();
+
+        lock (_lock)
+        {
+            player.Info.PlayerId = _playerId;
+            _players.Add(_playerId, player);
+            _playerId++;
+        }
+
+        return player;
+    }
+
+    public bool Remove(int playerId)
+    {
+        lock (_lock)
+        {
+            return _players.Remove(playerId);
+        }
+    }
+
+    public Player Find(int playerId)
+    {
+        lock (_lock)
+        {
+            Player player = null;
+            if (_players.TryGetValue(playerId, out player))
+                return player;
+
+            return null;
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+
+    static void Main(string[] args)
+    {
+        RoomManager.Instance.Add();
+       ...
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		S_EnterGame enterGamePacket = packet as S_EnterGame;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_EnterGameHandler");
+		Debug.Log(enterGamePacket.Player);
+	}
+
+	public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
+	{
+		S_LeaveGame leaveGamePacket = packet as S_LeaveGame;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_LeaveGameHandler");
+;	}
+
+	public static void S_SpawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Spawn spawnPacket = packet as S_Spawn;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_SpawnHandler");
+		Debug.Log(spawnPacket.Players);
+	}
+
+	public static void S_DespawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Despawn despawnePacket = packet as S_Despawn;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_DespawnHandler");
+	}
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_MoveHandler");
+	}
+}
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmogame/57.jpg"><img src="/assets/img/posts/unity_mmogame/57.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/58.jpg"><img src="/assets/img/posts/unity_mmogame/58.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/59.jpg"><img src="/assets/img/posts/unity_mmogame/59.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
