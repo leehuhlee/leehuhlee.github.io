@@ -3638,11 +3638,417 @@ class PacketHandler
 }
 {% endhighlight %}
 
+### Test
+
 <figure class="third">
   <a href="/assets/img/posts/unity_mmogame/57.jpg"><img src="/assets/img/posts/unity_mmogame/57.jpg"></a>
   <a href="/assets/img/posts/unity_mmogame/58.jpg"><img src="/assets/img/posts/unity_mmogame/58.jpg"></a>
   <a href="/assets/img/posts/unity_mmogame/59.jpg"><img src="/assets/img/posts/unity_mmogame/59.jpg"></a>
 	<figcaption>Unity MMO Game</figcaption>
 </figure>
+
+## Separate MyPlayer
+
+* Scripts\Controllers\MyPlayerController.cs
+  - to get keyboard input from only MyPlayer
+  - copy and paste `Player` Prefab and change name to  `MyPlayer`
+  - Add `MyPlayerController` Componenet on `MyPlayer` Prefab
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmogame/61.jpg"><img src="/assets/img/posts/unity_mmogame/61.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/60.jpg"><img src="/assets/img/posts/unity_mmogame/60.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	protected override void Init()
+	{
+		base.Init();
+	}
+
+	protected override void UpdateController()
+	{
+		switch (State)
+		{
+			case CreatureState.Idle:
+				GetDirInput();
+				break;
+			case CreatureState.Moving:
+				GetDirInput();
+				break;
+		}
+
+		base.UpdateController();
+	}
+
+	void LateUpdate()
+	{
+		Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
+	}
+
+	void GetDirInput()
+	{
+		if (Input.GetKey(KeyCode.W))
+		{
+			Dir = MoveDir.Up;
+		}
+		else if (Input.GetKey(KeyCode.S))
+		{
+			Dir = MoveDir.Down;
+		}
+		else if (Input.GetKey(KeyCode.A))
+		{
+			Dir = MoveDir.Left;
+		}
+		else if (Input.GetKey(KeyCode.D))
+		{
+			Dir = MoveDir.Right;
+		}
+		else
+		{
+			Dir = MoveDir.None;
+		}
+	}
+
+	protected override void UpdateIdle()
+	{
+		if (Dir != MoveDir.None)
+		{
+			State = CreatureState.Moving;
+			return;
+		}
+
+		if (Input.GetKey(KeyCode.Space))
+		{
+			State = CreatureState.Skill;
+			//_coSkill = StartCoroutine("CoStartPunch");
+			_coSkill = StartCoroutine("CoStartShootArrow");
+		}
+	}
+}
+{% endhighlight %}
+
+* Scripts\Controllers\PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+	protected Coroutine _coSkill;
+	bool _rangedSkill = false;
+
+	protected override void Init()
+	{
+		base.Init();
+	}
+
+	protected override void UpdateAnimation()
+	{
+		if (_state == CreatureState.Idle)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play("IDLE_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("IDLE_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (_state == CreatureState.Moving)
+		{
+			switch (_dir)
+			{
+				case MoveDir.Up:
+					_animator.Play("WALK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("WALK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (_state == CreatureState.Skill)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_BACK" : "ATTACK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_FRONT" : "ATTACK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else
+		{
+
+		}
+	}
+
+	protected override void UpdateController()
+	{
+		base.UpdateController();
+	}
+
+	protected override void UpdateIdle()
+	{
+		if (Dir != MoveDir.None)
+		{
+			State = CreatureState.Moving;
+			return;
+		}
+	}
+
+	IEnumerator CoStartPunch()
+	{
+		GameObject go = Managers.Object.Find(GetFrontCellPos());
+		if (go != null)
+		{
+			CreatureController cc = go.GetComponent<CreatureController>();
+			if (cc != null)
+				cc.OnDamaged();
+		}
+
+		_rangedSkill = false;
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Idle;
+		_coSkill = null;
+	}
+
+	IEnumerator CoStartShootArrow()
+	{
+		GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+		ArrowController ac = go.GetComponent<ArrowController>();
+		ac.Dir = _lastDir;
+		ac.CellPos = CellPos;
+
+		_rangedSkill = true;
+		yield return new WaitForSeconds(0.3f);
+		State = CreatureState.Idle;
+		_coSkill = null;
+	}
+
+	public override void OnDamaged()
+	{
+		Debug.Log("Player HIT !");
+	}
+}
+{% endhighlight %}
+
+* Scripts\Managers\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	public MyPlayerController MyPlayer { get; set; }
+	Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+	//List<GameObject> _objects = new List<GameObject>();
+
+	public void Add(PlayerInfo info, bool myPlayer = false)
+    {
+        if (myPlayer)
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			MyPlayer = go.GetComponent<MyPlayerController>();
+			MyPlayer.Id = info.PlayerId;
+			MyPlayer.CellPos = new Vector3Int(info.PosX, info.PosY, 0);
+        }
+        else
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/Player");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			PlayerController pc = go.GetComponent<PlayerController>();
+			pc.Id = info.PlayerId;
+			pc.CellPos = new Vector3Int(info.PosX, info.PosY, 0);
+		}
+	}
+
+	public void Add(int id, GameObject go)
+	{
+		_objects.Add(id,go);
+	}
+
+	public void Remove(int id)
+	{
+		_objects.Remove(id);
+	}
+
+	public void RemoveMyPlayer()
+    {
+		if (MyPlayer == null)
+			return;
+
+		Remove(MyPlayer.Id);
+		MyPlayer = null;
+    }
+
+	public GameObject Find(Vector3Int cellPos)
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			CreatureController cc = obj.GetComponent<CreatureController>();
+			if (cc == null)
+				continue;
+
+			if (cc.CellPos == cellPos)
+				return obj;
+		}
+
+		return null;
+	}
+
+	public GameObject Find(Func<GameObject, bool> condition)
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			if (condition.Invoke(obj))
+				return obj;
+		}
+
+		return null;
+	}
+    ...
+}
+{% endhighlight %}
+
+* Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		S_EnterGame enterGamePacket = packet as S_EnterGame;
+		Managers.Object.Add(enterGamePacket.Player, myPlayer: true);
+	}
+
+	public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
+	{
+		S_LeaveGame leaveGamePacket = packet as S_LeaveGame;
+		Managers.Object.RemoveMyPlayer();
+;	}
+
+	public static void S_SpawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Spawn spawnPacket = packet as S_Spawn;
+
+		foreach(PlayerInfo player in spawnPacket.Players)
+        {
+			Managers.Object.Add(player, myPlayer: false);
+        }
+	}
+
+	public static void S_DespawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Despawn despawnePacket = packet as S_Despawn;
+
+		foreach (int id in despawnePacket.PlayerIds)
+		{
+			Managers.Object.Remove(id);
+		}
+		Debug.Log("S_DespawnHandler");
+	}
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+		ServerSession serverSession = session as ServerSession;
+
+		Debug.Log("S_MoveHandler");
+	}
+}
+{% endhighlight %}
+
+* Server\PacketGenerator\PacketFormat.cs
+{% highlight C# %}
+class PacketFormat
+{
+    // {0} Packet Assign
+    public static string managerFormat =
+@"using Google.Protobuf;
+...
+
+class PacketManager
+{
+	...
+	Dictionary<ushort, Action<PacketSession, ArraySegment<byte>, ushort>> _onRecv = new Dictionary<ushort, Action<PacketSession, ArraySegment<byte>, ushort>>();
+	Dictionary<ushort, Action<PacketSession, IMessage>> _handler = new Dictionary<ushort, Action<PacketSession, IMessage>>();
+		
+	public Action<PacketSession, IMessage, ushort> CustomHandler { get; set; }
+	...
+
+	void MakePacket<T>(PacketSession session, ArraySegment<byte> buffer, ushort id) where T : IMessage, new()
+	{
+		T pkt = new T();
+		pkt.MergeFrom(buffer.Array, buffer.Offset + 4, buffer.Count - 4);
+
+		if(CustomHandler != null)
+		{
+			CustomHandler.Invoke(session, pkt, id);
+		}
+		else
+		{
+			Action<PacketSession, IMessage> action = null;
+			if (_handler.TryGetValue(id, out action))
+				action.Invoke(session, pkt);
+		}
+	}
+    ...
+}";
+...
+}
+{% endhighlight %}
+
+* Scripts\Packet\ServerSession.cs
+{% highlight C# %}
+public class ServerSession : PacketSession
+{
+	public override void OnConnected(EndPoint endPoint)
+	{
+		Debug.Log($"OnConnected : {endPoint}");
+
+		PacketManager.Instance.CustomHandler = (s, m, i) => { PacketQueue.Instance.Push(i, m); };
+	}
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-MyPlayer.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
