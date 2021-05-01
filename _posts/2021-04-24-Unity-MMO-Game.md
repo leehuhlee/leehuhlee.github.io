@@ -4050,5 +4050,174 @@ public class ServerSession : PacketSession
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-MyPlayer.mp4" frameborder="0"> </iframe>
 
+## Move: Server
+  - Policy: First Move, then Send
+
+* Protocol.proto
+{% highlight C# %}
+...
+
+enum CreatureState{
+  IDLE = 0;
+  MOVING = 1;
+  SKILL = 2;
+  DEAD = 3;
+}
+
+enum MoveDir{
+  NONE = 0;
+  UP = 1;
+  DOWN = 2;
+  LEFT = 3;
+  RIGHT = 4;
+}
+...
+
+message S_Spawn{
+  repeated PlayerInfo players = 1;
+}
+
+message S_Despawn{
+  repeated int32 playerIds = 1;
+}
+
+message C_Move{
+  PositionInfo posInfo = 1;
+}
+
+message S_Move{
+  int32 playerId = 1;
+  PositionInfo posInfo = 2;
+}
+
+message PlayerInfo{
+  int32 playerId = 1;
+  string name = 2;
+  PositionInfo posInfo = 3;
+}
+message PositionInfo{
+  CreatureState  state= 1;
+  MoveDir moveDir = 2;
+  int32 posX = 3;
+  int32 posY = 4;
+}
+{% endhighlight %}
+
+* Session\ClientSession.cs
+{% highlight C# %}
+...
+public class ClientSession : PacketSession
+{
+    ...
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        // PROTO Test
+        MyPlayer = PlayerManager.Instance.Add();
+        {
+            MyPlayer.Info.Name = $"Player_{MyPlayer.Info.PlayerId}";
+            MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+            MyPlayer.Info.PosInfo.MoveDir = MoveDir.None;
+            MyPlayer.Info.PosInfo.PosX = 0;
+            MyPlayer.Info.PosInfo.PosY = 0;
+            MyPlayer.Session = this;
+        }
+
+        RoomManager.Instance.Find(1).EnterGame(MyPlayer);
+    }
+    ...
+}
+{% endhighlight %}
+
+* Game\Player.cs
+{% highlight C# %}
+public class Player
+{
+    public PlayerInfo Info { get; set; } = new PlayerInfo() { PosInfo = new PositionInfo() };
+    public GameRoom Room { get; set; }
+    public ClientSession Session { get; set; }
+}
+{% endhighlight %}
+
+
+* Packet\PacketHandler.cs
+{% highlight C# %}
+public static void C_MoveHandler(PacketSession session, IMessage packet)
+{
+    C_Move movePacket = packet as C_Move;
+    ClientSession clientSession = session as ClientSession;
+
+    Console.WriteLine($"C_Move({movePacket.PosInfo.PosX}, {movePacket.PosInfo.PosY})");
+
+    if (clientSession.MyPlayer == null)
+        return;
+    if (clientSession.MyPlayer.Room == null)
+        return;
+
+    // TODO: Authorization
+    
+    // First Move Position from Server
+    PlayerInfo info = clientSession.MyPlayer.Info;
+    info.PosInfo = movePacket.PosInfo;
+
+    // Send Position Information to Others
+    S_Move resMovePacket = new S_Move();
+    resMovePacket.PlayerId = clientSession.MyPlayer.Info.PlayerId;
+    resMovePacket.PosInfo = movePacket.PosInfo;
+
+    clientSession.MyPlayer.Room.Broadcast(resMovePacket);
+}
+{% endhighlight %}
+
+* Game\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    public void Broadcast(IMessage packet)
+    {
+        lock (_lock)
+        {
+            foreach(Player p in _players)
+            {
+                p.Session.Send(packet);
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+* 
+{% highlight C# %}
+{% endhighlight %}
+
+
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
