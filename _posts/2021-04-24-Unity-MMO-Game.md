@@ -1008,7 +1008,7 @@ public class Managers : MonoBehaviour
 {% endhighlight %}
 
 
-* Scripts\Managers\ObjectManager.cs
+* Scripts\Managers\Contents\ObjectManager.cs
   - manage collision with objects
 
 {% highlight C# %}
@@ -3866,7 +3866,7 @@ public class PlayerController : CreatureController
 }
 {% endhighlight %}
 
-* Scripts\Managers\ObjectManager.cs
+* Scripts\Managers\Contents\ObjectManager.cs
 {% highlight C# %}
 public class ObjectManager
 {
@@ -4054,9 +4054,8 @@ public class ServerSession : PacketSession
   - Policy: First Move, then Send
 
 * Protocol.proto
-{% highlight C# %}
+{% highlight proto %}
 ...
-
 enum CreatureState{
   IDLE = 0;
   MOVING = 1;
@@ -4095,6 +4094,7 @@ message PlayerInfo{
   string name = 2;
   PositionInfo posInfo = 3;
 }
+
 message PositionInfo{
   CreatureState  state= 1;
   MoveDir moveDir = 2;
@@ -4188,36 +4188,665 @@ public class GameRoom
 }
 {% endhighlight %}
 
-* 
+## Move: Client
+
+* Controllers\CreatureController.cs
 {% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+	public int Id { get; set; }
+
+	[SerializeField]
+	public float _speed = 5.0f;
+
+	PositionInfo _positionInfo = new PositionInfo();
+	public PositionInfo PosInfo
+    {
+        get { return _positionInfo; }
+        set 
+		{ 
+			if (_positionInfo.Equals(value))
+				return;
+
+			_positionInfo = value;
+			UpdateAnimation();
+		}
+    }
+
+	public Vector3Int CellPos 
+	{
+		get 
+		{
+			return new Vector3Int(PosInfo.PosX, PosInfo.PosY, 0);
+		}
+
+        set
+        {
+			PosInfo.PosX = value.x;
+			PosInfo.PosY = value.y;
+        }
+	}
+
+	protected Animator _animator;
+	protected SpriteRenderer _sprite;
+
+	public virtual CreatureState State
+	{
+		get { return PosInfo.State; }
+		set
+		{
+			if (PosInfo.State == value)
+				return;
+
+			PosInfo.State = value;
+			UpdateAnimation();
+		}
+	}
+
+	protected MoveDir _lastDir = MoveDir.Down;
+
+	public MoveDir Dir
+	{
+		get { return PosInfo.MoveDir; }
+		set
+		{
+			if (PosInfo.MoveDir == value)
+				return;
+
+			PosInfo.MoveDir = value;
+			if (value != MoveDir.None)
+				_lastDir = value;
+
+			UpdateAnimation();
+		}
+	}
+    ...
+
+	protected virtual void UpdateAnimation()
+	{
+		if (State == CreatureState.Idle)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play("IDLE_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("IDLE_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (State == CreatureState.Moving)
+		{
+			switch (Dir)
+			{
+				case MoveDir.Up:
+					_animator.Play("WALK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("WALK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (State == CreatureState.Skill)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play("ATTACK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("ATTACK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("ATTACK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("ATTACK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else
+		{
+
+		}
+	}
+	...
+
+	protected virtual void UpdateController()
+	{
+		switch (State)
+		{
+			case CreatureState.Idle:
+				UpdateIdle();
+				break;
+			case CreatureState.Moving:
+				UpdateMoving();
+				break;
+			case CreatureState.Skill:
+				UpdateSkill();
+				break;
+			case CreatureState.Dead:
+				UpdateDead();
+				break;
+		}
+	}
+
+	protected virtual void UpdateIdle()	{ }
+
+	protected virtual void UpdateMoving()
+	{
+		Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		Vector3 moveDir = destPos - transform.position;
+
+		float dist = moveDir.magnitude;
+		if (dist < _speed * Time.deltaTime)
+		{
+			transform.position = destPos;
+			MoveToNextPos();
+		}
+		else
+		{
+			transform.position += moveDir.normalized * _speed * Time.deltaTime;
+			State = CreatureState.Moving;
+		}
+	}
+
+	protected virtual void MoveToNextPos()
+	{
+		if (Dir == MoveDir.None)
+		{
+			State = CreatureState.Idle;
+			return;
+		}
+
+		Vector3Int destPos = CellPos;
+
+		switch (Dir)
+		{
+			case MoveDir.Up:
+				destPos += Vector3Int.up;
+				break;
+			case MoveDir.Down:
+				destPos += Vector3Int.down;
+				break;
+			case MoveDir.Left:
+				destPos += Vector3Int.left;
+				break;
+			case MoveDir.Right:
+				destPos += Vector3Int.right;
+				break;
+		}
+		...
+	}
+    ...
+}
 {% endhighlight %}
 
 
-* 
+* Utils\Define.cs
 {% highlight C# %}
+public class Define
+{
+    // Remove CreatureState and MoveDir
+    // Because it is in Protobuf
+    public enum Scene
+    {
+        Unknown,
+        Login,
+        Lobby,
+        Game,
+    }
+    ...
+}
 {% endhighlight %}
 
 
-* 
+* Managers\Contents\ObjectManager.cs
 {% highlight C# %}
+public class ObjectManager
+{
+	...
+	public void Add(PlayerInfo info, bool myPlayer = false)
+    {
+        if (myPlayer)
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			MyPlayer = go.GetComponent<MyPlayerController>();
+			MyPlayer.Id = info.PlayerId;
+			MyPlayer.PosInfo = info.PosInfo;
+        }
+        else
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/Player");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			PlayerController pc = go.GetComponent<PlayerController>();
+			pc.Id = info.PlayerId;
+			pc.PosInfo = info.PosInfo;
+		}
+	}
+    ...
+
+    public GameObject FindById(int id)
+    {
+		GameObject go = null;
+		_objects.TryGetValue(id, out go);
+		return go;
+    }
+    ...
+}
 {% endhighlight %}
 
 
-* 
+* Controllers\MonsterController.cs
 {% highlight C# %}
+public class MonsterController : CreatureController
+{
+	...
+	public override CreatureState State
+	{
+		get { return PosInfo.State; }
+		set
+		{
+			if (PosInfo.State == value)
+				return;
+
+			base.State = value;
+
+			if (_coPatrol != null)
+			{
+				StopCoroutine(_coPatrol);
+				_coPatrol = null;
+			}
+
+			if (_coSearch != null)
+			{
+				StopCoroutine(_coSearch);
+				_coSearch = null;
+			}
+		}
+	}
+
+	protected override void Init()
+	{
+		base.Init();
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.None;
+
+		_speed = 3.0f;
+		_rangedSkill = (Random.Range(0, 2) == 0 ? true : false);
+
+		if (_rangedSkill)
+			_skillRange = 10.0f;
+		else
+			_skillRange = 1.0f;
+	}
+	...
+
+	protected override void MoveToNextPos()
+	{
+		Vector3Int destPos = _destCellPos;
+		if (_target != null)
+		{
+			destPos = _target.GetComponent<CreatureController>().CellPos;
+
+			Vector3Int dir = destPos - CellPos;
+			if (dir.magnitude <= _skillRange && (dir.x == 0 || dir.y == 0))
+			{
+				Dir = GetDirFromVec(dir);
+				State = CreatureState.Skill;
+
+				if (_rangedSkill)
+					_coSkill = StartCoroutine("CoStartShootArrow");
+				else
+					_coSkill = StartCoroutine("CoStartPunch");
+
+				return;
+			}
+		}
+
+		List<Vector3Int> path = Managers.Map.FindPath(CellPos, destPos, ignoreDestCollision: true);
+		if (path.Count < 2 || (_target != null && path.Count > 20))
+		{
+			_target = null;
+			State = CreatureState.Idle;
+			return;
+		}
+
+		Vector3Int nextPos = path[1];
+		Vector3Int moveCellDir = nextPos - CellPos;
+
+		Dir = GetDirFromVec(moveCellDir);
+
+		if (Managers.Map.CanGo(nextPos) && Managers.Object.Find(nextPos) == null)
+		{
+			CellPos = nextPos;
+		}
+		else
+		{
+			State = CreatureState.Idle;
+		}
+	}
+    ...
+
+	IEnumerator CoPatrol()
+	{
+		int waitSeconds = Random.Range(1, 4);
+		yield return new WaitForSeconds(waitSeconds);
+
+		for (int i = 0; i < 10; i++)
+		{
+			int xRange = Random.Range(-5, 6);
+			int yRange = Random.Range(-5, 6);
+			Vector3Int randPos = CellPos + new Vector3Int(xRange, yRange, 0);
+
+			if (Managers.Map.CanGo(randPos) && Managers.Object.Find(randPos) == null)
+			{
+				_destCellPos = randPos;
+				State = CreatureState.Moving;
+				yield break;
+			}
+		}
+
+		State = CreatureState.Idle;
+	}
+	...
+
+	IEnumerator CoStartPunch()
+	{
+		GameObject go = Managers.Object.Find(GetFrontCellPos());
+		if (go != null)
+		{
+			CreatureController cc = go.GetComponent<CreatureController>();
+			if (cc != null)
+				cc.OnDamaged();
+		}
+
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+
+	IEnumerator CoStartShootArrow()
+	{
+		GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+		ArrowController ac = go.GetComponent<ArrowController>();
+		ac.Dir = _lastDir;
+		ac.CellPos = CellPos;
+
+		yield return new WaitForSeconds(0.3f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+}
 {% endhighlight %}
 
 
-* 
+* Controllers\PlayerController.cs
 {% highlight C# %}
+public class PlayerController : CreatureController
+{
+	...
+	protected override void UpdateAnimation()
+	{
+		if (State == CreatureState.Idle)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play("IDLE_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("IDLE_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("IDLE_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (State == CreatureState.Moving)
+		{
+			switch (Dir)
+			{
+				case MoveDir.Up:
+					_animator.Play("WALK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play("WALK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play("WALK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else if (State == CreatureState.Skill)
+		{
+			switch (_lastDir)
+			{
+				case MoveDir.Up:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_BACK" : "ATTACK_BACK");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Down:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_FRONT" : "ATTACK_FRONT");
+					_sprite.flipX = false;
+					break;
+				case MoveDir.Left:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+					_sprite.flipX = true;
+					break;
+				case MoveDir.Right:
+					_animator.Play(_rangedSkill ? "ATTACK_WEAPON_RIGHT" : "ATTACK_RIGHT");
+					_sprite.flipX = false;
+					break;
+			}
+		}
+		else
+		{
+
+		}
+	}
+    ...
+
+	protected override void UpdateIdle()
+	{
+		if (Dir != MoveDir.None)
+		{
+			State = CreatureState.Moving;
+			return;
+		}
+	}
+
+	IEnumerator CoStartPunch()
+	{
+		GameObject go = Managers.Object.Find(GetFrontCellPos());
+		if (go != null)
+		{
+			CreatureController cc = go.GetComponent<CreatureController>();
+			if (cc != null)
+				cc.OnDamaged();
+		}
+
+		_rangedSkill = false;
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Idle;
+		_coSkill = null;
+	}
+
+	IEnumerator CoStartShootArrow()
+	{
+		GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+		ArrowController ac = go.GetComponent<ArrowController>();
+		ac.Dir = _lastDir;
+		ac.CellPos = CellPos;
+
+		_rangedSkill = true;
+		yield return new WaitForSeconds(0.3f);
+		State = CreatureState.Idle;
+		_coSkill = null;
+	}
+    ...
+}
 {% endhighlight %}
 
-
-* 
+* Controllers\ArrowController.cs
 {% highlight C# %}
+public class ArrowController : CreatureController
+{
+    ...
+	protected override void MoveToNextPos()
+	{
+		Vector3Int destPos = CellPos;
+
+		switch (Dir)
+		{
+			case MoveDir.Up:
+				destPos += Vector3Int.up;
+				break;
+			case MoveDir.Down:
+				destPos += Vector3Int.down;
+				break;
+			case MoveDir.Left:
+				destPos += Vector3Int.left;
+				break;
+			case MoveDir.Right:
+				destPos += Vector3Int.right;
+				break;
+		}
+		...
+	}
+}
 {% endhighlight %}
 
+* Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	...
+    // When Position is changed, Send Position Information to Server
+	protected override void MoveToNextPos()
+	{
+		CreatureState prevState = State;
+		Vector3Int prevCellPos = CellPos;
 
+		base.MoveToNextPos();
 
+		if(prevState != State || CellPos != prevCellPos)
+        {
+			C_Move movePacket = new C_Move();
+			movePacket.PosInfo = PosInfo;
+			Managers.Network.Send(movePacket);
+        }
+	}
+}
+{% endhighlight %}
+
+* Packet\ServerSession.cs
+{% highlight C# %}
+public class ServerSession : PacketSession
+{
+    // Send to Server
+	public void Send(IMessage packet)
+	{
+		string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+		MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+
+		ushort size = (ushort)packet.CalculateSize();
+		byte[] sendBuffer = new byte[size + 4];
+		Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+		Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+		Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
+		Send(new ArraySegment<byte>(sendBuffer));
+	}
+	...
+}
+{% endhighlight %}
+
+* Managers\Contents\NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager
+{
+	ServerSession _session = new ServerSession();
+
+	public void Send(IMessage packet)
+	{
+		_session.Send(packet);
+	}
+    ...
+}
+{% endhighlight %}
+
+* Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    ...
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+		ServerSession serverSession = session as ServerSession;
+		
+		GameObject go = Managers.Object.FindById(movePacket.PlayerId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc == null)
+			return;
+
+		cc.PosInfo = movePacket.PosInfo;
+	}
+}
+
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
