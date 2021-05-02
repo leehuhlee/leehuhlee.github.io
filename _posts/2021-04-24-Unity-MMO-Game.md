@@ -4849,4 +4849,239 @@ class PacketHandler
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move.mp4" frameborder="0"> </iframe>
 
+## Move: Error Fix
+  - Because clients share players' direction, players' last direction doesn't match
+  - So My Player send his own direction to server and he shouldn't change others' direction
+
+* Controllers\CreatrueController.cs
+{% highlight C# %}
+using Google.Protobuf.Protocol;
+using System.Collections;
+using System.Collections.Generic;
+using System.Configuration;
+using UnityEngine;
+using static Define;
+
+public class CreatureController : MonoBehaviour
+{
+	...
+    // update flag for position, state or direction change
+	protected bool _updated = false;
+
+	PositionInfo _positionInfo = new PositionInfo();
+	public PositionInfo PosInfo
+    {
+        get { return _positionInfo; }
+        set 
+		{ 
+			if (_positionInfo.Equals(value))
+				return;
+
+            // for last direction
+			CellPos = new Vector3Int(value.PosX, value.PosY, 0);
+			State = value.State;
+			Dir = value.MoveDir;
+		}
+    }
+
+	public Vector3Int CellPos 
+	{
+		get 
+		{
+			return new Vector3Int(PosInfo.PosX, PosInfo.PosY, 0);
+		}
+
+        set
+        {
+			if (PosInfo.PosX == value.x && PosInfo.PosY == value.y)
+				return;
+
+			PosInfo.PosX = value.x;
+			PosInfo.PosY = value.y;
+			_updated = true;
+		}
+	}
+
+	protected Animator _animator;
+	protected SpriteRenderer _sprite;
+
+	public virtual CreatureState State
+	{
+		get { return PosInfo.State; }
+		set
+		{
+			if (PosInfo.State == value)
+				return;
+
+			PosInfo.State = value;
+			UpdateAnimation();
+			_updated = true;
+		}
+	}
+
+	protected MoveDir _lastDir = MoveDir.Down;
+
+	public MoveDir Dir
+	{
+		get { return PosInfo.MoveDir; }
+		set
+		{
+			if (PosInfo.MoveDir == value)
+				return;
+
+			PosInfo.MoveDir = value;
+			if (value != MoveDir.None)
+				_lastDir = value;
+
+			UpdateAnimation();
+			_updated = true;
+		}
+	}
+    ...
+
+	protected virtual void Init()
+	{
+		_animator = GetComponent<Animator>();
+		_sprite = GetComponent<SpriteRenderer>();
+		Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		transform.position = pos;
+
+        // Server sends initial value(0) so this information didn't send
+        // So because of initial value(0), you should put initial value
+		State = CreatureState.Idle;
+		Dir = MoveDir.None;
+		CellPos = new Vector3Int(0, 0, 0);
+		UpdateAnimation();
+	}
+    ...
+
+    // Remove Direction Update
+    // This can be only by MyPlayer
+	protected virtual void MoveToNextPos() { }
+    ...
+}
+{% endhighlight %}
+
+* Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	...
+
+	protected override void MoveToNextPos()
+	{
+		if (Dir == MoveDir.None)
+		{
+			State = CreatureState.Idle;
+			CheckUpdatedFlag();
+			return;
+		}
+
+		Vector3Int destPos = CellPos;
+
+		switch (Dir)
+		{
+			case MoveDir.Up:
+				destPos += Vector3Int.up;
+				break;
+			case MoveDir.Down:
+				destPos += Vector3Int.down;
+				break;
+			case MoveDir.Left:
+				destPos += Vector3Int.left;
+				break;
+			case MoveDir.Right:
+				destPos += Vector3Int.right;
+				break;
+		}
+
+		if (Managers.Map.CanGo(destPos))
+		{
+			if (Managers.Object.Find(destPos) == null)
+			{
+				CellPos = destPos;
+			}
+		}
+
+		CheckUpdatedFlag();
+	}
+
+	void CheckUpdatedFlag()
+    {
+        if (_updated)
+        {
+			C_Move movePacket = new C_Move();
+			movePacket.PosInfo = PosInfo;
+			Managers.Network.Send(movePacket);
+			_updated = false;
+		}
+    }
+}
+{% endhighlight %}
+
+* Managers\Contents\ObjectMAnager.cs
+{% highlight C# %}
+using Google.Protobuf.Protocol;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ObjectManager
+{
+	public MyPlayerController MyPlayer { get; set; }
+	Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+
+	public void Add(PlayerInfo info, bool myPlayer = false)
+    {
+        if (myPlayer)
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			MyPlayer = go.GetComponent<MyPlayerController>();
+			MyPlayer.Id = info.PlayerId;
+			MyPlayer.PosInfo = info.PosInfo;
+        }
+        else
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/Player");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			PlayerController pc = go.GetComponent<PlayerController>();
+			pc.Id = info.PlayerId;
+			pc.PosInfo = info.PosInfo;
+		}
+	}
+
+    // Remove Add Method
+
+    // for destroy player game object
+	public void Remove(int id)
+	{
+		GameObject go = FindById(id);
+		if (go == null)
+			return;
+		_objects.Remove(id);
+		Managers.Resource.Destroy(go);
+	}
+	...
+
+	public void Clear()
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			Managers.Resource.Destroy(obj);
+			_objects.Clear();
+		}
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move-ErrorFix.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
