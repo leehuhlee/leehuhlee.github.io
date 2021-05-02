@@ -5084,4 +5084,311 @@ public class ObjectManager
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move-ErrorFix.mp4" frameborder="0"> </iframe>
 
+## Skill: Server
+  - Policy: First Send, then do
+
+* Protocol.proto
+{% highlight proto %}
+syntax = "proto3";
+
+package Protocol;
+import "google/protobuf/timestamp.proto";
+option csharp_namespace = "Google.Protobuf.Protocol";
+
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+  C_SKILL = 6;
+  S_SKILL = 7;
+}
+...
+
+message C_Skill{
+  SkillInfo info = 1;
+}
+
+message S_Skill{
+  int32 playerId = 1;
+  SkillInfo info = 2;
+}
+...
+
+message SkillInfo{
+  int32 skillId = 1;
+}
+{% endhighlight %}
+
+* Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void C_MoveHandler(PacketSession session, IMessage packet)
+	{
+		C_Move movePacket = packet as C_Move;
+		ClientSession clientSession = session as ClientSession;
+
+        Console.WriteLine($"C_Move({movePacket.PosInfo.PosX}, {movePacket.PosInfo.PosY})");
+
+        // for multi thread
+		Player player = clientSession.MyPlayer;
+		if (clientSession.MyPlayer == null)
+			return;
+
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.HandleMove(player, movePacket);
+	}
+
+	public static void C_SkillHandler(PacketSession session, IMessage packet)
+    {
+		C_Skill skillPacket = packet as C_Skill;
+		ClientSession clientSession = session as ClientSession;
+
+		Player player = clientSession.MyPlayer;
+		if (player == null)
+			return;
+
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.HandleSkill(player, skillPacket);
+    }
+}
+{% endhighlight %}
+
+* Game\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    public void HandleMove(Player player, C_Move movePacket)
+    {
+        if (player == null)
+            return;
+
+        // if you want to change player information, you should use lock
+        // it blocks other threads to change player information
+        lock (_lock)
+        {
+            PlayerInfo info = player.Info;
+            info.PosInfo = movePacket.PosInfo;
+
+            S_Move resMovePacket = new S_Move();
+            resMovePacket.PlayerId = player.Info.PlayerId;
+            resMovePacket.PosInfo = movePacket.PosInfo;
+
+            Broadcast(resMovePacket);
+        }
+    }
+
+    public void HandleSkill(Player player, C_Skill skillPacket)
+    {
+        if (player == null)
+            return;
+
+        lock (_lock)
+        {
+            PlayerInfo info = player.Info;
+            if (info.PosInfo.State != CreatureState.Idle)
+                return;
+
+            // TODO: Check player can use skill
+
+            // Pass
+            info.PosInfo.State = CreatureState.Skill;
+
+            S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+            skill.PlayerId = info.PlayerId;
+            skill.Info.SkillId = 1;
+            Broadcast(skill);
+
+            // TODO: Demage
+
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+## Skill: Client
+
+* Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+		// ServerSession serverSession = session as ServerSession;
+        ...
+	}
+
+	public static void S_SkillHandler(PacketSession session, IMessage packet)
+	{
+		S_Skill skillPacket = packet as S_Skill;
+
+		GameObject go = Managers.Object.FindById(skillPacket.PlayerId);
+		if (go == null)
+			return;
+
+		PlayerController pc = go.GetComponent<PlayerController>();
+		if(pc != null)
+        {
+			pc.UseSkill(skillPacket.Info.SkillId);
+        }
+	}
+}
+{% endhighlight %}
+
+* Controller\PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+	...
+	public void UseSkill(int skillId)
+    {
+		if(skillId == 1)
+        {
+			_coSkill = StartCoroutine("CoStartPunch");
+        }
+    }
+
+	protected virtual void CheckUpdatedFlag() { }
+
+	IEnumerator CoStartPunch()
+	{
+        // remove damage detection part because damage detection is on only server
+
+		_rangedSkill = false;
+		State = CreatureState.Skill;
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Idle;
+		_coSkill = null;
+		CheckUpdatedFlag();
+	}
+	...
+}
+{% endhighlight %}
+
+* Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+    ...
+    // for continued skill
+    protected override void UpdateIdle()
+	{
+		if (Dir != MoveDir.None)
+		{
+			State = CreatureState.Moving;
+			return;
+		}
+
+		if (_coSkillCooltime == null && Input.GetKey(KeyCode.Space))
+		{
+			Debug.Log("Skill");
+
+			C_Skill skill = new C_Skill() { Info = new SkillInfo() };
+			skill.Info.SkillId = 1;
+			Managers.Network.Send(skill);
+
+			_coSkillCooltime = StartCoroutine("CoInputCooltime", 0.2f);
+		}
+	}
+
+	Coroutine _coSkillCooltime;
+	IEnumerator CoInputCooltime(float time)
+    {
+		yield return new WaitForSeconds(time);
+		_coSkillCooltime = null;
+
+	}
+	...
+	protected override void CheckUpdatedFlag()
+    {
+        if (_updated)
+        {
+			C_Move movePacket = new C_Move();
+			movePacket.PosInfo = PosInfo;
+			Managers.Network.Send(movePacket);
+			_updated = false;
+		}
+    }
+}
+{% endhighlight %}
+
+* Controller\CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+    ...
+    // for initial (0, 0, 0) position error
+    public void syncPos()
+    {
+		Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		transform.position = destPos;
+	}
+	...
+
+	protected virtual void Init()
+	{
+		_animator = GetComponent<Animator>();
+		_sprite = GetComponent<SpriteRenderer>();
+		Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		transform.position = pos;
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.None;
+		UpdateAnimation();
+	}
+    ...
+}
+{% endhighlight %}
+
+* Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	...
+	public void Add(PlayerInfo info, bool myPlayer = false)
+    {
+        if (myPlayer)
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			MyPlayer = go.GetComponent<MyPlayerController>();
+			MyPlayer.Id = info.PlayerId;
+			MyPlayer.PosInfo = info.PosInfo;
+			MyPlayer.syncPos();
+        }
+        else
+        {
+			GameObject go = Managers.Resource.Instantiate("Creature/Player");
+			go.name = info.Name;
+			_objects.Add(info.PlayerId, go);
+
+			PlayerController pc = go.GetComponent<PlayerController>();
+			pc.Id = info.PlayerId;
+			pc.PosInfo = info.PosInfo;
+			pc.syncPos();
+		}
+	}
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move-Skill.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
