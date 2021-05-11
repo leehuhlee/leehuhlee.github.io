@@ -4048,7 +4048,7 @@ public class ServerSession : PacketSession
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-MyPlayer.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity-mmogame/MMO-Game-MyPlayer.mp4" frameborder="0"> </iframe>
 
 ## Move: Server
   - Policy: First Move, then Send
@@ -5082,7 +5082,7 @@ public class ObjectManager
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move-ErrorFix.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity-mmogame/MMO-Game-Move-ErrorFix.mp4" frameborder="0"> </iframe>
 
 ## Skill: Server
   - Policy: First Send, then do
@@ -5389,6 +5389,8 @@ public class ObjectManager
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Skill.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity-mmogame/MMO-Game-Skill.mp4" frameborder="0"> </iframe>
+
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
