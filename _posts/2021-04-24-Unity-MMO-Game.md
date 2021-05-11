@@ -1735,7 +1735,7 @@ public class PlayerController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Effect.mp4" frameborder="0"> </iframe>
 
-## AI: Patrol
+## AI : Patrol
 * CreatureController.cs
 {% highlight C# %}
 public class CreatureController : MonoBehaviour
@@ -2492,7 +2492,7 @@ public class MonsterController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-SearchAI.mp4" frameborder="0"> </iframe>
 
-## AI: Skill
+## AI : Skill
 
 * CreatureController.cs
 {% highlight C# %}
@@ -4050,7 +4050,7 @@ public class ServerSession : PacketSession
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-MyPlayer.mp4" frameborder="0"> </iframe>
 
-## Move: Server
+## Move : Server
   - Policy: First Move, then Send
 
 * Protocol.proto
@@ -4188,7 +4188,7 @@ public class GameRoom
 }
 {% endhighlight %}
 
-## Move: Client
+## Move : Client
 
 * Controllers\CreatureController.cs
 {% highlight C# %}
@@ -4849,7 +4849,7 @@ class PacketHandler
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Move.mp4" frameborder="0"> </iframe>
 
-## Move: Error Fix
+## Move : Error Fix
   - Because clients share players' direction, players' last direction doesn't match
   - So My Player send his own direction to server and he shouldn't change others' direction
 
