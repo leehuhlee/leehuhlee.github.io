@@ -5389,6 +5389,6 @@ public class ObjectManager
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Move-Skill.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MMO-Game-Skill.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
