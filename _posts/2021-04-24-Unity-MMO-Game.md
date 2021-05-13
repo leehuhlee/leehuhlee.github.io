@@ -6087,5 +6087,886 @@ public class PlayerController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Hit.mp4" frameborder="0"> </iframe>
 
+## Arrow
+  - Arrange files
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/63.jpg"><img src="/assets/img/posts/unity_mmogame/63.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    Dictionary<int, Player> _players = new Dictionary<int, Player>();
+    Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
+    Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
+    
+    public Map Map { get; private set; } = new Map();
+    ...
+
+    public void Update()
+    {
+        lock (_lock)
+        {
+            foreach(Projectile projectile in _projectiles.Values)
+            {
+                projectile.Update();
+            }
+        }
+    }
+
+    public void EnterGame(GameObject gameObject)
+    {
+        if (gameObject == null)
+            return;
+
+        GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+
+        lock (_lock)
+        {
+            if(type == GameObjectType.Player)
+            {
+                Player player = gameObject as Player;
+                _players.Add(gameObject.Id, player);
+                gameObject.Room = this;
+
+                {
+                    S_EnterGame enterPacket = new S_EnterGame();
+                    enterPacket.Player = player.Info;
+                    player.Session.Send(enterPacket);
+
+                    S_Spawn spawnPacket = new S_Spawn();
+                    foreach (Player p in _players.Values)
+                    {
+                        if (player != p)
+                            spawnPacket.Objects.Add(p.Info);
+                    }
+                    player.Session.Send(spawnPacket);
+                }
+            }
+
+            else if (type == GameObjectType.Monster)
+            {
+                Monster monster = gameObject as Monster;
+                _monsters.Add(gameObject.Id, monster);
+                monster.Room = this;
+
+            }
+            else if (type == GameObjectType.Projectile)
+            {
+                Projectile projectile = gameObject as Projectile;
+                _projectiles.Add(gameObject.Id, projectile);
+                projectile.Room = this;
+            }
+            
+            {
+                S_Spawn spawnPacket = new S_Spawn();
+                spawnPacket.Objects.Add(gameObject.Info);
+                foreach (Player p in _players.Values)
+                {
+                    if (p.Id != gameObject.Id)
+                        p.Session.Send(spawnPacket);
+                }
+            }
+        }
+    }
+
+    public void LeaveGame(int objectId)
+    {
+        GameObjectType type = ObjectManager.GetObjectTypeById(objectId);
+
+        lock (_lock)
+        {
+            if (type == GameObjectType.Player)
+            {
+                Player player = null;
+                if (_players.Remove(objectId, out player) == false)
+                    return;
+
+                player.Room = null;
+                Map.ApplyLeave(player);
+
+                {
+                    S_LeaveGame leavePacket = new S_LeaveGame();
+                    player.Session.Send(leavePacket);
+                }
+            }
+            else if (type == GameObjectType.Monster)
+            {
+                Monster monster = null;
+                if (_monsters.Remove(objectId, out monster) == false)
+                    return;
+
+                monster.Room = null;
+                Map.ApplyLeave(monster);
+            }
+            else if (type == GameObjectType.Projectile)
+            {
+                Projectile projectile = null;
+                if (_projectiles.Remove(objectId, out projectile) == false)
+                    return;
+
+                projectile.Room = null;
+            }
+
+            {
+                S_Despawn despawnPacket = new S_Despawn();
+                despawnPacket.ObjectIds.Add(objectId);
+                foreach (Player p in _players.Values)
+                {
+                    if (p.Id != objectId)
+                        p.Session.Send(despawnPacket);
+                }
+            }
+        }
+    }
+
+    public void HandleMove(Player player, C_Move movePacket)
+    {
+        if (player == null)
+            return;
+
+        lock (_lock)
+        {
+            PositionInfo movePosInfo = movePacket.PosInfo;
+            ObjectInfo info = player.Info;
+
+            if(movePosInfo.PosX != info.PosInfo.PosX || movePosInfo.PosY != info.PosInfo.PosY)
+            {
+                if (Map.CanGo(new Vector2Int(movePosInfo.PosX, movePosInfo.PosY)) == false)
+                    return;
+            }
+
+            info.PosInfo.State = movePosInfo.State;
+            info.PosInfo.MoveDir = movePosInfo.MoveDir;
+            Map.ApplyMove(player, new Vector2Int(movePosInfo.PosX, movePosInfo.PosY));
+
+            S_Move resMovePacket = new S_Move();
+            resMovePacket.ObjectId = player.Info.ObjectId;
+            resMovePacket.PosInfo = movePacket.PosInfo;
+
+            Broadcast(resMovePacket);
+        }
+    }
+
+    public void HandleSkill(Player player, C_Skill skillPacket)
+    {
+        if (player == null)
+            return;
+
+        lock (_lock)
+        {
+            ObjectInfo info = player.Info;
+            if (info.PosInfo.State != CreatureState.Idle)
+                return;
+
+            info.PosInfo.State = CreatureState.Skill;
+
+            S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+            skill.ObjectId = info.ObjectId;
+            skill.Info.SkillId = skillPacket.Info.SkillId;
+            Broadcast(skill);
+
+            // Normal Skill
+            if (skillPacket.Info.SkillId == 1)
+            {
+                Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
+                GameObject target = Map.Find(skillPos);
+                if (target != null)
+                {
+                    Console.WriteLine("Hit GameObject!");
+                }
+            }
+            // Arrow Skill
+            else if(skillPacket.Info.SkillId == 2)
+            {
+                Arrow arrow = ObjectManager.Instance.Add<Arrow>();
+                if (arrow == null)
+                    return;
+
+                arrow.Owner = player;
+                arrow.PosInfo.State = CreatureState.Moving;
+                arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
+                arrow.PosInfo.PosX = player.PosInfo.PosX;
+                arrow.PosInfo.PosY = player.PosInfo.PosY;
+                EnterGame(arrow);
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+message S_EnterGame {
+  ObjectInfo player  = 1;
+}
+...
+
+message S_Spawn{
+  repeated ObjectInfo objects = 1;
+}
+
+message S_Despawn{
+  repeated int32 objectIds = 1;
+}
+
+message C_Move{
+  PositionInfo posInfo = 1;
+}
+
+message S_Move{
+  int32 objectId = 1;
+  PositionInfo posInfo = 2;
+}
+
+message C_Skill{
+  SkillInfo info = 1;
+}
+
+message S_Skill{
+  int32 objectId = 1;
+  SkillInfo info = 2;
+}
+
+// Change PlayerInfo to ObjectInfo
+// ObjectInfo can include all object, not only player
+message ObjectInfo{
+  int32 objectId = 1;
+  string name = 2;
+  PositionInfo posInfo = 3;
+}
+...
+{% endhighlight %}
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player: GameObject
+{
+    public ClientSession Session { get; set; }
+
+    public Player()
+    {
+        ObjectType = GameObjectType.Player;
+    }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public class ClientSession : PacketSession
+{
+   ...
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        MyPlayer = ObjectManager.Instance.Add<Player>();
+        {
+            MyPlayer.Info.Name = $"Player_{MyPlayer.Info.ObjectId}";
+            MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+            MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+            MyPlayer.Info.PosInfo.PosX = 0;
+            MyPlayer.Info.PosInfo.PosY = 0;
+            MyPlayer.Session = this;
+        }
+
+        RoomManager.Instance.Find(1).EnterGame(MyPlayer);
+    }
+    ...
+
+    public override void OnDisconnected(EndPoint endPoint)
+    {
+        RoomManager.Instance.Find(1).LeaveGame(MyPlayer.Info.ObjectId);
+        
+        SessionManager.Instance.Remove(this);
+
+        Console.WriteLine($"OnDisconnected : {endPoint}");
+    }
+
+    public override void OnSend(int numOfBytes) { }
+}
+{% endhighlight %}
+
+* Server\Game\Object\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+    public static ObjectManager Instance { get; } = new ObjectManager();
+
+    ...
+    // Object Id: [UNUSED(1)][TYPE(7)][ID(24)]
+    int _counter = 1;
+
+    // Can add all type of object
+    public T Add<T>() where T : GameObject, new()
+    {
+        T gameObject = new T();
+
+        lock (_lock)
+        {
+            gameObject.Id = GenerateId(gameObject.ObjectType);
+
+            if(gameObject.ObjectType == GameObjectType.Player)
+            {
+                _players.Add(gameObject.Id, gameObject as Player);
+            }
+        }
+
+        return gameObject;
+    }
+
+    int GenerateId(GameObjectType type)
+    {
+        lock (_lock)
+        {
+            return ((int)type << 24) | (_counter++);
+        }
+    }
+
+    public static GameObjectType GetObjectTypeById(int id)
+    {
+        int type = (id >> 24) & 0x7F;
+        return (GameObjectType)type;
+    }
+
+    public bool Remove(int objectId)
+    {
+        GameObjectType objectType = GetObjectTypeById(objectId);
+
+        lock (_lock)
+        {
+            if(objectType == GameObjectType.Player)
+                return _players.Remove(objectId);
+        }
+
+        return false;
+    }
+
+    public Player Find(int objectId)
+    {
+        GameObjectType objectType = GetObjectTypeById(objectId);
+        lock (_lock)
+        {
+            if (objectType == GameObjectType.Player)
+            {
+                Player player = null;
+                if (_players.TryGetValue(objectId, out player))
+                    return player;
+            }
+        }
+
+        return null;
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+    public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
+    public int Id
+    {
+        get { return Info.ObjectId; }
+        set { Info.ObjectId = value; }
+    }
+
+    public GameRoom Room { get; set; }
+
+    public ObjectInfo Info { get; set; } = new ObjectInfo() { PosInfo = new PositionInfo() };
+    public PositionInfo PosInfo { get; private set; } = new PositionInfo();
+
+    public GameObject()
+    {
+        Info.PosInfo = PosInfo;
+    }
+
+    public Vector2Int CellPos
+    {
+        get
+        {
+            return new Vector2Int(PosInfo.PosX, PosInfo.PosY);
+        }
+
+        set
+        {
+            PosInfo.PosX = value.x;
+            PosInfo.PosY = value.y;
+        }
+    }
+
+    public Vector2Int GetFrontCellPos()
+    {
+        return GetFrontCellPos(PosInfo.MoveDir);
+    }
+
+    public Vector2Int GetFrontCellPos(MoveDir dir)
+    {
+        Vector2Int cellPos = CellPos;
+
+        switch (dir)
+        {
+            case MoveDir.Up:
+                cellPos += Vector2Int.up;
+                break;
+            case MoveDir.Down:
+                cellPos += Vector2Int.down;
+                break;
+            case MoveDir.Left:
+                cellPos += Vector2Int.left;
+                break;
+            case MoveDir.Right:
+                cellPos += Vector2Int.right;
+                break;
+        }
+
+        return cellPos;
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster: GameObject
+{
+    public Monster()
+    {
+        ObjectType = GameObjectType.Monster;
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Projecteil.cs
+{% highlight C# %}
+public class Projectile: GameObject
+{
+    public Projectile()
+    {
+        ObjectType = GameObjectType.Projectile;
+    }
+
+    public virtual void Update() { }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow: Projectile
+{
+    public GameObject Owner { get; set; }
+
+    long _nextMoveTick = 0;
+
+    public override void Update()
+    {
+        if (Owner == null || Room == null)
+            return;
+
+        if (_nextMoveTick >= Environment.TickCount64)
+            return;
+
+        _nextMoveTick = Environment.TickCount64 + 50;
+
+        Vector2Int destPos = GetFrontCellPos();
+        if (Room.Map.CanGo(destPos))
+        {
+            CellPos = destPos;
+
+            S_Move movePacket = new S_Move();
+            movePacket.ObjectId = Id;
+            movePacket.PosInfo = PosInfo;
+            Room.Broadcast(movePacket);
+
+            Console.WriteLine("Move Arrow");
+        }
+        else
+        {
+            GameObject target = Room.Map.Find(destPos);
+            if(target != null)
+            {
+                //TODO: Target Detection
+            }
+
+            // Remove
+            Room.LeaveGame(Id);
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Room\Map.cs
+{% highlight C# %}
+...
+
+public class Map
+{
+    ...
+    bool[,] _collision;
+    GameObject[,] _objects;
+
+    public bool CanGo(Vector2Int cellPos, bool checkObjects = true)
+    {
+        if (cellPos.x < MinX || cellPos.x > MaxX)
+            return false;
+        if (cellPos.y < MinY || cellPos.y > MaxY)
+            return false;
+
+        int x = cellPos.x - MinX;
+        int y = MaxY - cellPos.y;
+        return !_collision[y, x] && (!checkObjects || _objects[y, x] == null);
+    }
+
+    public GameObject Find(Vector2Int cellPos)
+    {
+        if (cellPos.x < MinX || cellPos.x > MaxX)
+            return null;
+        if (cellPos.y < MinY || cellPos.y > MaxY)
+            return null;
+
+        int x = cellPos.x - MinX;
+        int y = MaxY - cellPos.y;
+        return _objects[y, x];
+    }
+
+    public bool ApplyLeave(GameObject gameObject)
+    {
+        PositionInfo posInfo = gameObject.Info.PosInfo;
+        if (posInfo.PosX < MinX || posInfo.PosX > MaxX)
+            return false;
+        if (posInfo.PosY < MinY || posInfo.PosY > MaxY)
+            return false;
+
+        {
+            int x = posInfo.PosX - MinX;
+            int y = MaxY - posInfo.PosY;
+            if (_objects[y, x] == gameObject)
+                _objects[y, x] = null;
+        }
+
+        return true;
+    }
+
+    public bool ApplyMove(GameObject gameObject, Vector2Int dest)
+    {
+        ApplyLeave(gameObject);
+
+        PositionInfo posInfo = gameObject.PosInfo;
+        if (CanGo(dest, true) == false)
+            return false;
+
+        {
+            int x = dest.x - MinX;
+            int y = MaxY - dest.y;
+            _objects[y, x] = gameObject;
+        }
+
+        posInfo.PosX = dest.x;
+        posInfo.PosY = dest.y;
+        return true;
+    }
+
+    public void LoadMap(int mapId, string pathPrefix = "../../../../../Common/MapData")
+    {
+        string mapName = "Map_" + mapId.ToString("000");
+
+        string text = File.ReadAllText($"{pathPrefix}/{mapName}.txt");
+        StringReader reader = new StringReader(text);
+
+        MinX = int.Parse(reader.ReadLine());
+        MaxX = int.Parse(reader.ReadLine());
+        MinY = int.Parse(reader.ReadLine());
+        MaxY = int.Parse(reader.ReadLine());
+
+        int xCount = MaxX - MinX + 1;
+        int yCount = MaxY - MinY + 1;
+        _collision = new bool[yCount, xCount];
+        _objects = new GameObject[yCount, xCount];
+
+        for (int y = 0; y < yCount; y++)
+        {
+            string line = reader.ReadLine();
+            for (int x = 0; x < xCount; x++)
+            {
+                _collision[y, x] = (line[x] == '1' ? true : false);
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static void Main(string[] args)
+    {
+        RoomManager.Instance.Add(1);
+
+        string host = Dns.GetHostName();
+        IPHostEntry ipHost = Dns.GetHostEntry(host);
+        IPAddress ipAddr = ipHost.AddressList[0];
+        IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+        _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+        Console.WriteLine("Listening...");
+
+        // TODO
+        while (true)
+        {
+            RoomManager.Instance.Find(1).Update();
+            Thread.Sleep(100);
+        }
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	public MyPlayerController MyPlayer { get; set; }
+	Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
+
+	public static GameObjectType GetObjectTypeById(int id)
+    {
+		int type = (id >> 24) & 0x7F;
+		return (GameObjectType)type;
+    }
+
+	public void Add(ObjectInfo info, bool myPlayer = false)
+    {
+		GameObjectType objectType = GetObjectTypeById(info.ObjectId);
+        if (objectType == GameObjectType.Player)
+        {
+			if (myPlayer)
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				MyPlayer = go.GetComponent<MyPlayerController>();
+				MyPlayer.Id = info.ObjectId;
+				MyPlayer.PosInfo = info.PosInfo;
+				MyPlayer.syncPos();
+			}
+			else
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/Player");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				PlayerController pc = go.GetComponent<PlayerController>();
+				pc.Id = info.ObjectId;
+				pc.PosInfo = info.PosInfo;
+				pc.syncPos();
+			}
+		}
+        else if(objectType == GameObjectType.Monster){
+
+        }
+		else if(objectType == GameObjectType.Projectile){
+			GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+			go.name = "Arrow";
+			_objects.Add(info.ObjectId, go);
+
+			ArrowController ac = go.GetComponent<ArrowController>();
+			ac.Dir = info.PosInfo.MoveDir;
+			ac.CellPos = new Vector3Int(info.PosInfo.PosX, info.PosInfo.PosY, 0);
+			ac.syncPos();
+        }
+        
+	}
+
+	public void Remove(int id)
+	{
+		GameObject go = FindById(id);
+		if (go == null)
+			return;
+		_objects.Remove(id);
+		Managers.Resource.Destroy(go);
+	}
+
+	public void RemoveMyPlayer()
+    {
+		if (MyPlayer == null)
+			return;
+
+		Remove(MyPlayer.Id);
+		MyPlayer = null;
+    }
+
+	public GameObject FindById(int id)
+    {
+		GameObject go = null;
+		_objects.TryGetValue(id, out go);
+		return go;
+    }
+
+	public GameObject Find(Vector3Int cellPos)
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			CreatureController cc = obj.GetComponent<CreatureController>();
+			if (cc == null)
+				continue;
+
+			if (cc.CellPos == cellPos)
+				return obj;
+		}
+
+		return null;
+	}
+
+	public GameObject Find(Func<GameObject, bool> condition)
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			if (condition.Invoke(obj))
+				return obj;
+		}
+
+		return null;
+	}
+
+	public void Clear()
+	{
+		foreach (GameObject obj in _objects.Values)
+		{
+			Managers.Resource.Destroy(obj);
+			_objects.Clear();
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_SpawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Spawn spawnPacket = packet as S_Spawn;
+
+		foreach(ObjectInfo obj in spawnPacket.Objects)
+        {
+			Managers.Object.Add(obj, myPlayer: false);
+        }
+	}
+
+	public static void S_DespawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Despawn despawnePacket = packet as S_Despawn;
+
+		foreach (int id in despawnePacket.ObjectIds)
+		{
+			Managers.Object.Remove(id);
+		}
+	}
+
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+
+		GameObject go = Managers.Object.FindById(movePacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc == null)
+			return;
+
+		cc.PosInfo = movePacket.PosInfo;
+
+	}
+
+	public static void S_SkillHandler(PacketSession session, IMessage packet)
+	{
+		S_Skill skillPacket = packet as S_Skill;
+
+		GameObject go = Managers.Object.FindById(skillPacket.ObjectId);
+		if (go == null)
+			return;
+
+		PlayerController pc = go.GetComponent<PlayerController>();
+		if(pc != null)
+        {
+			pc.UseSkill(skillPacket.Info.SkillId);
+        }
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	...
+	protected override void UpdateIdle()
+	{
+		...
+
+		if (_coSkillCooltime == null && Input.GetKey(KeyCode.Space))
+		{
+			Debug.Log("Skill");
+
+			C_Skill skill = new C_Skill() { Info = new SkillInfo() };
+			// Normal Skill = 1
+			// Arrow Skill = 2
+			skill.Info.SkillId = 2;
+			Managers.Network.Send(skill);
+
+			_coSkillCooltime = StartCoroutine("CoInputCooltime", 0.2f);
+		}
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+	protected override void Init()
+	{
+		switch (Dir)
+		{
+			case MoveDir.Up:
+				transform.rotation = Quaternion.Euler(0, 0, 0);
+				break;
+			case MoveDir.Down:
+				transform.rotation = Quaternion.Euler(0, 0, -180);
+				break;
+			case MoveDir.Left:
+				transform.rotation = Quaternion.Euler(0, 0, 90);
+				break;
+			case MoveDir.Right:
+				transform.rotation = Quaternion.Euler(0, 0, -90);
+				break;
+		}
+
+		State = CreatureState.Moving;
+		_speed = 15.0f;
+
+		base.Init();
+	}
+
+	protected override void UpdateAnimation() { }
+    
+    // Remove MoveToNextPos()
+    // From now on, arrow will be managed by server
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Arrow.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
