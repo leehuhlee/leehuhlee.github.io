@@ -5391,6 +5391,701 @@ public class ObjectManager
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Skill.mp4" frameborder="0"> </iframe>
 
+## Hit Detection
+
+* Map Verification
+  - Map is a text file, so any users can change easily
+  - So Server also need text file about map for map verification
+
+* Client\Assets\Editor\MapEditor.cs
+{% highlight C# %}
+public class MapEditor
+{
+#if UNITY_EDITOR
+	[MenuItem("Tools/GenerateMap %#g")]
+	private static void GenerateMap()
+	{
+        // map for Client
+		GenerateByPath("Assets/Resources/Map"); 
+        // map for Server
+		GenerateByPath("../Common/MapData"); 
+	}
+
+	private static void GenerateByPath(string pathPrefix)
+    {
+		GameObject[] gameObjects = Resources.LoadAll<GameObject>("Prefabs/Map");
+
+		foreach (GameObject go in gameObjects)
+		{
+			Tilemap tmBase = Util.FindChild<Tilemap>(go, "Tilemap_Base", true);
+			Tilemap tm = Util.FindChild<Tilemap>(go, "Tilemap_Collision", true);
+
+			using (var writer = File.CreateText($"{pathPrefix}/{go.name}.txt"))
+			{
+				writer.WriteLine(tmBase.cellBounds.xMin);
+				writer.WriteLine(tmBase.cellBounds.xMax);
+				writer.WriteLine(tmBase.cellBounds.yMin);
+				writer.WriteLine(tmBase.cellBounds.yMax);
+
+				for (int y = tmBase.cellBounds.yMax; y >= tmBase.cellBounds.yMin; y--)
+				{
+					for (int x = tmBase.cellBounds.xMin; x <= tmBase.cellBounds.xMax; x++)
+					{
+						TileBase tile = tm.GetTile(new Vector3Int(x, y, 0));
+						if (tile != null)
+							writer.Write("1");
+						else
+							writer.Write("0");
+					}
+					writer.WriteLine();
+				}
+			}
+		}
+	}
+#endif
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/62.jpg"><img src="/assets/img/posts/unity_mmogame/62.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Server\Game\Map.cs
+{% highlight C# %}
+public struct Pos
+{
+    public Pos(int y, int x) { Y = y; X = x; }
+    public int Y;
+    public int X;
+}
+
+public struct PQNode : IComparable<PQNode>
+{
+    public int F;
+    public int G;
+    public int Y;
+    public int X;
+
+    public int CompareTo(PQNode other)
+    {
+        if (F == other.F)
+            return 0;
+        return F < other.F ? 1 : -1;
+    }
+}
+
+// Vector3Int is for Unity
+// So in Server, you need to make a struct for position
+// struct is better then class when you wanna deep copy
+public struct Vector2Int
+{
+    public int x;
+    public int y;
+
+    public Vector2Int(int x, int y) { this.x = x; this.y = y; }
+
+    public static Vector2Int up { get { return new Vector2Int(0, 1); } }
+    public static Vector2Int down { get { return new Vector2Int(0, -1); } }
+    public static Vector2Int left { get { return new Vector2Int(-1, 0); } }
+    public static Vector2Int right { get { return new Vector2Int(1, 0); } }
+
+    public static Vector2Int operator+(Vector2Int a, Vector2Int b)
+    {
+        return new Vector2Int(a.x + b.x, a.y + b.y);
+    }
+}
+
+public class Map
+{
+    public int MinX { get; set; }
+    public int MaxX { get; set; }
+    public int MinY { get; set; }
+    public int MaxY { get; set; }
+
+    public int SizeX { get { return MaxX - MinX + 1; } }
+    public int SizeY { get { return MaxY - MinY + 1; } }
+
+    bool[,] _collision;
+    Player[,] _players;
+
+    public bool CanGo(Vector2Int cellPos, bool checkObjects = true)
+    {
+        if (cellPos.x < MinX || cellPos.x > MaxX)
+            return false;
+        if (cellPos.y < MinY || cellPos.y > MaxY)
+            return false;
+
+        int x = cellPos.x - MinX;
+        int y = MaxY - cellPos.y;
+        return !_collision[y, x] && (!checkObjects || _players[y, x] == null);
+    }
+
+    public Player Find(Vector2Int cellPos)
+    {
+        if (cellPos.x < MinX || cellPos.x > MaxX)
+            return null;
+        if (cellPos.y < MinY || cellPos.y > MaxY)
+            return null;
+
+        int x = cellPos.x - MinX;
+        int y = MaxY - cellPos.y;
+        return _players[y, x];
+    }
+
+    public bool ApplyMove(Player player, Vector2Int dest)
+    {
+        PositionInfo posInfo = player.Info.PosInfo;
+        if (posInfo.PosX < MinX || posInfo.PosX > MaxX)
+            return false;
+        if (posInfo.PosY < MinY || posInfo.PosY > MaxY)
+            return false;
+        if (CanGo(dest, true) == false)
+            return false;
+
+        // make previous position to null 
+        {
+            int x = posInfo.PosX - MinX;
+            int y = MaxY - posInfo.PosY;
+            if(_players[y, x] == player)
+                _players[y, x] = null;
+        }
+
+        // make after position to player
+        {
+            int x = dest.x - MinX;
+            int y = MaxY - dest.y;
+            _players[y, x] = player;
+        }
+
+        // Position Move
+        posInfo.PosX = dest.x;
+        posInfo.PosY = dest.y;
+        return true;
+    }
+
+    public void LoadMap(int mapId, string pathPrefix = "../../../../../Common/MapData")
+    {
+        string mapName = "Map_" + mapId.ToString("000");
+
+        // Collision File
+        string text = File.ReadAllText($"{pathPrefix}/{mapName}.txt");
+        StringReader reader = new StringReader(text);
+
+        MinX = int.Parse(reader.ReadLine());
+        MaxX = int.Parse(reader.ReadLine());
+        MinY = int.Parse(reader.ReadLine());
+        MaxY = int.Parse(reader.ReadLine());
+
+        int xCount = MaxX - MinX + 1;
+        int yCount = MaxY - MinY + 1;
+        _collision = new bool[yCount, xCount];
+        _players = new Player[yCount, xCount];
+
+        for (int y = 0; y < yCount; y++)
+        {
+            string line = reader.ReadLine();
+            for (int x = 0; x < xCount; x++)
+            {
+                _collision[y, x] = (line[x] == '1' ? true : false);
+            }
+        }
+    }
+
+    #region A* PathFinding
+
+    // U D L R
+    int[] _deltaY = new int[] { 1, -1, 0, 0 };
+    int[] _deltaX = new int[] { 0, 0, -1, 1 };
+    int[] _cost = new int[] { 10, 10, 10, 10 };
+
+    public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool ignoreDestCollision = false)
+    {
+        List<Pos> path = new List<Pos>();
+
+        bool[,] closed = new bool[SizeY, SizeX]; // CloseList
+
+        int[,] open = new int[SizeY, SizeX]; // OpenList
+        for (int y = 0; y < SizeY; y++)
+            for (int x = 0; x < SizeX; x++)
+                open[y, x] = Int32.MaxValue;
+
+        Pos[,] parent = new Pos[SizeY, SizeX];
+
+        PriorityQueue<PQNode> pq = new PriorityQueue<PQNode>();
+
+        Pos pos = Cell2Pos(startCellPos);
+        Pos dest = Cell2Pos(destCellPos);
+
+        open[pos.Y, pos.X] = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X));
+        pq.Push(new PQNode() { F = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)), G = 0, Y = pos.Y, X = pos.X });
+        parent[pos.Y, pos.X] = new Pos(pos.Y, pos.X);
+
+        while (pq.Count > 0)
+        {
+            PQNode node = pq.Pop();
+            if (closed[node.Y, node.X])
+                continue;
+
+            closed[node.Y, node.X] = true;
+            if (node.Y == dest.Y && node.X == dest.X)
+                break;
+
+            for (int i = 0; i < _deltaY.Length; i++)
+            {
+                Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
+
+                if (!ignoreDestCollision || next.Y != dest.Y || next.X != dest.X)
+                {
+                    if (CanGo(Pos2Cell(next)) == false) // CellPos
+                        continue;
+                }
+
+                if (closed[next.Y, next.X])
+                    continue;
+
+                int g = 0;
+                int h = 10 * ((dest.Y - next.Y) * (dest.Y - next.Y) + (dest.X - next.X) * (dest.X - next.X));
+                if (open[next.Y, next.X] < g + h)
+                    continue;
+
+                open[dest.Y, dest.X] = g + h;
+                pq.Push(new PQNode() { F = g + h, G = g, Y = next.Y, X = next.X });
+                parent[next.Y, next.X] = new Pos(node.Y, node.X);
+            }
+        }
+
+        return CalcCellPathFromParent(parent, dest);
+    }
+
+    List<Vector2Int> CalcCellPathFromParent(Pos[,] parent, Pos dest)
+    {
+        List<Vector2Int> cells = new List<Vector2Int>();
+
+        int y = dest.Y;
+        int x = dest.X;
+        while (parent[y, x].Y != y || parent[y, x].X != x)
+        {
+            cells.Add(Pos2Cell(new Pos(y, x)));
+            Pos pos = parent[y, x];
+            y = pos.Y;
+            x = pos.X;
+        }
+        cells.Add(Pos2Cell(new Pos(y, x)));
+        cells.Reverse();
+
+        return cells;
+    }
+
+    Pos Cell2Pos(Vector2Int cell)
+    {
+        return new Pos(MaxY - cell.y, cell.x - MinX);
+    }
+
+    Vector2Int Pos2Cell(Pos pos)
+    {
+        return new Vector2Int(pos.X + MinX, MaxY - pos.Y);
+    }
+
+    #endregion
+}
+{% endhighlight %}
+
+* Server\Game\RoomManager.cs
+{% highlight C# %}
+public class RoomManager
+{
+    ...
+    public GameRoom Add(int mapId)
+    {
+        GameRoom gameRoom = new GameRoom();
+        gameRoom.Init(mapId);
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    // Change List to Dictionary
+    // This is for finding player by Id
+    Dictionary<int, Player> _players = new Dictionary<int, Player>();
+    Map _map = new Map();
+
+    public void Init(int mapId)
+    {
+        _map.LoadMap(mapId);
+    }
+    ...
+
+    public void LeaveGame(int playerId)
+    {
+        lock (_lock)
+        {
+            Player player = null;
+            if (_players.Remove(playerId, out player) == false)
+                return;
+            ...
+        }
+    }
+
+    public void HandleMove(Player player, C_Move movePacket)
+    {
+        ...
+        lock (_lock)
+        {
+            PositionInfo movePosInfo = movePacket.PosInfo;
+            PlayerInfo info = player.Info;
+
+            // If move, check first you can go
+            if(movePosInfo.PosX != info.PosInfo.PosX || movePosInfo.PosY != info.PosInfo.PosY)
+            {
+                if (_map.CanGo(new Vector2Int(movePosInfo.PosX, movePosInfo.PosY)) == false)
+                    return;
+            }
+
+            info.PosInfo.State = movePosInfo.State;
+            info.PosInfo.MoveDir = movePosInfo.MoveDir;
+            _map.ApplyMove(player, new Vector2Int(movePosInfo.PosX, movePosInfo.PosY));
+            ...
+        }
+    }
+
+    public void HandleSkill(Player player, C_Skill skillPacket)
+    {
+        ...
+        lock (_lock)
+        {
+            ...
+            Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
+            Player target = _map.Find(skillPos);
+            if(target != null)
+            {
+                Console.WriteLine("Hit Player!");
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static void Main(string[] args)
+    {
+        // Initial Map number is 1
+        RoomManager.Instance.Add(1);
+        ...
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Player.cs
+{% highlight C# %}
+public class Player
+{
+    public PlayerInfo Info { get; set; } = new PlayerInfo() { PosInfo = new PositionInfo() };
+    public GameRoom Room { get; set; }
+    public ClientSession Session { get; set; }
+
+    public Vector2Int CellPos
+    {
+        get
+        {
+            return new Vector2Int(Info.PosInfo.PosX, Info.PosInfo.PosY);
+        }
+
+        set
+        {
+            Info.PosInfo.PosX = value.x;
+            Info.PosInfo.PosY = value.y;
+        }
+    }
+
+    public Vector2Int GetFrontCellPos(MoveDir dir)
+    {
+        Vector2Int cellPos = CellPos;
+
+        switch (dir)
+        {
+            case MoveDir.Up:
+                cellPos += Vector2Int.up;
+                break;
+            case MoveDir.Down:
+                cellPos += Vector2Int.down;
+                break;
+            case MoveDir.Left:
+                cellPos += Vector2Int.left;
+                break;
+            case MoveDir.Right:
+                cellPos += Vector2Int.right;
+                break;
+        }
+
+        return cellPos;
+    }
+}
+{% endhighlight %}
+
+* Remove MoveDir.None
+  - MoveDir.None is for checking pressed key
+  - MoveDir.None means there is not key pressed
+  - So you should change this agenda to boolean checking
+  
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+enum MoveDir{
+  UP = 0;
+  DOWN = 1;
+  LEFT = 2;
+  RIGHT = 3;
+}
+...
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+  - Set initial direction is down
+
+{% highlight C# %}
+public class ClientSession : PacketSession
+{
+    ...
+    public override void OnConnected(EndPoint endPoint)
+    {
+        ...
+        MyPlayer = PlayerManager.Instance.Add();
+        {
+            ...
+            MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+            ...
+        }
+        ...
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	bool _moveKeyPressed = false;
+	...
+
+	void GetDirInput()
+	{
+		_moveKeyPressed = true;
+
+		if (Input.GetKey(KeyCode.W))
+		{
+			Dir = MoveDir.Up;
+		}
+		else if (Input.GetKey(KeyCode.S))
+		{
+			Dir = MoveDir.Down;
+		}
+		else if (Input.GetKey(KeyCode.A))
+		{
+			Dir = MoveDir.Left;
+		}
+		else if (Input.GetKey(KeyCode.D))
+		{
+			Dir = MoveDir.Right;
+		}
+		else
+		{
+			_moveKeyPressed = false;
+		}
+	}
+
+    protected override void UpdateIdle()
+	{
+		if (_moveKeyPressed)
+		{
+			State = CreatureState.Moving;
+			return;
+		}
+		...
+	}
+    ...
+
+	protected override void MoveToNextPos()
+	{
+		if (_moveKeyPressed == false)
+		{
+			State = CreatureState.Idle;
+			CheckUpdatedFlag();
+			return;
+		}
+		...
+
+		switch (Dir)
+		{
+			...
+        }
+		...
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\CreatureController.cs
+  - Remove _lastDir
+
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+	...
+
+    public MoveDir GetDirFromVec(Vector3Int dir)
+	{
+		if (dir.x > 0)
+			return MoveDir.Right;
+		else if (dir.x < 0)
+			return MoveDir.Left;
+		else if (dir.y > 0)
+			return MoveDir.Up;
+		else
+			return MoveDir.Down;
+	}
+
+	public Vector3Int GetFrontCellPos()
+	{
+		Vector3Int cellPos = CellPos;
+
+		switch (Dir)
+		{
+			...
+		}
+
+		return cellPos;
+	}
+
+	protected virtual void UpdateAnimation()
+	{
+		if (State == CreatureState.Idle)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		else if (State == CreatureState.Moving)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		else if (State == CreatureState.Skill)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		...
+	}
+    ...
+
+	protected virtual void Init()
+	{
+		...
+		Dir = MoveDir.Down;
+		...
+	}
+	...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+
+	protected override void Init()
+	{
+		switch (Dir)
+		{
+			...
+		}
+        ...
+	}
+    ...
+
+	protected override void MoveToNextPos()
+	{
+		Vector3Int destPos = CellPos;
+
+		switch (Dir)
+		{
+			...
+		}
+		...
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\PlayerController.cs
+  - Remove UpdateIdle method
+  - Because this method was for keyboard pressing check
+
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+	...
+	protected override void UpdateAnimation()
+	{
+        // for initial null crush
+		if (_animator == null || _sprite == null)
+			return;
+
+		if (State == CreatureState.Idle)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		else if (State == CreatureState.Moving)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		else if (State == CreatureState.Skill)
+		{
+			switch (Dir)
+			{
+				...
+			}
+		}
+		else
+		{
+
+		}
+	}
+	...
+
+	IEnumerator CoStartShootArrow()
+	{
+		...
+		ac.Dir = Dir;
+		...
+	}
+	...
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Hit.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
