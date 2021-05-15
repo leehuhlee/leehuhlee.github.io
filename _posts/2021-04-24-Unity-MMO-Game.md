@@ -6966,7 +6966,453 @@ public class ArrowController : CreatureController
 }
 {% endhighlight %}
 
+### Test
+
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Arrow.mp4" frameborder="0"> </iframe>
+
+## Data & Config
+
+### Set Arrow Attack Animation
+
+* Client\Assets\Scripts\Controllers\PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+    ...
+    public void UseSkill(int skillId)
+    {
+        if(skillId == 1)
+        {
+            _coSkill = StartCoroutine("CoStartPunch");
+        }
+
+        if(skillId == 2)
+        {
+            _coSkill = StartCoroutine("CoStartShootArrow");
+        }
+    }
+
+    IEnumerator CoStartShootArrow()
+    {
+        _rangedSkill = true;
+        State = CreatureState.Skill;
+        yield return new WaitForSeconds(0.3f);
+        State = CreatureState.Idle;
+        _coSkill = null;
+        CheckUpdatedFlag();
+    }
+    ...
+}
+{% endhighlight %}
+
+### Data Management
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight C# %}
+...
+enum SkillType{
+  SKILL_NONE = 0;
+  SKILL_AUTO = 1;
+  SKILL_PROJECTILE = 2;
+}
+...
+{% endhighlight %}
+
+* Client\Assets\Scripts\Data\Data.Contents.cs
+{% highlight C# %}
+#region Stat
+[Serializable]
+public class Stat
+{
+    public int level;
+    public int maxHp;
+    public int attack;
+    public int totalExp;
+}
+
+[Serializable]
+public class StatData : ILoader<int, Stat>
+{
+    public List<Stat> stats = new List<Stat>();
+
+    public Dictionary<int, Stat> MakeDict()
+    {
+        Dictionary<int, Stat> dict = new Dictionary<int, Stat>();
+        foreach (Stat stat in stats)
+            dict.Add(stat.level, stat);
+        return dict;
+    }
+}
+#endregion
+
+#region Skill
+[Serializable]
+public class Skill
+{
+    public int id;
+    public string name;
+    public float cooldown;
+    public int damage;
+    public SkillType skillType;
+    public ProjectileInfo projectile;
+}
+
+public class ProjectileInfo
+{
+    public string name;
+    public float speed;
+    public int range;
+    public string prefab;
+}
+
+[Serializable]
+public class SkillData : ILoader<int, Skill>
+{
+    public List<Skill> skills = new List<Skill>();
+
+    public Dictionary<int, Skill> MakeDict()
+    {
+        Dictionary<int, Skill> dict = new Dictionary<int, Skill>();
+        foreach (Skill skill in skills)
+            dict.Add(skill.id, skill);
+        return dict;
+    }
+}
+#endregion
+{% endhighlight %}
+
+* Client\Scripts\Managers\Core\DataManager.cs
+{% highlight C# %}
+public interface ILoader<Key, Value>
+{
+    Dictionary<Key, Value> MakeDict();
+}
+
+public class DataManager
+{
+    public Dictionary<int, Data.Stat> StatDict { get; private set; } = new Dictionary<int, Data.Stat>();
+    public Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+
+    public void Init()
+    {
+       StatDict = LoadJson<Data.StatData, int, Data.Stat>("StatData").MakeDict();
+       SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    }
+
+    Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+		TextAsset textAsset = Managers.Resource.Load<TextAsset>($"Data/{path}");
+        return JsonUtility.FromJson<Loader>(textAsset.text);
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Resources\Data\SkillData.json
+{% highlight json %}
+{
+  "skills": [
+    {
+      "id": "1",
+      "name": "Normal Attack",
+      "cooldown": "0.2",
+      "damage": "10",
+      "skillType": "SkillAuto"
+    },
+    {
+      "id": "2",
+      "name": "Arrow Attack",
+      "cooldown": "0.2",
+      "damage": "5",
+      "skillType": "SkillProjectile",
+      "projectile": {
+        "name": "Arrow",
+        "speed": "20.0",
+        "range": "10",
+        "prefab": "Creature/Arrow"
+      }
+    }
+  ]
+} 
+{% endhighlight %}
+
+* Server\Data\Data.Contents.cs
+{% highlight C# %}
+#region Stat
+[Serializable]
+public class Stat
+{
+    public int level;
+    public int maxHp;
+    public int attack;
+    public int totalExp;
+}
+
+[Serializable]
+public class StatData : ILoader<int, Stat>
+{
+    public List<Stat> stats = new List<Stat>();
+
+    public Dictionary<int, Stat> MakeDict()
+    {
+        Dictionary<int, Stat> dict = new Dictionary<int, Stat>();
+        foreach (Stat stat in stats)
+            dict.Add(stat.level, stat);
+        return dict;
+    }
+}
+#endregion
+
+#region Skill
+[Serializable]
+public class Skill
+{
+    public int id;
+    public string name;
+    public float cooldown;
+    public int damage;
+    public SkillType skillType;
+    public ProjectileInfo projectile;
+}
+
+public class ProjectileInfo
+{
+    public string name;
+    public float speed;
+    public int range;
+    public string prefab;
+}
+
+[Serializable]
+public class SkillData : ILoader<int, Skill>
+{
+    public List<Skill> skills = new List<Skill>();
+
+    public Dictionary<int, Skill> MakeDict()
+    {
+        Dictionary<int, Skill> dict = new Dictionary<int, Skill>();
+        foreach (Skill skill in skills)
+            dict.Add(skill.id, skill);
+        return dict;
+    }
+}
+#endregion
+{% endhighlight %}
+
+* Server\Data\DataManager.cs
+{% highlight C# %}
+public interface ILoader<Key, Value>
+{
+    Dictionary<Key, Value> MakeDict();
+}
+
+public class DataManager
+{
+    public static Dictionary<int, Data.Stat> StatDict { get; private set; } = new Dictionary<int, Data.Stat>();
+    public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+
+    public static void LoadData()
+    {
+        StatDict = LoadJson<Data.StatData, int, Data.Stat>("StatData").MakeDict();
+        SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    }
+
+    static Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+        // Set data file path
+        string text = File.ReadAllText($"{ConfigManager.Config.dataPath}/{path}.json");
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Loader>(text);
+    }
+}
+{% endhighlight %}
+
+* DownLoad Newtonsoft.Json from Nuget Package Manager
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/64.jpg"><img src="/assets/img/posts/unity_mmogame/64.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Server\Data\ConfigManager.cs
+{% highlight C# %}
+[Serializable]
+public class ServerConfig
+{
+    public string dataPath;
+}
+
+public class ConfigManager
+{
+    public static ServerConfig Config { get; private set; }
+
+    public static void LoadConfig()
+    {
+        string text = File.ReadAllText("config.json");
+        Config = Newtonsoft.Json.JsonConvert.DeserializeObject<ServerConfig>(text);
+    }
+}
+{% endhighlight %}
+
+* Server\bin\Debug\netcoreapp3.1\config.json
+{% highlight json %}
+{
+  "dataPath": "../../../../../Client/Assets/Resources/Data"
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static void Main(string[] args)
+    {
+        ConfigManager.LoadConfig();
+        DataManager.LoadData();
+
+        RoomManager.Instance.Add(1);
+
+        string host = Dns.GetHostName();
+        IPHostEntry ipHost = Dns.GetHostEntry(host);
+        IPAddress ipAddr = ipHost.AddressList[0];
+        IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+        _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+        Console.WriteLine("Listening...");
+
+        while (true)
+        {
+            RoomManager.Instance.Find(1).Update();
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    public void HandleSkill(Player player, C_Skill skillPacket)
+    {
+        if (player == null)
+            return;
+
+        lock (_lock)
+        {
+            ObjectInfo info = player.Info;
+            if (info.PosInfo.State != CreatureState.Idle)
+                return;
+
+            info.PosInfo.State = CreatureState.Skill;
+
+            S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+            skill.ObjectId = info.ObjectId;
+            skill.Info.SkillId = skillPacket.Info.SkillId;
+            Broadcast(skill);
+
+            Data.Skill skillData = null;
+            if(DataManager.SkillDict.TryGetValue(skillPacket.Info.SkillId, out skillData) == false)
+                return;
+
+            switch (skillData.skillType)
+            {
+                case SkillType.SkillAuto:
+                    {
+                        Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
+                        GameObject target = Map.Find(skillPos);
+                        if (target != null)
+                        {
+                            Console.WriteLine("Hit GameObject!");
+                        }
+                    }
+                    break;
+                case SkillType.SkillProjectile:
+                    {
+                        Arrow arrow = ObjectManager.Instance.Add<Arrow>();
+                        if (arrow == null)
+                            return;
+
+                        arrow.Owner = player;
+                        arrow.Data = skillData;
+                        arrow.PosInfo.State = CreatureState.Moving;
+                        arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
+                        arrow.PosInfo.PosX = player.PosInfo.PosX;
+                        arrow.PosInfo.PosY = player.PosInfo.PosY;
+                        EnterGame(arrow);
+                    }
+                    break;
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\Projectile.cs
+{% highlight C# %}
+public class Projectile : GameObject
+{
+    public Data.Skill Data { get; set; }
+
+    public Projectile()
+    {
+        ObjectType = GameObjectType.Projectile;
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow: Projectile
+{
+    public GameObject Owner { get; set; }
+
+    long _nextMoveTick = 0;
+
+    public override void Update()
+    {
+        if (Data == null || Data.projectile == null || Owner == null || Room == null)
+            return;
+
+        if (_nextMoveTick >= Environment.TickCount64)
+            return;
+
+        _nextMoveTick = Environment.TickCount64 + 50;
+
+        // tick = 1 sec / speed
+        long tick = (long)(1000 / Data.projectile.speed);
+        _nextMoveTick = Environment.TickCount64 + tick;
+
+        Vector2Int destPos = GetFrontCellPos();
+        if (Room.Map.CanGo(destPos))
+        {
+            CellPos = destPos;
+
+            S_Move movePacket = new S_Move();
+            movePacket.ObjectId = Id;
+            movePacket.PosInfo = PosInfo;
+            Room.Broadcast(movePacket);
+
+            Console.WriteLine("Move Arrow");
+        }
+        else
+        {
+            GameObject target = Room.Map.Find(destPos);
+            if(target != null)
+            {
+                //TODO: Target Detection
+            }
+
+            Room.LeaveGame(Id);
+        }
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Data.mp4" frameborder="0"> </iframe>
 
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
