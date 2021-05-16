@@ -7414,5 +7414,343 @@ public class Arrow: Projectile
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Data.mp4" frameborder="0"> </iframe>
 
+## Stat
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight C# %}
+...
+message ObjectInfo {
+  int32 objectId = 1;
+  string name = 2;
+  PositionInfo posInfo = 3;
+  StatInfo statInfo = 4;
+}
+...
+
+message StatInfo {
+  int32 hp = 1;
+  int32 maxHp = 2;
+  float speed = 3;
+ }
+...
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow: Projectile
+{
+    ...
+    public override void Update()
+    {
+        if (Data == null || Data.projectile == null || Owner == null || Room == null)
+            return;
+
+        if (_nextMoveTick >= Environment.TickCount64)
+            return;
+
+        _nextMoveTick = Environment.TickCount64 + 50;
+
+        long tick = (long)(1000 / Data.projectile.speed);
+        _nextMoveTick = Environment.TickCount64 + tick;
+
+        Vector2Int destPos = GetFrontCellPos();
+        if (Room.Map.CanGo(destPos))
+        {
+            CellPos = destPos;
+
+            S_Move movePacket = new S_Move();
+            movePacket.ObjectId = Id;
+            movePacket.PosInfo = PosInfo;
+            Room.Broadcast(movePacket);
+
+            Console.WriteLine("Move Arrow");
+        }
+        else
+        {
+            GameObject target = Room.Map.Find(destPos);
+            if(target != null)
+            {
+                target.OnDamaged(this, Data.damage);
+            }
+
+            Room.LeaveGame(Id);
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+    ...
+    public StatInfo Stat { get; private set; } = new StatInfo();
+
+    public float Speed
+    {
+        get { return Stat.Speed; }
+        set { Stat.Speed = value; }
+    }
+
+    public GameObject()
+    {
+        Info.PosInfo = PosInfo;
+        Info.StatInfo = Stat;
+    }
+    ...
+
+    public virtual void OnDamaged(GameObject attacker, int damage)
+    {
+
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player: GameObject
+{
+    public ClientSession Session { get; set; }
+
+    public Player()
+    {
+        ObjectType = GameObjectType.Player;
+        Speed = 10.0f;
+    }
+
+    public override void OnDamaged(GameObject attacker, int damage)
+    {
+        Console.WriteLine($"TODO : damage {damage}");
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    public void HandleSkill(Player player, C_Skill skillPacket)
+    {
+        if (player == null)
+            return;
+
+        lock (_lock)
+        {
+            ObjectInfo info = player.Info;
+            if (info.PosInfo.State != CreatureState.Idle)
+                return;
+
+            info.PosInfo.State = CreatureState.Skill;
+
+            S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+            skill.ObjectId = info.ObjectId;
+            skill.Info.SkillId = skillPacket.Info.SkillId;
+            Broadcast(skill);
+
+            Data.Skill skillData = null;
+            if(DataManager.SkillDict.TryGetValue(skillPacket.Info.SkillId, out skillData) == false)
+                return;
+
+            switch (skillData.skillType)
+            {
+                case SkillType.SkillAuto:
+                    {
+                        Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
+                        GameObject target = Map.Find(skillPos);
+                        if (target != null)
+                        {
+                            Console.WriteLine("Hit GameObject!");
+                        }
+                    }
+                    break;
+                case SkillType.SkillProjectile:
+                    {
+                        Arrow arrow = ObjectManager.Instance.Add<Arrow>();
+                        if (arrow == null)
+                            return;
+
+                        arrow.Owner = player;
+                        arrow.Data = skillData;
+                        arrow.PosInfo.State = CreatureState.Moving;
+                        arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
+                        arrow.PosInfo.PosX = player.PosInfo.PosX;
+                        arrow.PosInfo.PosY = player.PosInfo.PosY;
+                        arrow.Speed = skillData.projectile.speed;
+                        EnterGame(arrow);
+                    }
+                    break;
+            }
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	...
+	public void Add(ObjectInfo info, bool myPlayer = false)
+    {
+		GameObjectType objectType = GetObjectTypeById(info.ObjectId);
+        if (objectType == GameObjectType.Player)
+        {
+			if (myPlayer)
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				MyPlayer = go.GetComponent<MyPlayerController>();
+				MyPlayer.Id = info.ObjectId;
+				MyPlayer.PosInfo = info.PosInfo;
+				MyPlayer.Stat = info.StatInfo;
+				MyPlayer.syncPos();
+			}
+			else
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/Player");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				PlayerController pc = go.GetComponent<PlayerController>();
+				pc.Id = info.ObjectId;
+				pc.PosInfo = info.PosInfo;
+				pc.Stat = info.StatInfo;
+				pc.syncPos();
+			}
+		}
+        else if(objectType == GameObjectType.Monster){
+
+        }
+		else if(objectType == GameObjectType.Projectile){
+			GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+			go.name = "Arrow";
+			_objects.Add(info.ObjectId, go);
+
+			ArrowController ac = go.GetComponent<ArrowController>();
+			ac.PosInfo = info.PosInfo;
+			ac.Stat = info.StatInfo;
+			ac.syncPos();
+        }
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controller\CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+	public int Id { get; set; }
+
+	StatInfo _stat = new StatInfo();
+	public StatInfo Stat 
+	{
+        get { return _stat; }
+        set 
+		{ 
+			if (_stat.Equals(value))
+				return;
+
+			_stat.Hp = value.Hp;
+			_stat.MaxHp = value.MaxHp;
+			_stat.Speed = value.Speed;
+		}
+	}
+
+	public float Speed
+    {
+        get { return Stat.Speed; }
+        set { Stat.Speed = value; }
+    }
+    ...
+
+    protected virtual void UpdateMoving()
+	{
+		Vector3 destPos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		Vector3 moveDir = destPos - transform.position;
+
+		float dist = moveDir.magnitude;
+		if (dist < Speed * Time.deltaTime)
+		{
+			transform.position = destPos;
+			MoveToNextPos();
+		}
+		else
+		{
+			transform.position += moveDir.normalized * Speed * Time.deltaTime;
+			State = CreatureState.Moving;
+		}
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controller\ArrowController.cs
+{% highlight C# %}
+public class ArrowController : CreatureController
+{
+	protected override void Init()
+	{
+		switch (Dir)
+		{
+			case MoveDir.Up:
+				transform.rotation = Quaternion.Euler(0, 0, 0);
+				break;
+			case MoveDir.Down:
+				transform.rotation = Quaternion.Euler(0, 0, -180);
+				break;
+			case MoveDir.Left:
+				transform.rotation = Quaternion.Euler(0, 0, 90);
+				break;
+			case MoveDir.Right:
+				transform.rotation = Quaternion.Euler(0, 0, -90);
+				break;
+		}
+
+        // Remove speed
+		State = CreatureState.Moving;
+
+		base.Init();
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controller\MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	...
+	protected override void Init()
+	{
+		base.Init();
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.Down;
+
+        // Remove speed
+		_rangedSkill = (Random.Range(0, 2) == 0 ? true : false);
+
+		if (_rangedSkill)
+			_skillRange = 10.0f;
+		else
+			_skillRange = 1.0f;
+	}
+    ...
+}
+{% endhighlight %}
+
+*
+{% highlight C# %}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Stat.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
