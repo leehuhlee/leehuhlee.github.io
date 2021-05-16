@@ -7412,7 +7412,7 @@ public class Arrow: Projectile
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Data.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Data.mp4" frameborder="0"> </iframe>
 
 ## Stat
 
@@ -7744,13 +7744,276 @@ public class MonsterController : CreatureController
 }
 {% endhighlight %}
 
-*
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Stat.mp4" frameborder="0"> </iframe>
+
+## Damage Detection
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
 {% highlight C# %}
+...
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+  C_SKILL = 6;
+  S_SKILL = 7;
+  S_CHANGE_HP = 8;
+}
+...
+
+message S_ChangeHp {
+  int32 objectId = 1;
+  int32 hp = 2;
+}
+...
+
+message StatInfo {
+  int32 level = 1;
+  int32 hp = 2;
+  int32 maxHp = 3;
+  int32 attack = 4;
+  float speed = 5;
+  int32 totalExp = 6;
+ }
+ ...
+{% endhighlight %}
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player: GameObject
+{
+    public ClientSession Session { get; set; }
+
+    public Player()
+    {
+        ObjectType = GameObjectType.Player;
+    }
+
+    public override void OnDamaged(GameObject attacker, int damage)
+    {
+        base.OnDamaged(attacker, damage);
+    }
+
+    public override void OnDead(GameObject attacker)
+    {
+        base.OnDead(attacker);
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+    ...
+    public virtual void OnDamaged(GameObject attacker, int damage)
+    {
+        // hp should not be minus number
+        Stat.Hp = Math.Max(Stat.Hp - damage, 0);
+
+        Stat.Hp -= damage;
+        if (Stat.Hp <= 0)
+            Stat.Hp = 0;
+
+        S_ChangeHp changePacket = new S_ChangeHp();
+        changePacket.ObjectId = Id;
+        changePacket.Hp = Stat.Hp;
+        Room.Broadcast(changePacket);
+
+        if(Stat.Hp <= 0)
+        {
+            OnDead(attacker);
+        }
+    }
+
+    public virtual void OnDead(GameObject attacker)
+    {
+
+    }
+}
+{% endhighlight %}
+
+* Server\Data\Data.Contents.cs
+{% highlight C# %}
+#region Stat
+[Serializable]
+public class StatData : ILoader<int, StatInfo>
+{
+    public List<StatInfo> stats = new List<StatInfo>();
+
+    public Dictionary<int, StatInfo> MakeDict()
+    {
+        Dictionary<int, StatInfo> dict = new Dictionary<int, StatInfo>();
+        foreach (StatInfo stat in stats)
+        {
+            stat.Hp = stat.MaxHp;
+            dict.Add(stat.Level, stat);
+        }
+        return dict;
+    }
+}
+#endregion
+...
+{% endhighlight %}
+
+* Server\Data\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+    public static Dictionary<int, StatInfo> StatDict { get; private set; } = new Dictionary<int, StatInfo>();
+    public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+
+    public static void LoadData()
+    {
+        StatDict = LoadJson<Data.StatData, int, StatInfo>("StatData").MakeDict();
+        SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    }
+
+    static Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+        string text = File.ReadAllText($"{ConfigManager.Config.dataPath}/{path}.json");
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Loader>(text);
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Resources\Data\SkillData.json
+{% highlight json %}
+{
+  "stats": [
+    {
+      "level": "1",
+      "maxHp": "200",
+      "attack": "20",
+      "speed": "10.0",
+      "totalExp": "0"
+    },
+    {
+      "level": "2",
+      "maxHp": "250",
+      "attack": "25",
+      "speed": "10.0",
+      "totalExp": "10"
+    },
+    {
+      "level": "3",
+      "maxHp": "300",
+      "attack": "30",
+      "speed": "10.0",
+      "totalExp": "20"
+    }
+  ]
+} 
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public class ClientSession : PacketSession
+{
+    ...
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        MyPlayer = ObjectManager.Instance.Add<Player>();
+        {
+            MyPlayer.Info.Name = $"Player_{MyPlayer.Info.ObjectId}";
+            MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+            MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+            MyPlayer.Info.PosInfo.PosX = 0;
+            MyPlayer.Info.PosInfo.PosY = 0;
+
+            StatInfo stat = null;
+            DataManager.StatDict.TryGetValue(1, out stat);
+            MyPlayer.Stat.MergeFrom(stat);
+
+            MyPlayer.Session = this;
+        }
+
+        RoomManager.Instance.Find(1).EnterGame(MyPlayer);
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_ChangeHpHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeHp changePacket = packet as S_ChangeHp;
+
+		GameObject go = Managers.Object.FindById(changePacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc != null)
+		{
+			cc.Stat.Hp = changePacket.Hp;
+			Debug.Log($"ChangeHp : { changePacket.Hp }");
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Data\Data.Contents.cs
+  - Remove Stat Region
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow: Projectile
+{
+    ...
+    public override void Update()
+    {
+        if (Data == null || Data.projectile == null || Owner == null || Room == null)
+            return;
+
+        if (_nextMoveTick >= Environment.TickCount64)
+            return;
+
+        _nextMoveTick = Environment.TickCount64 + 50;
+
+        long tick = (long)(1000 / Data.projectile.speed);
+        _nextMoveTick = Environment.TickCount64 + tick;
+
+        Vector2Int destPos = GetFrontCellPos();
+        if (Room.Map.CanGo(destPos))
+        {
+            CellPos = destPos;
+
+            S_Move movePacket = new S_Move();
+            movePacket.ObjectId = Id;
+            movePacket.PosInfo = PosInfo;
+            Room.Broadcast(movePacket);
+
+            Console.WriteLine("Move Arrow");
+        }
+        else
+        {
+            GameObject target = Room.Map.Find(destPos);
+            if(target != null)
+            {
+                target.OnDamaged(this, Data.damage + Owner.Stat.Attack);
+            }
+
+            Room.LeaveGame(Id);
+        }
+    }
+}
 {% endhighlight %}
 
 ### Test
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-Stat.mp4" frameborder="0"> </iframe>
-
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Damage.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
