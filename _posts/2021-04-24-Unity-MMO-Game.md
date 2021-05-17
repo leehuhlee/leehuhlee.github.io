@@ -8016,4 +8016,207 @@ public class Arrow: Projectile
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Damage.mp4" frameborder="0"> </iframe>
 
+## Hp Bar
+
+### Hp Bar UI
+
+* Create Texture
+  - Create 1x1 Pixel for white in Paint tool
+  - Save this pixel png file in `Assets\Resources\Textures`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/66.jpg"><img src="/assets/img/posts/unity_mmogame/66.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+
+* Create HpBar Prefab
+  - Create empty game object and save in `Assets\Resources\Prefabs\UI`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/69.jpg"><img src="/assets/img/posts/unity_mmogame/69.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Create HpBar
+  - Make empty game object and add Sprite Renderer Component on `Background` and `BarSprite`
+  - decorate `Background` and `BarSprite` as HpBar
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/67.jpg"><img src="/assets/img/posts/unity_mmogame/67.jpg"></a>
+  <a href="/assets/img/posts/unity_mmogame/68.jpg"><img src="/assets/img/posts/unity_mmogame/68.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+### Hp Bar Scripts
+
+* Client\Assets\Scripts\Contents\HpBar.cs
+  - Add HpBar Component in HpBar prefab
+
+{% highlight C# %}
+public class HpBar : MonoBehaviour
+{
+    [SerializeField]
+    Transform _hpBar = null;
+
+    public void SetHpBar(float ratio)
+    {
+        // Mathf.Clamp
+        // if(ratio < 0)
+        //     ratio = 0;
+        // if(ratio > 1)
+        //     ratio = 1;
+        ratio = Mathf.Clamp(ratio, 0, 1);
+        _hpBar.localScale = new Vector3(ratio, 1, 1);
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\CreatureController.cs
+{% highlight C# %}
+public class CreatureController : MonoBehaviour
+{
+	HpBar _hpBar;
+	...
+
+	public StatInfo Stat 
+	{
+        get { return _stat; }
+        set 
+		{ 
+			if (_stat.Equals(value))
+				return;
+
+			_stat.Hp = value.Hp;
+			_stat.MaxHp = value.MaxHp;
+			_stat.Speed = value.Speed;
+			UpdateHpBar();
+		}
+	}
+	...
+
+	public int Hp
+    {
+        get { return Stat.Hp; }
+        set 
+		{ 
+			Stat.Hp = value;
+			UpdateHpBar();
+		}
+    }
+
+	protected bool _updated = false;
+
+	PositionInfo _positionInfo = new PositionInfo();
+	public PositionInfo PosInfo
+    {
+        get { return _positionInfo; }
+        set 
+		{ 
+			if (_positionInfo.Equals(value))
+				return;
+
+			CellPos = new Vector3Int(value.PosX, value.PosY, 0);
+			State = value.State;
+			Dir = value.MoveDir;
+		}
+    }
+
+	protected void AddHpBar()
+    {
+		GameObject go = Managers.Resource.Instantiate("UI/HpBar", transform);
+		go.transform.localPosition = new Vector3(0, 0.5f, 0);
+		go.name = "HpBar";
+		_hpBar = go.GetComponent<HpBar>();
+		UpdateHpBar();
+    }
+
+	void UpdateHpBar()
+    {
+		if (_hpBar == null)
+			return;
+
+		float ratio = 0.0f;
+		if(Stat.MaxHp > 0)
+            // int / int  = int (ex. 3 / 2 = 1)
+            // float's priority is higher then integer
+			ratio = ((float)Hp / Stat.MaxHp);
+
+		_hpBar.SetHpBar(ratio);
+    }
+    ...
+
+	protected virtual void Init()
+	{
+		_animator = GetComponent<Animator>();
+		_sprite = GetComponent<SpriteRenderer>();
+		Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		transform.position = pos;
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.Down;
+		UpdateAnimation();
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+	protected Coroutine _coSkill;
+	bool _rangedSkill = false;
+
+	protected override void Init()
+	{
+		base.Init();
+		AddHpBar();
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\PlayerController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	...
+	protected override void Init()
+	{
+		base.Init();
+		AddHpBar();
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_ChangeHpHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeHp changePacket = packet as S_ChangeHp;
+
+		GameObject go = Managers.Object.FindById(changePacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc != null)
+		{
+			cc.Hp = changePacket.Hp;
+		}
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Hp.mp4" frameborder="0"> </iframe>
+
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
