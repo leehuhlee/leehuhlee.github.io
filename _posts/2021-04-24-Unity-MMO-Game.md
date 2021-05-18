@@ -8861,8 +8861,367 @@ public class ObjectManager
 }
 {% endhighlight %}
 
+* Client\Assets\Scripts\Controllers\ArrowController.cs
+{% highlight C# %}
+public class ArrowController : BaseController
+{
+    ...
+}
+{% endhighlight %}
+
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Die.mp4" frameborder="0"> </iframe>
+
+## Search AI
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom
+{
+    ...
+    public void Init(int mapId)
+    {
+        Map.LoadMap(mapId);
+
+        Monster monster = ObjectManager.Instance.Add<Monster>();
+        monster.CellPos = new Vector2Int(5, 5);
+        EnterGame(monster);
+    }
+
+    public void Update()
+    {
+        lock (_lock)
+        {
+            foreach(Monster monster in _monsters.Values)
+            {
+                monster.Update();
+            }
+
+            foreach(Projectile projectile in _projectiles.Values)
+            {
+                projectile.Update();
+            }
+        }
+    }
+
+    public void EnterGame(GameObject gameObject)
+    {
+        if (gameObject == null)
+            return;
+
+        GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+
+        lock (_lock)
+        {
+            ...
+            else if (type == GameObjectType.Monster)
+            {
+                Monster monster = gameObject as Monster;
+                _monsters.Add(gameObject.Id, monster);
+                monster.Room = this;
+
+                Map.ApplyMove(monster, new Vector2Int(monster.CellPos.x, monster.CellPos.y));
+            }
+            ...
+        }
+    }
+    ...
+
+    public Player FindPlayer(Func<GameObject, bool> condition)
+    {
+        foreach(Player player in _players.Values)
+        {
+            if (condition.Invoke(player))
+                return player;
+        }
+        return null;
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster: GameObject
+{
+    public Monster()
+    {
+        ObjectType = GameObjectType.Monster;
+
+        Stat.Level = 1;
+        Stat.Hp = 100;
+        Stat.MaxHp = 100;
+        Stat.Speed = 5.0f;
+
+        State = CreatureState.Idle;
+    }
+
+    //FSM(Finite State Machine)
+    public override void Update()
+    {
+        switch (State)
+        {
+            case CreatureState.Idle:
+                UpdateIdle();
+                break;
+            case CreatureState.Moving:
+                UpdateMoving();
+                break;
+            case CreatureState.Skill:
+                UpdateSkill();
+                break;
+            case CreatureState.Dead:
+                UpdateDead();
+                break;
+        }
+    }
+
+    Player _target;
+    int _searchCellDist = 10;
+    int _chaseCellDist = 20;
+
+    long _nextSearchTick = 0;
+    protected virtual void UpdateIdle()
+    {
+        if (_nextSearchTick > Environment.TickCount64)
+            return;
+        _nextSearchTick = Environment.TickCount64 + 1000;
+
+        Player target = Room.FindPlayer(p =>
+        {
+            Vector2Int dir = p.CellPos - CellPos;
+            return dir.cellDistFromZero <= _searchCellDist;
+        });
+
+        if (target == null)
+            return;
+
+        _target = target;
+        State = CreatureState.Moving;
+    }
+
+    long _nextMoveTick = 0;
+    protected virtual void UpdateMoving()
+    {
+        if (_nextMoveTick > Environment.TickCount64)
+            return;
+        int moveTick = (int)(1000 / Speed);
+        _nextMoveTick = Environment.TickCount64 + moveTick;
+
+        // player exits or moves
+        if(_target == null || _target.Room != Room)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            return;
+        }
+
+        // player runs away so fast
+        int dist = (_target.CellPos - CellPos).cellDistFromZero;
+        if(dist == 0 || dist > _chaseCellDist)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            return;
+        }
+
+        // after search, player is too far away
+        List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: false);
+        if (path.Count < 2 || path.Count > _chaseCellDist)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            return;
+        }
+
+        // move
+        Dir = GetDirFromVec(path[1] - CellPos);
+        Room.Map.ApplyMove(this, path[1]);
+
+        // broadcast
+        S_Move movePacket = new S_Move();
+        movePacket.ObjectId = Id;
+        movePacket.PosInfo = PosInfo;
+        Room.Broadcast(movePacket);
+    }
+
+    protected virtual void UpdateSkill()
+    {
+
+    }
+
+    protected virtual void UpdateDead()
+    {
+
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+    ...
+    public MoveDir Dir 
+    {
+        get { return PosInfo.MoveDir; }
+        set { PosInfo.MoveDir = value; }
+    }
+
+    public CreatureState State
+    {
+        get { return PosInfo.State; }
+        set { PosInfo.State = value; }
+    }
+    ...
+
+    public static MoveDir GetDirFromVec(Vector2Int dir)
+    {
+        if (dir.x > 0)
+            return MoveDir.Right;
+        else if (dir.x < 0)
+            return MoveDir.Left;
+        else if (dir.y > 0)
+            return MoveDir.Up;
+        else
+            return MoveDir.Down;
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\Room\Map.cs
+{% highlight C# %}
+...
+public struct Vector2Int
+{
+    ...
+    public static Vector2Int operator -(Vector2Int a, Vector2Int b)
+    {
+        return new Vector2Int(a.x - b.x, a.y - b.y);
+    }
+
+    public float magnitude { get { return (float)Math.Sqrt(sqrtMagnitude); } }
+    public int sqrtMagnitude { get { return (x * x + y * y); } }
+    public int cellDistFromZero { get { return Math.Abs(x) + Math.Abs(y); } }
+}
+...
+
+public class Map
+{
+    ...
+    public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true)
+    {
+        ...
+        while (pq.Count > 0)
+        {
+           ...
+            for (int i = 0; i < _deltaY.Length; i++)
+            {
+                Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
+
+                if (next.Y != dest.Y || next.X != dest.X)
+                {
+                    if (CanGo(Pos2Cell(next), checkObjects) == false)
+                        continue;
+                }
+                ...
+            }
+        }
+
+        return CalcCellPathFromParent(parent, dest);
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	Coroutine _coSkill;
+
+	[SerializeField]
+	bool _rangedSkill = false;
+
+	protected override void Init()
+	{
+		base.Init();
+
+		State = CreatureState.Idle;
+		Dir = MoveDir.Down;
+		_rangedSkill = (Random.Range(0, 2) == 0 ? true : false);
+	}
+
+	protected override void UpdateIdle()
+	{
+		base.UpdateIdle();
+	}
+
+	public override void OnDamaged()
+	{
+		//Managers.Object.Remove(Id);
+		//Managers.Resource.Destroy(gameObject);
+	}
+
+	IEnumerator CoStartPunch()
+	{
+		GameObject go = Managers.Object.FindCreature(GetFrontCellPos());
+		if (go != null)
+		{
+			CreatureController cc = go.GetComponent<CreatureController>();
+			if (cc != null)
+				cc.OnDamaged();
+		}
+
+		yield return new WaitForSeconds(0.5f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+
+	IEnumerator CoStartShootArrow()
+	{
+		GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+		ArrowController ac = go.GetComponent<ArrowController>();
+		ac.Dir = Dir;
+		ac.CellPos = CellPos;
+
+		yield return new WaitForSeconds(0.3f);
+		State = CreatureState.Moving;
+		_coSkill = null;
+	}
+}
+{% endhighlight %}
+
+
+* Client\Assets\Scripts\Managers\Contents\ObjectManagers.cs
+{% highlight C# %}
+public class ObjectManager
+{
+    ...
+    public void Add(ObjectInfo info, bool myPlayer = false)
+    {
+		...
+        else if(objectType == GameObjectType.Monster){
+			GameObject go = Managers.Resource.Instantiate("Creature/Monster");
+			go.name = info.Name;
+			_objects.Add(info.ObjectId, go);
+
+			MonsterController mc = go.GetComponent<MonsterController>();
+			mc.Id = info.ObjectId;
+			mc.PosInfo = info.PosInfo;
+			mc.Stat = info.StatInfo;
+			mc.syncPos();
+		}
+		...
+	}
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-SearchAI.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
