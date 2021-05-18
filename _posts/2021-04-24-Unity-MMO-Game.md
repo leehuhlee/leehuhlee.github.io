@@ -9224,4 +9224,275 @@ public class ObjectManager
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-SearchAI.mp4" frameborder="0"> </iframe>
 
+## Skill AI
+
+* Client\Assets\Scripts\Controllers\BaseController.cs
+{% highlight C# %}
+public class BaseController : MonoBehaviour
+{
+	...
+	public virtual int Hp
+	{
+		get { return Stat.Hp; }
+		set
+		{
+			Stat.Hp = value;
+		}
+	}
+	...
+	
+	protected virtual void UpdateAnimation()
+	{
+		if (_animator == null || _sprite == null)
+			return;
+		...
+	}
+	...
+
+	protected virtual void Init()
+	{
+		_animator = GetComponent<Animator>();
+		_sprite = GetComponent<SpriteRenderer>();
+		Vector3 pos = Managers.Map.CurrentGrid.CellToWorld(CellPos) + new Vector3(0.5f, 0.5f);
+		transform.position = pos;
+
+		UpdateAnimation();
+	}
+	...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster: GameObject
+{
+    ...
+    int _skillRange = 1;
+    long _nextMoveTick = 0;
+    protected virtual void UpdateMoving()
+    {
+        if (_nextMoveTick > Environment.TickCount64)
+            return;
+        int moveTick = (int)(1000 / Speed);
+        _nextMoveTick = Environment.TickCount64 + moveTick;
+
+        if(_target == null || _target.Room != Room)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            BroadcastMove();
+            return;
+        }
+
+        Vector2Int dir = _target.CellPos - CellPos;
+        int dist = dir.cellDistFromZero;
+        if(dist == 0 || dist > _chaseCellDist)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            BroadcastMove();
+            return;
+        }
+
+        List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: false);
+        if (path.Count < 2 || path.Count > _chaseCellDist)
+        {
+            _target = null;
+            State = CreatureState.Idle;
+            BroadcastMove();
+            return;
+        }
+
+        // Check for changing skill mode
+        if(dist <= _skillRange && (dir.x == 0 || dir.y==0))
+        {
+            _coolTick = 0;
+            State = CreatureState.Skill;
+            return;
+        }
+
+        Dir = GetDirFromVec(path[1] - CellPos);
+        Room.Map.ApplyMove(this, path[1]);
+        BroadcastMove();
+    }
+
+    void BroadcastMove()
+    {
+        S_Move movePacket = new S_Move();
+        movePacket.ObjectId = Id;
+        movePacket.PosInfo = PosInfo;
+        Room.Broadcast(movePacket);
+    }
+
+    long _coolTick = 0;
+    protected virtual void UpdateSkill()
+    {
+        if(_coolTick == 0)
+        {
+            // check to valid target
+            if(_target == null || _target.Room != Room || _target.Hp == 0)
+            {
+                _target = null;
+                State = CreatureState.Moving;
+                BroadcastMove();
+                return;
+            }
+
+            // check to can use skill
+            Vector2Int dir = (_target.CellPos - CellPos);
+            int dist = dir.cellDistFromZero;
+            bool canUseSkill = (dist <= _skillRange && (dir.x == 0 || dir.y == 0));
+            if(canUseSkill == false)
+            {
+                State = CreatureState.Moving;
+                BroadcastMove();
+                return;
+            }
+
+            // change direction to target
+            MoveDir lookDir = GetDirFromVec(dir);
+            if(Dir != lookDir)
+            {
+                Dir = lookDir;
+                BroadcastMove();
+            }
+
+            Skill skillData = null;
+            DataManager.SkillDict.TryGetValue(1, out skillData);
+
+            // damage detection
+            _target.OnDamaged(this, skillData.damage + Stat.Attack);
+
+            // Broadcast for using skill
+            S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+            skill.ObjectId = Id;
+            skill.Info.SkillId = skillData.id;
+            Room.Broadcast(skill);
+
+            // apply skill cooltime
+            int coolTick = (int)(1000 * skillData.cooldown);
+            _coolTick = Environment.TickCount64 + coolTick;
+        }
+
+        if (_coolTick > Environment.TickCount64)
+            return;
+
+        _coolTick = 0;
+    }
+
+    protected virtual void UpdateDead() { }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+    ...
+    public int Hp
+    {
+        get { return Stat.Hp; }
+        set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Resources\Data\SkillData.json
+{% highlight json %}
+{
+  "skills": [
+    {
+      "id": "1",
+      "name": "Normal Attack",
+      "cooldown": "0.5",
+      "damage": "10",
+      "skillType": "SkillAuto"
+    },
+    {
+      "id": "2",
+      "name": "Arrow Attack",
+      "cooldown": "0.5",
+      "damage": "5",
+      "skillType": "SkillProjectile",
+      "projectile": {
+        "name": "Arrow",
+        "speed": "20.0",
+        "range": "10",
+        "prefab": "Creature/Arrow"
+      }
+    }
+  ]
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\MonsterController.cs
+{% highlight C# %}
+public class MonsterController : CreatureController
+{
+	...
+	protected override void Init()
+	{
+		base.Init();
+	}
+	...
+
+	public override void UseSkill(int skillId)
+	{
+		if (skillId == 1)
+		{
+			State = CreatureState.Skill;
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_SkillHandler(PacketSession session, IMessage packet)
+	{
+		S_Skill skillPacket = packet as S_Skill;
+
+		GameObject go = Managers.Object.FindById(skillPacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if(cc != null)
+        {
+			cc.UseSkill(skillPacket.Info.SkillId);
+        }
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\CreatureController.cs
+{% highlight C# %}
+public class CreatureController : BaseController
+{
+	...
+	public virtual void UseSkill(int skillId) { }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\PlayerController.cs
+{% highlight C# %}
+public class PlayerController : CreatureController
+{
+	...
+	public override void UseSkill(int skillId)
+    {
+		...
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-SkillAI.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
