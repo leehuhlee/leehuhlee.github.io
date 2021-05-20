@@ -9495,4 +9495,146 @@ public class PlayerController : CreatureController
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Server-SkillAI.mp4" frameborder="0"> </iframe>
 
+# Advanced
+
+## Command Pattern
+  - There are too much lock
+  - This process is for dereasing lock
+
+* Delete `ServerCore\JobQueue.cs`
+
+* Server\Game\Job\Job.cs
+{% highlight C# %}
+public interface IJob
+{
+    void Excute();
+}
+public class Job : IJob
+{
+    Action _action;
+
+    public Job(Action action)
+    {
+        _action = action;
+    }
+
+    public void Excute()
+    {
+        _action.Invoke();
+    }
+}
+
+public class Job<T1> : IJob
+{
+    Action<T1> _action;
+    T1 _t1;
+
+    public Job(Action<T1> action, T1 t1)
+    {
+        _action = action;
+        _t1 = t1;
+    }
+
+    public void Excute()
+    {
+        _action.Invoke(_t1);
+    }
+}
+
+public class Job<T1, T2> : IJob
+{
+    Action<T1, T2> _action;
+    T1 _t1;
+    T2 _t2;
+
+    public Job(Action<T1, T2> action, T1 t1, T2 t2)
+    {
+        _action = action;
+        _t1 = t1;
+        _t2 = t2;
+    }
+
+    public void Excute()
+    {
+        _action.Invoke(_t1, _t2);
+    }
+}
+
+public class Job<T1, T2, T3> : IJob
+{
+    Action<T1, T2, T3> _action;
+    T1 _t1;
+    T2 _t2;
+    T3 _t3;
+
+    public Job(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3)
+    {
+        _action = action;
+        _t1 = t1;
+        _t2 = t2;
+        _t3 = t3;
+    }
+
+    public void Excute()
+    {
+        _action.Invoke(_t1, _t2, _t3);
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Job\JobSerializer.cs
+{% highlight C# %}
+public class JobSerializer
+{
+    Queue<IJob> _jobQueue = new Queue<IJob>();
+    object _lock = new object();
+    bool _flush = false;
+
+    public void Push(Action action) { Push(new Job(action)); }
+    public void Push<T1>(Action<T1> action, T1 t1) { Push(new Job<T1>(action, t1)); }
+    public void Push<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2) { Push(new Job<T1, T2>(action, t1, t2)); }
+    public void Push<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3) { Push(new Job<T1, T2, T3>(action, t1, t2, t3)); }
+
+    public void Push(IJob job)
+    {
+        bool flush = false;
+
+        lock (_lock)
+        {
+            _jobQueue.Enqueue(job);
+            if (_flush == false)
+                flush = _flush = true;
+        }
+
+        if (flush)
+            Flush();
+    }
+
+    void Flush()
+    {
+        while (true)
+        {
+            IJob job = Pop();
+            if (job == null)
+                return;
+
+            job.Excute();
+        }
+    }
+
+    IJob Pop()
+    {
+        lock (_lock)
+        {
+            if (_jobQueue.Count == 0)
+            {
+                _flush = false;
+                return null;
+            }
+            return _jobQueue.Dequeue();
+        }
+    }
+}
+{% endhighlight %}
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
