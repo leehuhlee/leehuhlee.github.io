@@ -8042,7 +8042,7 @@ public class Arrow: Projectile
   - Make empty game object and add Sprite Renderer Component on `Background` and `BarSprite`
   - decorate `Background` and `BarSprite` as HpBar
 
-<figure>
+<figure class="half">
   <a href="/assets/img/posts/unity_mmogame/67.jpg"><img src="/assets/img/posts/unity_mmogame/67.jpg"></a>
   <a href="/assets/img/posts/unity_mmogame/68.jpg"><img src="/assets/img/posts/unity_mmogame/68.jpg"></a>
 	<figcaption>Unity MMO Game</figcaption>
@@ -10080,5 +10080,203 @@ public class Map
     ...
 }
 {% endhighlight %}
+
+## Job Timer
+
+* Move JobTimer.cs to Game\Job\JobTimer.cs
+  - and change namespace to `Server.Game`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmogame/70.jpg"><img src="/assets/img/posts/unity_mmogame/70.jpg"></a>
+	<figcaption>Unity MMO Game</figcaption>
+</figure>
+
+* Server\Game\Job\JobTimer.cs
+{% highlight C# %}
+struct JobTimerElem : IComparable<JobTimerElem>
+{
+    public int execTick;
+    public IJob job;
+
+    public int CompareTo(JobTimerElem other)
+    {
+        return other.execTick - execTick;
+    }
+}
+
+class JobTimer
+{
+    PriorityQueue<JobTimerElem> _pq = new PriorityQueue<JobTimerElem>();
+    object _lock = new object();
+
+    public void Push(IJob job, int tickAfter = 0)
+    {
+        JobTimerElem jobElement;
+        jobElement.execTick = System.Environment.TickCount + tickAfter;
+        jobElement.job = job;
+
+        lock (_lock)
+        {
+            _pq.Push(jobElement);
+        }
+    }
+
+    public void Flush()
+    {
+        while (true)
+        {
+            int now = System.Environment.TickCount;
+
+            JobTimerElem jobElement;
+
+            lock (_lock)
+            {
+                if (_pq.Count == 0)
+                    break;
+
+                jobElement = _pq.Peek();
+                if (jobElement.execTick > now)
+                    break;
+
+                _pq.Pop();
+            }
+
+            jobElement.job.Excute();
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static List<System.Timers.Timer> _timers = new List<System.Timers.Timer>();
+
+    static void TickRoom(GameRoom room, int tick = 100)
+    {
+        var timer = new System.Timers.Timer();
+        timer.Interval = tick;
+        timer.Elapsed += ((s, e) => { room.Update(); });
+        timer.AutoReset = true;
+        timer.Enabled = true;
+
+        _timers.Add(timer);
+    }
+
+    static void Main(string[] args)
+    {
+        ConfigManager.LoadConfig();
+        DataManager.LoadData();
+
+        GameRoom room = RoomManager.Instance.Add(1);
+        TickRoom(room, 50);
+
+        string host = Dns.GetHostName();
+        IPHostEntry ipHost = Dns.GetHostEntry(host);
+        IPAddress ipAddr = ipHost.AddressList[0];
+        IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+        _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+        Console.WriteLine("Listening...");
+
+        // Never Close
+        while (true)
+        {
+            Thread.Sleep(100);
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Job\JobSerializer.cs
+{% highlight C# %}
+public class JobSerializer
+{
+    JobTimer _timer = new JobTimer();
+    Queue<IJob> _jobQueue = new Queue<IJob>();
+    object _lock = new object();
+    bool _flush = false;
+
+    public void PushAfter(int tickAfter, Action action) { PushAfter(tickAfter, new Job(action)); }
+    public void PushAfter<T1>(int tickAfter, Action<T1> action, T1 t1) { PushAfter(tickAfter, new Job<T1>(action, t1)); }
+    public void PushAfter<T1, T2>(int tickAfter, Action<T1, T2> action, T1 t1, T2 t2) { PushAfter(tickAfter, new Job<T1, T2>(action, t1, t2)); }
+    public void PushAfter<T1, T2, T3>(int tickAfter, Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3) { PushAfter(tickAfter, new Job<T1, T2, T3>(action, t1, t2, t3)); }
+
+    public void PushAfter(int tickAfter, IJob job)
+    {
+        _timer.Push(job, tickAfter);
+    }
+
+    ...
+    public void Push(IJob job)
+    {
+        lock (_lock)
+        {
+            _jobQueue.Enqueue(job);
+        }
+    }
+
+    public void Flush()
+    {
+        _timer.Flush();
+        while (true)
+        {
+            IJob job = Pop();
+            if (job == null)
+                return;
+
+            job.Excute();
+        }
+    }
+    ...
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom: JobSerializer
+{
+    ...
+    public void Init(int mapId)
+    {
+        Map.LoadMap(mapId);
+
+        Monster monster = ObjectManager.Instance.Add<Monster>();
+        monster.CellPos = new Vector2Int(5, 5);
+        EnterGame(monster);
+
+        TestTimer();
+    }
+
+    void TestTimer()
+    {
+        Console.WriteLine("Test Timer");
+        PushAfter(100, TestTimer);
+    }
+
+    // Regular call
+    public void Update()
+    {
+        foreach(Monster monster in _monsters.Values)
+        {
+            monster.Update();
+        }
+
+        foreach(Projectile projectile in _projectiles.Values)
+        {
+            projectile.Update();
+        }
+
+        Flush();
+    }
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-JobTimer.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
