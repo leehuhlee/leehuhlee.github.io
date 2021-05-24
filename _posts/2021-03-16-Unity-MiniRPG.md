@@ -9,6 +9,10 @@ comments: false
 
 <center>Reference by <a href="https://www.inflearn.com/course/MMORPG-%EC%9C%A0%EB%8B%88%ED%8B%B0/dashboard">[C#과 유니티로 만드는 MMORPG 게임 개발 시리즈] Part3: 유니티 엔진</a></center>
 
+# Demo
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Monster-Generator.mp4" frameborder="0"> </iframe>
+
 # Setting Environment
 
 * Asset Store
@@ -1746,6 +1750,5 @@ protected override void Init()
 {% endhighlight %}
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_minirpg/MiniRPG-Monster-Generator.mp4" frameborder="0"> </iframe>
-
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}

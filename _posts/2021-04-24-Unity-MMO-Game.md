@@ -9,6 +9,10 @@ comments: false
 
 <center>Reference by <a href="https://www.inflearn.com/course/%EC%9C%A0%EB%8B%88%ED%8B%B0-mmorpg-%EA%B0%9C%EB%B0%9C-part7/dashboard">[C#과 유니티로 만드는 MMORPG 게임 개발 시리즈] Part7: MMO 컨텐츠 구현 (Unity + C# 서버 연동 기초)</a></center>
 
+# Demo
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Demo.mp4" frameborder="0"> </iframe>
+
 # Client
 
 ## Set for 2D
@@ -10278,5 +10282,99 @@ public class GameRoom: JobSerializer
 ### Test
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-JobTimer.mp4" frameborder="0"> </iframe>
+
+## Bug Fix
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom: JobSerializer
+{
+    ...
+    public void Init(int mapId)
+    {
+        Map.LoadMap(mapId);
+
+        Monster monster = ObjectManager.Instance.Add<Monster>();
+        monster.CellPos = new Vector2Int(5, 5);
+        EnterGame(monster);
+        // Remove Log
+    }
+
+    // Remove TestTick
+    ...
+
+    public void LeaveGame(int objectId)
+    {
+        ...
+        else if (type == GameObjectType.Monster)
+        {
+            Monster monster = null;
+            if (_monsters.Remove(objectId, out monster) == false)
+                return;
+
+            // ApplyLeave First, then Room can be null
+            Map.ApplyLeave(monster);
+            monster.Room = null;
+        }
+        ...
+    }
+}
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void C_MoveHandler(PacketSession session, IMessage packet)
+	{
+		C_Move movePacket = packet as C_Move;
+		ClientSession clientSession = session as ClientSession;
+
+		Player player = clientSession.MyPlayer;
+		if (clientSession.MyPlayer == null)
+			return;
+
+        // Remove Log
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.Push(room.HandleMove, player, movePacket);
+	}
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	...
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+
+		GameObject go = Managers.Object.FindById(movePacket.ObjectId);
+		if (go == null)
+			return;
+
+		if (Managers.Object.MyPlayer.Id == movePacket.ObjectId)
+			return;
+
+		BaseController bc = go.GetComponent<BaseController>();
+		if (bc == null)
+			return;
+
+		bc.PosInfo = movePacket.PosInfo;
+
+	}
+    ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmogame/MMO-Game-Demo.mp4" frameborder="0"> </iframe>
+
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
