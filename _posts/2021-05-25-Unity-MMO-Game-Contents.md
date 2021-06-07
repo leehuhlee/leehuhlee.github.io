@@ -111,25 +111,154 @@ public class ServerConfig
 
 * Server\Program.cs
 {% highlight C# %}
-...
-static void Main(string[] args)
+class Program
 {
-    ConfigManager.LoadConfig();
-    DataManager.LoadData();
-
-    // DB Test
-    using(AppDbContext db = new AppDbContext())
+    ...
+    static void Main(string[] args)
     {
-        db.Accounts.Add(new AccountDb() { AccountName = "TestAccount" });
-        db.SaveChanges();
+        ConfigManager.LoadConfig();
+        DataManager.LoadData();
+
+        // DB Test
+        using(AppDbContext db = new AppDbContext())
+        {
+            db.Accounts.Add(new AccountDb() { AccountName = "TestAccount" });
+            db.SaveChanges();
+        }
+        ...
     }
     ...
 }
-...
 {% endhighlight %}
 
 <figure>
   <a href="/assets/img/posts/unity_mmocontents/5.jpg"><img src="/assets/img/posts/unity_mmocontents/5.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+## Access
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+  C_SKILL = 6;
+  S_SKILL = 7;
+  S_CHANGE_HP = 8;
+  S_DIE = 9;
+  S_CONNECTED = 10;
+  C_LOGIN = 11;
+  S_LOGIN = 12;
+}
+...
+
+message S_Connected{
+}
+
+message C_Login{
+  string uniqueId = 1;
+}
+
+message S_Login{
+  int32 loginOk = 1;
+}
+...
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public class ClientSession : PacketSession
+{
+    ...
+    public override void OnConnected(EndPoint endPoint)
+    {
+        Console.WriteLine($"OnConnected : {endPoint}");
+
+        // Connection Resqawn
+        {
+            S_Connected connectedPacket = new S_Connected();
+            Send(connectedPacket);
+        }
+        ...
+    }
+}
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    ...
+    public static void C_LoginHandler(PacketSession session, IMessage packet)
+	{
+		C_Login loginPacket = packet as C_Login;
+		ClientSession clientSession = session as ClientSession;
+
+        Console.WriteLine($"UniqueId({loginPacket.UniqueId})");
+
+		// TODO: Security Check
+
+		//
+		using(AppDbContext db = new AppDbContext())
+        {
+			AccountDb findAccount = db.Accounts.Where(a => a.AccountName == loginPacket.UniqueId).FirstOrDefault();
+
+            // exist account
+			if(findAccount != null)
+            {
+				S_Login loginOk = new S_Login() { LoginOk = 1 };
+				clientSession.Send(loginOk);
+            }
+            // not exist account
+            // create new account
+            else
+            {
+				AccountDb newAccount = new AccountDb() { AccountName = loginPacket.UniqueId };
+				db.Accounts.Add(newAccount);
+				db.SaveChanges();
+
+				S_Login loginOk = new S_Login() { LoginOk = 1 };
+				clientSession.Send(loginOk);
+			}
+        }
+	}
+}
+
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+    ...
+	public static void S_ConnectedHandler(PacketSession session, IMessage packet)
+	{
+		Debug.Log("S_ConnectedHandler");
+		C_Login loginPacket = new C_Login();
+        // Use Unique Identifier
+		loginPacket.UniqueId = SystemInfo.deviceUniqueIdentifier;
+		Managers.Network.Send(loginPacket);
+	}
+
+	public static void S_LoginHandler(PacketSession session, IMessage packet)
+	{
+		S_Login loginPacket = (S_Login)packet;
+		Debug.Log($"LoginOk({loginPacket.LoginOk})");
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/6.jpg"><img src="/assets/img/posts/unity_mmocontents/6.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/7.jpg"><img src="/assets/img/posts/unity_mmocontents/7.jpg"></a>
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
 
