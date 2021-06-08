@@ -262,4 +262,176 @@ class PacketHandler
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
 
+## Player Link
+
+### Server
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+  C_SKILL = 6;
+  S_SKILL = 7;
+  S_CHANGE_HP = 8;
+  S_DIE = 9;
+  S_CONNECTED = 10;
+  C_LOGIN = 11;
+  S_LOGIN = 12;
+  C_ENTER_GAME = 13;
+  C_CREATE_PLAYER = 14;
+  S_CREATE_PLAYER = 15;
+}
+...
+
+enum PlayerServerState {
+  SERVER_STATE_LOGIN = 0;
+  SERVER_STATE_LOBBY = 1;
+  SERVER_STATE_GAME = 2;
+}
+...
+
+message S_Login{
+  int32 loginOk = 1;
+  repeated LobbyPlayerInfo players = 2;
+}
+
+message C_CreatePlayer{
+  string name = 1;
+}
+
+message S_CreatePlayer{
+  LobbyPlayerInfo player = 1;
+}
+
+message C_EnterGame{
+  string name = 1;
+}
+
+message LobbyPlayerInfo{
+  string name = 1;
+  StatInfo statInfo = 2;
+}
+...
+{% endhighlight %}
+
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void C_LoginHandler(PacketSession session, IMessage packet)
+  {
+    C_Login loginPacket = packet as C_Login;
+    ClientSession clientSession = session as ClientSession;
+    clientSession.HandleLogin(loginPacket);
+  }
+
+  public static void C_EnterGameHandler(PacketSession session, IMessage packet)
+    {
+    C_EnterGame enterGamePacket = (C_EnterGame)packet;
+    ClientSession clientSession = (ClientSession)session;
+    }
+
+  public static void C_CreatePlayerHandler(PacketSession session, IMessage packet)
+  {
+    C_CreatePlayer createPlayerPacket = (C_CreatePlayer)packet;
+    ClientSession clientSession = (ClientSession)session;
+  }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  public PlayerServerState ServerState { get; private set; } = PlayerServerState.ServerStateLogin;
+  
+  ...
+
+  #region Network
+  public void Send(IMessage packet) { ... }
+
+  public override void OnConnected(EndPoint endPoint) { ... }
+
+  public override void OnRecvPacket(ArraySegment<byte> buffer) { ... }
+
+  public override void OnDisconnected(EndPoint endPoint) { ... }
+
+  public override void OnSend(int numOfBytes) { }
+  #endregion
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession_PreGame.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  public void HandleLogin(C_Login loginPacket)
+  {
+    // TODO: Security Check
+    if (ServerState != PlayerServerState.ServerStateLogin)
+      return;
+
+    // If more than two people conciquently send UniqueId?
+    // If people Send several times with bad intend?
+    // If people send just this packet in unproper timing?
+    using (AppDbContext db = new AppDbContext())
+    {
+      AccountDb findAccount = db.Accounts.Include(a => a.Players).Where(a => a.AccountName == loginPacket.UniqueId).FirstOrDefault();
+
+      if (findAccount != null)
+      {
+        S_Login loginOk = new S_Login() { LoginOk = 1 };
+        Send(loginOk);
+      }
+      else
+      {
+        AccountDb newAccount = new AccountDb() { AccountName = loginPacket.UniqueId };
+        db.Accounts.Add(newAccount);
+        db.SaveChanges();
+
+        S_Login loginOk = new S_Login() { LoginOk = 1 };
+        Send(loginOk);
+      }
+    }
+  }
+}
+{% endhighlight %}
+
+* Server\DB\DataModel.cs
+{% highlight C# %}
+[Table("Player")]
+public class PlayerDb
+{
+    public int PlayerDbId { get; set; }
+    public string PlayerName { get; set; }
+
+    [ForeignKey("Account")]
+    public int AccountDbId { get; set; }
+    public AccountDb Account { get; set; }
+
+    public int Level { get; set; }
+    public int Hp { get; set; }
+    public int MaxHp { get; set; }
+    public int Attack { get; set; }
+    public float Speed { get; set; }
+    public int TotalExp { get; set; }
+}
+{% endhighlight %}
+
+* Package Manager Console
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/8.jpg"><img src="/assets/img/posts/unity_mmocontents/8.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/9.jpg"><img src="/assets/img/posts/unity_mmocontents/9.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
