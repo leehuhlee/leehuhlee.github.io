@@ -3,6 +3,7 @@ layout: post
 title: "[Unity] MMO Game"
 date: 2021-04-24
 excerpt: "MMO Game 2D"
+project: true
 tags: [C#, Unity, Game, MMO, 2D]
 comments: false
 ---

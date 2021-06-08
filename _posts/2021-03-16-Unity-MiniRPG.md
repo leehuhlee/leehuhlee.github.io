@@ -3,6 +3,7 @@ layout: post
 title: "[Unity] Mini RPG"
 date: 2021-03-15
 excerpt: "Framework"
+project: true
 tags: [Unity, Game]
 comments: false
 ---
