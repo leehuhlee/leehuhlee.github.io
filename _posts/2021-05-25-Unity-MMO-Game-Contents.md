@@ -325,25 +325,58 @@ message LobbyPlayerInfo{
 {% highlight C# %}
 class PacketHandler
 {
-  ...
-  public static void C_LoginHandler(PacketSession session, IMessage packet)
-  {
-    C_Login loginPacket = packet as C_Login;
-    ClientSession clientSession = session as ClientSession;
-    clientSession.HandleLogin(loginPacket);
-  }
+	public static void C_MoveHandler(PacketSession session, IMessage packet)
+	{
+		C_Move movePacket = packet as C_Move;
+		ClientSession clientSession = session as ClientSession;
 
-  public static void C_EnterGameHandler(PacketSession session, IMessage packet)
-    {
-    C_EnterGame enterGamePacket = (C_EnterGame)packet;
-    ClientSession clientSession = (ClientSession)session;
-    }
+		Player player = clientSession.MyPlayer;
+		if (player == null)
+			return;
 
-  public static void C_CreatePlayerHandler(PacketSession session, IMessage packet)
-  {
-    C_CreatePlayer createPlayerPacket = (C_CreatePlayer)packet;
-    ClientSession clientSession = (ClientSession)session;
-  }
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.Push(room.HandleMove, player, movePacket);
+	}
+
+	public static void C_SkillHandler(PacketSession session, IMessage packet)
+	{
+		C_Skill skillPacket = packet as C_Skill;
+		ClientSession clientSession = session as ClientSession;
+
+		Player player = clientSession.MyPlayer;
+		if (player == null)
+			return;
+
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.Push(room.HandleSkill, player, skillPacket);
+	}
+
+	public static void C_LoginHandler(PacketSession session, IMessage packet)
+	{
+		C_Login loginPacket = packet as C_Login;
+		ClientSession clientSession = session as ClientSession;
+		clientSession.HandleLogin(loginPacket);
+	}
+
+	public static void C_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		C_EnterGame enterGamePacket = (C_EnterGame)packet;
+		ClientSession clientSession = (ClientSession)session;
+		clientSession.HandleEnterGame(enterGamePacket);
+	}
+
+	public static void C_CreatePlayerHandler(PacketSession session, IMessage packet)
+	{
+		C_CreatePlayer createPlayerPacket = (C_CreatePlayer)packet;
+		ClientSession clientSession = (ClientSession)session;
+		clientSession.HandleCreatePlayer(createPlayerPacket);
+	}
 }
 {% endhighlight %}
 
@@ -351,21 +384,54 @@ class PacketHandler
 {% highlight C# %}
 public partial class ClientSession : PacketSession
 {
-  public PlayerServerState ServerState { get; private set; } = PlayerServerState.ServerStateLogin;
-  
-  ...
+  public partial class ClientSession : PacketSession
+	{
+		public PlayerServerState ServerState { get; private set; } = PlayerServerState.ServerStateLogin;
 
-  #region Network
-  public void Send(IMessage packet) { ... }
+		public Player MyPlayer { get; set; }
+		public int SessionId { get; set; }
+		
+		#region Network
+		public void Send(IMessage packet)
+		{
+			string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+			MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+			ushort size = (ushort)packet.CalculateSize();
+			byte[] sendBuffer = new byte[size + 4];
+			Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+			Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+			Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+			Send(new ArraySegment<byte>(sendBuffer));
+		}
 
-  public override void OnConnected(EndPoint endPoint) { ... }
+		public override void OnConnected(EndPoint endPoint)
+		{
+			Console.WriteLine($"OnConnected : {endPoint}");
 
-  public override void OnRecvPacket(ArraySegment<byte> buffer) { ... }
+			{
+				S_Connected connectedPacket = new S_Connected();
+				Send(connectedPacket);
+			}
+		}
 
-  public override void OnDisconnected(EndPoint endPoint) { ... }
+		public override void OnRecvPacket(ArraySegment<byte> buffer)
+		{
+			PacketManager.Instance.OnRecvPacket(this, buffer);
+		}
 
-  public override void OnSend(int numOfBytes) { }
-  #endregion
+		public override void OnDisconnected(EndPoint endPoint)
+		{
+			GameRoom room = RoomManager.Instance.Find(1);
+			room.Push(room.LeaveGame, MyPlayer.Info.ObjectId);
+
+			SessionManager.Instance.Remove(this);
+
+			Console.WriteLine($"OnDisconnected : {endPoint}");
+		}
+
+		public override void OnSend(int numOfBytes) { }
+		#endregion
+	}
 }
 {% endhighlight %}
 
@@ -373,32 +439,156 @@ public partial class ClientSession : PacketSession
 {% highlight C# %}
 public partial class ClientSession : PacketSession
 {
+  public int AccountDbId { get; private set; }
+  public List<LobbyPlayerInfo> LobbyPlayers { get; set; } = new List<LobbyPlayerInfo>();
+
   public void HandleLogin(C_Login loginPacket)
   {
-    // TODO: Security Check
     if (ServerState != PlayerServerState.ServerStateLogin)
       return;
 
-    // If more than two people conciquently send UniqueId?
-    // If people Send several times with bad intend?
-    // If people send just this packet in unproper timing?
+    LobbyPlayers.Clear();
+
     using (AppDbContext db = new AppDbContext())
     {
-      AccountDb findAccount = db.Accounts.Include(a => a.Players).Where(a => a.AccountName == loginPacket.UniqueId).FirstOrDefault();
+      AccountDb findAccount = db.Accounts
+        .Include(a => a.Players)
+        .Where(a => a.AccountName == loginPacket.UniqueId).FirstOrDefault();
 
       if (findAccount != null)
       {
+        AccountDbId = findAccount.AccountDbId;
+
         S_Login loginOk = new S_Login() { LoginOk = 1 };
+        foreach (PlayerDb playerDb in findAccount.Players)
+        {
+          LobbyPlayerInfo lobbyPlayer = new LobbyPlayerInfo()
+          {
+            Name = playerDb.PlayerName,
+            StatInfo = new StatInfo()
+            {
+              Level = playerDb.Level,
+              Hp = playerDb.Hp,
+              MaxHp = playerDb.MaxHp,
+              Attack = playerDb.Attack,
+              Speed = playerDb.Speed,
+              TotalExp = playerDb.TotalExp
+            }
+          };
+
+          // Add in memory
+          LobbyPlayers.Add(lobbyPlayer);
+
+          // Add in packet
+          loginOk.Players.Add(lobbyPlayer);
+        }
+
         Send(loginOk);
+        // move to Lobby
+        ServerState = PlayerServerState.ServerStateLobby;
       }
       else
       {
         AccountDb newAccount = new AccountDb() { AccountName = loginPacket.UniqueId };
         db.Accounts.Add(newAccount);
-        db.SaveChanges();
+        db.SaveChanges(); // TODO : Exception 
+
+        // memory AccountDbId
+        AccountDbId = newAccount.AccountDbId;
 
         S_Login loginOk = new S_Login() { LoginOk = 1 };
         Send(loginOk);
+        // Move to Lobby
+        ServerState = PlayerServerState.ServerStateLobby;
+      }
+    }
+  }
+
+  public void HandleEnterGame(C_EnterGame enterGamePacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLobby)
+      return;
+
+    LobbyPlayerInfo playerInfo = LobbyPlayers.Find(p => p.Name == enterGamePacket.Name);
+    if (playerInfo == null)
+      return;
+
+    MyPlayer = ObjectManager.Instance.Add<Player>();
+    {
+      MyPlayer.Info.Name = playerInfo.Name;
+      MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+      MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+      MyPlayer.Info.PosInfo.PosX = 0;
+      MyPlayer.Info.PosInfo.PosY = 0;
+      MyPlayer.Stat.MergeFrom(playerInfo.StatInfo);
+      MyPlayer.Session = this;
+    }
+
+    ServerState = PlayerServerState.ServerStateGame;
+
+    GameRoom room = RoomManager.Instance.Find(1);
+    room.Push(room.EnterGame, MyPlayer);
+  }
+
+  public void HandleCreatePlayer(C_CreatePlayer createPacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLobby)
+      return;
+
+    using (AppDbContext db = new AppDbContext())
+    {
+      PlayerDb findPlayer = db.Players
+        .Where(p => p.PlayerName == createPacket.Name).FirstOrDefault();
+
+      if (findPlayer != null)
+      {
+        // Exist name
+        Send(new S_CreatePlayer());
+      }
+      else
+      {
+        // Extract 1 Level Stat Info
+        StatInfo stat = null;
+        DataManager.StatDict.TryGetValue(1, out stat);
+
+        // Create Player in DB
+        PlayerDb newPlayerDb = new PlayerDb()
+        {
+          PlayerName = createPacket.Name,
+          Level = stat.Level,
+          Hp = stat.Hp,
+          MaxHp = stat.MaxHp,
+          Attack = stat.Attack,
+          Speed = stat.Speed,
+          TotalExp = 0,
+          AccountDbId = AccountDbId
+        };
+
+        db.Players.Add(newPlayerDb);
+        db.SaveChanges(); // TODO : ExceptionHandling
+
+        // Add in memory
+        LobbyPlayerInfo lobbyPlayer = new LobbyPlayerInfo()
+        {
+          Name = createPacket.Name,
+          StatInfo = new StatInfo()
+          {
+            Level = stat.Level,
+            Hp = stat.Hp,
+            MaxHp = stat.MaxHp,
+            Attack = stat.Attack,
+            Speed = stat.Speed,
+            TotalExp = 0
+          }
+        };
+
+        LobbyPlayers.Add(lobbyPlayer);
+
+        // Send to Client
+        S_CreatePlayer newPlayer = new S_CreatePlayer() { Player = new LobbyPlayerInfo() };
+        newPlayer.Player.MergeFrom(lobbyPlayer);
+
+        Send(newPlayer);
       }
     }
   }
@@ -407,23 +597,31 @@ public partial class ClientSession : PacketSession
 
 * Server\DB\DataModel.cs
 {% highlight C# %}
-[Table("Player")]
-public class PlayerDb
-{
-    public int PlayerDbId { get; set; }
-    public string PlayerName { get; set; }
+[Table("Account")]
+	public class AccountDb
+	{
+		public int AccountDbId { get; set; }
+		public string AccountName { get; set; }
+		public ICollection<PlayerDb> Players { get; set; }
+	}
 
-    [ForeignKey("Account")]
-    public int AccountDbId { get; set; }
-    public AccountDb Account { get; set; }
+	[Table("Player")]
+	public class PlayerDb
+	{
+		public int PlayerDbId { get; set; }
+		public string PlayerName { get; set; }
 
-    public int Level { get; set; }
-    public int Hp { get; set; }
-    public int MaxHp { get; set; }
-    public int Attack { get; set; }
-    public float Speed { get; set; }
-    public int TotalExp { get; set; }
-}
+		[ForeignKey("Account")]
+		public int AccountDbId { get; set; }
+		public AccountDb Account { get; set; }
+
+		public int Level { get; set; }
+		public int Hp { get; set; }
+		public int MaxHp { get; set; }
+		public int Attack { get; set; }
+		public float Speed { get; set; }
+		public int TotalExp { get; set; }
+	}
 {% endhighlight %}
 
 * Package Manager Console
@@ -433,5 +631,158 @@ public class PlayerDb
   <a href="/assets/img/posts/unity_mmocontents/9.jpg"><img src="/assets/img/posts/unity_mmocontents/9.jpg"></a>
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
+
+### Client
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	public static void S_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		S_EnterGame enterGamePacket = packet as S_EnterGame;
+		Managers.Object.Add(enterGamePacket.Player, myPlayer: true);
+	}
+
+	public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
+	{
+		S_LeaveGame leaveGameHandler = packet as S_LeaveGame;
+		Managers.Object.Clear();
+	}
+
+	public static void S_SpawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Spawn spawnPacket = packet as S_Spawn;
+		foreach (ObjectInfo obj in spawnPacket.Objects)
+		{
+			Managers.Object.Add(obj, myPlayer: false);
+		}
+	}
+
+	public static void S_DespawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Despawn despawnPacket = packet as S_Despawn;
+		foreach (int id in despawnPacket.ObjectIds)
+		{
+			Managers.Object.Remove(id);
+		}
+	}
+
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+
+		GameObject go = Managers.Object.FindById(movePacket.ObjectId);
+		if (go == null)
+			return;
+
+		if (Managers.Object.MyPlayer.Id == movePacket.ObjectId)
+			return;
+
+		BaseController bc = go.GetComponent<BaseController>();
+		if (bc == null)
+			return;
+
+		bc.PosInfo = movePacket.PosInfo;
+	}
+
+	public static void S_SkillHandler(PacketSession session, IMessage packet)
+	{
+		S_Skill skillPacket = packet as S_Skill;
+
+		GameObject go = Managers.Object.FindById(skillPacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc != null)
+		{
+			cc.UseSkill(skillPacket.Info.SkillId);
+		}
+	}
+
+	public static void S_ChangeHpHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeHp changePacket = packet as S_ChangeHp;
+
+		GameObject go = Managers.Object.FindById(changePacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc != null)
+		{
+			cc.Hp = changePacket.Hp;
+		}
+	}
+
+	public static void S_DieHandler(PacketSession session, IMessage packet)
+	{
+		S_Die diePacket = packet as S_Die;
+
+		GameObject go = Managers.Object.FindById(diePacket.ObjectId);
+		if (go == null)
+			return;
+
+		CreatureController cc = go.GetComponent<CreatureController>();
+		if (cc != null)
+		{
+			cc.Hp = 0;
+			cc.OnDead();
+		}
+	}
+
+	public static void S_ConnectedHandler(PacketSession session, IMessage packet)
+	{
+		Debug.Log("S_ConnectedHandler");
+		C_Login loginPacket = new C_Login();
+		loginPacket.UniqueId = SystemInfo.deviceUniqueIdentifier;
+		Managers.Network.Send(loginPacket);
+	}
+
+	// Login OK + Character List
+	public static void S_LoginHandler(PacketSession session, IMessage packet)
+	{
+		S_Login loginPacket = (S_Login)packet;
+		Debug.Log($"LoginOk({loginPacket.LoginOk})");
+
+		// TODO : Show character on Lobby UI and Select
+		if (loginPacket.Players == null || loginPacket.Players.Count == 0)
+		{
+			C_CreatePlayer createPacket = new C_CreatePlayer();
+			createPacket.Name = $"Player_{Random.Range(0, 10000).ToString("0000")}";
+			Managers.Network.Send(createPacket);
+		}
+		else
+		{
+			// First Login
+			LobbyPlayerInfo info = loginPacket.Players[0];
+			C_EnterGame enterGamePacket = new C_EnterGame();
+			enterGamePacket.Name = info.Name;
+			Managers.Network.Send(enterGamePacket);
+		}
+	}
+
+	public static void S_CreatePlayerHandler(PacketSession session, IMessage packet)
+	{
+		S_CreatePlayer createOkPacket = (S_CreatePlayer)packet;
+
+		if (createOkPacket.Player == null)
+		{
+			C_CreatePlayer createPacket = new C_CreatePlayer();
+			createPacket.Name = $"Player_{Random.Range(0, 10000).ToString("0000")}";
+			Managers.Network.Send(createPacket);
+		}
+		else
+		{
+			C_EnterGame enterGamePacket = new C_EnterGame();
+			enterGamePacket.Name = createOkPacket.Player.Name;
+			Managers.Network.Send(enterGamePacket);
+		}
+	}
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-PlayerLink.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
