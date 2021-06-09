@@ -785,4 +785,350 @@ class PacketHandler
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-PlayerLink.mp4" frameborder="0"> </iframe>
 
+## Hp Link
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+message LobbyPlayerInfo {
+  int32 playerDbId = 1;
+  string name = 2;
+  StatInfo statInfo = 3;
+}
+...
+{% endhighlight %}
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player : GameObject
+{
+  public int PlayerDbId { get; set; }
+  public ClientSession Session { get; set; }
+
+  public Player()
+  {
+    ObjectType = GameObjectType.Player;
+  }
+
+  public override void OnDamaged(GameObject attacker, int damage)
+  {
+    base.OnDamaged(attacker, damage);
+  }
+
+  public override void OnDead(GameObject attacker)
+  {
+    base.OnDead(attacker);
+  }
+
+  public void OnLeaveGame()
+  {
+    // TODO
+    // DB Link
+    // -- Do you need to access on DB when Hp is decressed?
+    // 1) unsaved data will be removed
+    // 2) block code flow 
+    // - Async?
+    // - use Another Thread?
+    // -- there are some case data is continued from previous thread
+    // -- create Item
+
+    DbTransaction.SavePlayerStatus_Step1(this, Room);
+  }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession_PreGame.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  public int AccountDbId { get; private set; }
+  public List<LobbyPlayerInfo> LobbyPlayers { get; set; } = new List<LobbyPlayerInfo>();
+
+  public void HandleLogin(C_Login loginPacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLogin)
+      return;
+
+    LobbyPlayers.Clear();
+
+    using (AppDbContext db = new AppDbContext())
+    {
+      AccountDb findAccount = db.Accounts
+        .Include(a => a.Players)
+        .Where(a => a.AccountName == loginPacket.UniqueId).FirstOrDefault();
+
+      if (findAccount != null)
+      {
+        AccountDbId = findAccount.AccountDbId;
+
+        S_Login loginOk = new S_Login() { LoginOk = 1 };
+        foreach (PlayerDb playerDb in findAccount.Players)
+        {
+          LobbyPlayerInfo lobbyPlayer = new LobbyPlayerInfo()
+          {
+            PlayerDbId = playerDb.PlayerDbId,
+            Name = playerDb.PlayerName,
+            StatInfo = new StatInfo()
+            {
+              Level = playerDb.Level,
+              Hp = playerDb.Hp,
+              MaxHp = playerDb.MaxHp,
+              Attack = playerDb.Attack,
+              Speed = playerDb.Speed,
+              TotalExp = playerDb.TotalExp
+            }
+          };
+
+          LobbyPlayers.Add(lobbyPlayer);
+
+          loginOk.Players.Add(lobbyPlayer);
+        }
+
+        Send(loginOk);
+        ServerState = PlayerServerState.ServerStateLobby;
+      }
+      else
+      {
+        AccountDb newAccount = new AccountDb() { AccountName = loginPacket.UniqueId };
+        db.Accounts.Add(newAccount);
+        bool success = db.SaveChangesEx();
+        if (success == false)
+          return;
+
+        AccountDbId = newAccount.AccountDbId;
+
+        S_Login loginOk = new S_Login() { LoginOk = 1 };
+        Send(loginOk);
+        ServerState = PlayerServerState.ServerStateLobby;
+      }
+    }
+  }
+
+  public void HandleEnterGame(C_EnterGame enterGamePacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLobby)
+      return;
+
+    LobbyPlayerInfo playerInfo = LobbyPlayers.Find(p => p.Name == enterGamePacket.Name);
+    if (playerInfo == null)
+      return;
+
+    MyPlayer = ObjectManager.Instance.Add<Player>();
+    {
+      MyPlayer.PlayerDbId = playerInfo.PlayerDbId;
+      MyPlayer.Info.Name = playerInfo.Name;
+      MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+      MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+      MyPlayer.Info.PosInfo.PosX = 0;
+      MyPlayer.Info.PosInfo.PosY = 0;
+      MyPlayer.Stat.MergeFrom(playerInfo.StatInfo);
+      MyPlayer.Session = this;
+    }
+
+    ServerState = PlayerServerState.ServerStateGame;
+
+    GameRoom room = RoomManager.Instance.Find(1);
+    room.Push(room.EnterGame, MyPlayer);
+  }
+
+  public void HandleCreatePlayer(C_CreatePlayer createPacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLobby)
+      return;
+
+    using (AppDbContext db = new AppDbContext())
+    {
+      PlayerDb findPlayer = db.Players
+        .Where(p => p.PlayerName == createPacket.Name).FirstOrDefault();
+
+      if (findPlayer != null)
+      {
+        Send(new S_CreatePlayer());
+      }
+      else
+      {
+        StatInfo stat = null;
+        DataManager.StatDict.TryGetValue(1, out stat);
+
+        PlayerDb newPlayerDb = new PlayerDb()
+        {
+          PlayerName = createPacket.Name,
+          Level = stat.Level,
+          Hp = stat.Hp,
+          MaxHp = stat.MaxHp,
+          Attack = stat.Attack,
+          Speed = stat.Speed,
+          TotalExp = 0,
+          AccountDbId = AccountDbId
+        };
+
+        db.Players.Add(newPlayerDb);
+        bool success = db.SaveChangesEx();
+        if (success == false)
+          return;
+
+        LobbyPlayerInfo lobbyPlayer = new LobbyPlayerInfo()
+        {
+          PlayerDbId = newPlayerDb.PlayerDbId,
+          Name = createPacket.Name,
+          StatInfo = new StatInfo()
+          {
+            Level = stat.Level,
+            Hp = stat.Hp,
+            MaxHp = stat.MaxHp,
+            Attack = stat.Attack,
+            Speed = stat.Speed,
+            TotalExp = 0
+          }
+        };
+
+        LobbyPlayers.Add(lobbyPlayer);
+
+        S_CreatePlayer newPlayer = new S_CreatePlayer() { Player = new LobbyPlayerInfo() };
+        newPlayer.Player.MergeFrom(lobbyPlayer);
+
+        Send(newPlayer);
+      }
+    }
+  }
+}
+{% endhighlight %}
+
+* Sever\DB\DbTransaction.cs
+{% highlight C# %}
+public class DbTransaction : JobSerializer
+{
+  public static DbTransaction Instance { get; } = new DbTransaction();
+
+  // Me (GameRoom) -> You (Db) -> Me (GameRoom)
+  public static void SavePlayerStatus_AllInOne(Player player, GameRoom room)
+  {
+    if (player == null || room == null)
+      return;
+
+    // Me (GameRoom)
+    PlayerDb playerDb = new PlayerDb();
+    playerDb.PlayerDbId = player.PlayerDbId;
+    playerDb.Hp = player.Stat.Hp;
+
+    // You
+    Instance.Push(() =>
+    {
+      using (AppDbContext db = new AppDbContext())
+      {
+        db.Entry(playerDb).State = EntityState.Unchanged;
+        db.Entry(playerDb).Property(nameof(PlayerDb.Hp)).IsModified = true;
+        bool success = db.SaveChangesEx();
+        if (success)
+        {
+          // Me
+          room.Push(() => Console.WriteLine($"Hp Saved({playerDb.Hp})"));
+        }
+      }
+    });			
+  }
+
+  // Me (GameRoom)
+  public static void SavePlayerStatus_Step1(Player player, GameRoom room)
+  {
+    if (player == null || room == null)
+      return;
+
+    // Me (GameRoom)
+    PlayerDb playerDb = new PlayerDb();
+    playerDb.PlayerDbId = player.PlayerDbId;
+    playerDb.Hp = player.Stat.Hp;
+    Instance.Push<PlayerDb, GameRoom>(SavePlayerStatus_Step2, playerDb, room);
+  }
+
+  // You (Db)
+  public static void SavePlayerStatus_Step2(PlayerDb playerDb, GameRoom room)
+  {
+    using (AppDbContext db = new AppDbContext())
+    {
+      db.Entry(playerDb).State = EntityState.Unchanged;
+      db.Entry(playerDb).Property(nameof(PlayerDb.Hp)).IsModified = true;
+      bool success = db.SaveChangesEx();
+      if (success)
+      {
+        room.Push(SavePlayerStatus_Step3, playerDb.Hp);
+      }
+    }
+  }
+
+  // Me
+  public static void SavePlayerStatus_Step3(int hp)
+  {
+    Console.WriteLine($"Hp Saved({hp})");
+  }
+}
+{% endhighlight %}
+
+* Server\Utils\Extensions.cs
+{% highlight C# %}
+public static class Extensions
+{
+  public static bool SaveChangesEx(this AppDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+}
+{% endhighlight %}
+
+### Test
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+  static Listener _listener = new Listener();
+  static List<System.Timers.Timer> _timers = new List<System.Timers.Timer>();
+
+  static void TickRoom(GameRoom room, int tick = 100)
+  {
+    var timer = new System.Timers.Timer();
+    timer.Interval = tick;
+    timer.Elapsed += ((s, e) => { room.Update(); });
+    timer.AutoReset = true;
+    timer.Enabled = true;
+
+    _timers.Add(timer);
+  }
+
+  static void Main(string[] args)
+  {
+    ConfigManager.LoadConfig();
+    DataManager.LoadData();
+
+    GameRoom room = RoomManager.Instance.Add(1);
+    TickRoom(room, 50);
+
+    // DNS (Domain Name System)
+    string host = Dns.GetHostName();
+    IPHostEntry ipHost = Dns.GetHostEntry(host);
+    IPAddress ipAddr = ipHost.AddressList[0];
+    IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+    _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+    Console.WriteLine("Listening...");
+
+    // TODO
+    while (true)
+    {
+      DbTransaction.Instance.Flush();
+    }
+  }
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Hp-Link.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
