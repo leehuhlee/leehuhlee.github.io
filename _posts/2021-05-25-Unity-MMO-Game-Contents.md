@@ -1131,4 +1131,533 @@ class Program
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Hp-Link.mp4" frameborder="0"> </iframe>
 
+## Item Link
+
+* Common\protoc-3.12.3-win64\bin\Protocol.proto
+{% highlight proto %}
+...
+enum MsgId {
+  S_ENTER_GAME = 0;
+  S_LEAVE_GAME = 1;
+  S_SPAWN = 2;
+  S_DESPAWN = 3;
+  C_MOVE = 4;
+  S_MOVE = 5;
+  C_SKILL = 6;
+  S_SKILL = 7;
+  S_CHANGE_HP = 8;
+  S_DIE = 9;
+  S_CONNECTED = 10;
+  C_LOGIN = 11;
+  S_LOGIN = 12;
+  C_ENTER_GAME = 13;
+  C_CREATE_PLAYER = 14;
+  S_CREATE_PLAYER = 15;
+  S_ITEM_LIST = 16;
+}
+
+...
+enum ItemType{
+  ITEM_TYPE_NONE = 0;
+  ITEM_TYPE_WEAPON = 1;
+  ITEM_TYPE_ARMOR = 2;
+  ITEM_TYPE_CONSUMABLE = 3;
+}
+
+enum WeaponType{
+  WEAPON_TYPE_NONE = 0;
+  WEAPON_TYPE_SWORD = 1;
+  WEAPON_TYPE_BOW = 2;
+}
+
+enum ArmorType{
+  ARMOR_TYPE_NONE = 0;
+  ARMOR_TYPE_HELMET = 1;
+  ARMOR_TYPE_ARMOR = 2;
+  ARMOR_TYPE_BOOTS = 3;
+}
+
+enum ConsumableType{
+  CONSUMABLE_TYPE_NONE = 0;
+  CONSUMABLE_TYPE_POTION = 1;
+}
+...
+
+message S_ItemList{
+  repeated ItemInfo items = 1; 
+}
+...
+
+message ItemInfo{
+  int32 itemDbId = 1;
+  int32 templateId = 2;
+  int32 count = 3;
+  int32 slot = 4;
+}
+{% endhighlight %}
+
+* Server\Data\Data.Contents.cs
+{% highlight C# %}
+...
+#region Item
+  [Serializable]
+	public class ItemData
+	{
+		public int id;
+		public string name;
+		public ItemType itemType;
+	}
+
+	public class WeaponData : ItemData
+    {
+		public WeaponType weaponType;
+		public int damage;
+    }
+
+	public class ArmorData : ItemData
+	{
+		public ArmorType armorType;
+		public int defence;
+    }
+
+	public class ConsumableData : ItemData
+    {
+		public ConsumableType consumableType;
+		public int maxCount;
+    }
+
+	[Serializable]
+	public class ItemLoader : ILoader<int, ItemData>
+	{
+		public List<WeaponData> weapons = new List<WeaponData>();
+		public List<ArmorData> armors = new List<ArmorData>();
+		public List<ConsumableData> consumables = new List<ConsumableData>();
+
+		public Dictionary<int, ItemData> MakeDict()
+		{
+			Dictionary<int, ItemData> dict = new Dictionary<int, ItemData>();
+			foreach (ItemData item in weapons)
+            {
+				item.itemType = ItemType.Weapon;
+				dict.Add(item.id, item);
+			}
+			foreach (ItemData item in armors)
+			{
+				item.itemType = ItemType.Armor;
+				dict.Add(item.id, item);
+			}
+			foreach (ItemData item in consumables)
+			{
+				item.itemType = ItemType.Consumable;
+				dict.Add(item.id, item);
+			}
+
+			return dict;
+		}
+  }
+#endregion
+{% endhighlight %}
+
+* Server\Data\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+  public static Dictionary<int, StatInfo> StatDict { get; private set; } = new Dictionary<int, StatInfo>();
+  public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+  public static Dictionary<int, Data.ItemData> ItemDict { get; private set; } = new Dictionary<int, Data.ItemData>();
+
+  public static void LoadData()
+  {
+    StatDict = LoadJson<Data.StatData, int, StatInfo>("StatData").MakeDict();
+    SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    ItemDict = LoadJson<Data.ItemLoader, int, Data.ItemData>("ItemData").MakeDict();
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\DB\AppDbContext.cs
+{% highlight C# %}
+public class AppDbContext : DbContext
+{
+  public DbSet<AccountDb> Accounts { get; set; }
+  public DbSet<PlayerDb> Players { get; set; }
+  public DbSet<ItemDb> Items { get; set; }
+  ...
+}
+{% endhighlight %}
+
+* Server\DB\DataModel.cs
+{% highlight C# %}
+...
+[Table("Player")]
+public class PlayerDb
+{
+  public int PlayerDbId { get; set; }
+  public string PlayerName { get; set; }
+
+  [ForeignKey("Account")]
+  public int AccountDbId { get; set; }
+  public AccountDb Account { get; set; }
+
+  public ICollection<ItemDb> Items { get; set; }
+
+  public int Level { get; set; }
+  public int Hp { get; set; }
+  public int MaxHp { get; set; }
+  public int Attack { get; set; }
+  public float Speed { get; set; }
+  public int TotalExp { get; set; }
+}
+
+[Table("Item")]
+public class ItemDb
+{
+  public int ItemDbId { get; set; }
+  public int TemplateId { get; set; }
+  public int Count { get; set; }
+  public int Slot { get; set;}
+
+  [ForeignKey("Owner")]
+  public int? OwnerDbId { get; set; }
+  public PlayerDb Owner { get; set; } 
+}
+{% endhighlight %}
+
+
+* Server\Game\Item\Inventory.cs
+{% highlight C# %}
+public class Inventory
+{
+  Dictionary<int, Item> _items = new Dictionary<int, Item>();
+
+  public void Add(Item item)
+  {
+      _items.Add(item.ItemDbId, item);
+  }
+
+  public Item Get(int itemDbId)
+  {
+      Item item = null;
+      _items.TryGetValue(itemDbId, out item);
+      return item;
+  }
+
+  public Item Find(Func<Item, bool> condition)
+  {
+      foreach(Item item in _items.Values)
+      {
+          if (condition.Invoke(item))
+              return item;
+      }
+
+      return null;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Item\Item.cs
+{% highlight C# %}
+public class Item
+{
+    public ItemInfo Info { get; } = new ItemInfo();
+
+    public int ItemDbId
+    {
+        get { return Info.ItemDbId; }
+        set { Info.ItemDbId = value; }
+    }
+
+    public int TemplateId
+    {
+        get { return Info.TemplateId; }
+        set { Info.TemplateId = value; }
+    }
+
+    public int Count
+    {
+        get { return Info.Count; }
+        set { Info.Count = value; }
+    }
+
+    public ItemType ItemType { get; private set; }
+    public bool Stackable { get; protected set; }
+
+    public Item(ItemType itemType)
+    {
+        ItemType = itemType;
+    }
+
+    public static Item MakeItem(ItemDb itemDb)
+    {
+        Item item = null;
+
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(itemDb.TemplateId, out itemData);
+        if (itemData == null)
+            return null;
+        
+        switch (itemData.itemType)
+        {
+            case ItemType.Weapon:
+                item = new Weapon(itemDb.TemplateId);
+                break;
+            case ItemType.Armor:
+                item = new Armor(itemDb.TemplateId);
+                break;
+            case ItemType.Consumable:
+                item = new Consumable(itemDb.TemplateId);
+                break;
+        }
+
+        if(item != null)
+        {
+            item.ItemDbId = itemDb.ItemDbId;
+            item.Count = item.Count;
+        }
+
+        return item;
+    }
+}
+
+public class Weapon : Item
+{
+    public WeaponType WeaponType { get; private set; }
+    public int Damage { get; private set; }
+
+    public Weapon(int templateId) : base(ItemType.Weapon)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Weapon) 
+            return;
+
+        WeaponData data = (WeaponData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            WeaponType = data.weaponType;
+            Damage = data.damage;
+            Stackable = false;
+        }
+    }
+}
+
+public class Armor : Item
+{
+    public ArmorType ArmorType { get; private set; }
+    public int Defence { get; private set; }
+
+    public Armor(int templateId) : base(ItemType.Armor)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Armor)
+            return;
+
+        ArmorData data = (ArmorData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ArmorType = data.armorType;
+            Defence = data.defence;
+            Stackable = false;
+        }
+    }
+}
+
+public class Consumable : Item
+{
+    public ConsumableType ConsumableType { get; private set; }
+    public int MaxCount { get; private set; }
+
+    public Consumable(int templateId) : base(ItemType.Consumable)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Consumable)
+            return;
+
+        ConsumableData data = (ConsumableData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ConsumableType = data.consumableType;
+            MaxCount = data.maxCount;
+            Stackable = false;
+        }
+    }
+}
+{% endhighlight %}
+
+* Server\Object\Player.cs
+{% highlight C# %}
+public class Player : GameObject
+{
+  public int PlayerDbId { get; set; }
+  public ClientSession Session { get; set; }
+  public Inventory Inven { get; private set; } = new Inventory();
+  ...
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession_PreGame.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  ...
+  public void HandleEnterGame(C_EnterGame enterGamePacket)
+  {
+    if (ServerState != PlayerServerState.ServerStateLobby)
+      return;
+
+    LobbyPlayerInfo playerInfo = LobbyPlayers.Find(p => p.Name == enterGamePacket.Name);
+    if (playerInfo == null)
+      return;
+
+    MyPlayer = ObjectManager.Instance.Add<Player>();
+    {
+      MyPlayer.PlayerDbId = playerInfo.PlayerDbId;
+      MyPlayer.Info.Name = playerInfo.Name;
+      MyPlayer.Info.PosInfo.State = CreatureState.Idle;
+      MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
+      MyPlayer.Info.PosInfo.PosX = 0;
+      MyPlayer.Info.PosInfo.PosY = 0;
+      MyPlayer.Stat.MergeFrom(playerInfo.StatInfo);
+      MyPlayer.Session = this;
+
+      S_ItemList itemListPacket = new S_ItemList();
+
+      // 아이템 목록을 갖고온다
+      using (AppDbContext db = new AppDbContext())
+              {
+        List<ItemDb> items = db.Items
+          .Where(i => i.OwnerDbId == playerInfo.PlayerDbId)
+          .ToList();
+
+        foreach(ItemDb itemDb in items)
+                  {
+          Item item = Item.MakeItem(itemDb);
+          if(item != null)
+                      {
+            MyPlayer.Inven.Add(item);
+
+            ItemInfo info = new ItemInfo();
+            info.MergeFrom(item.Info);
+            itemListPacket.Items.Add(info);
+                      }
+        }
+              }
+      Send(itemListPacket);
+    }
+
+    ServerState = PlayerServerState.ServerStateGame;
+
+    GameRoom room = RoomManager.Instance.Find(1);
+    room.Push(room.EnterGame, MyPlayer);
+  }
+  ...
+}
+{% endhighlight %}
+
+* Package Console Manager
+- add-migration Item
+- update-database
+
+* Client\Assets\Scripts\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_ItemListHandler(PacketSession session, IMessage packet)
+  {
+    S_ItemList itemList = (S_ItemList)packet;
+
+    foreach (ItemInfo item in itemList.Items)
+    {
+      Debug.Log($"{item.TemplateId} : {item.Count}");
+    }
+  }
+}
+{% endhighlight %}
+
+### Test
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+  ...
+  static void Main(string[] args)
+  {
+    ConfigManager.LoadConfig();
+    DataManager.LoadData();
+
+          // TEST CODE
+          using (AppDbContext db = new AppDbContext())
+          {
+              PlayerDb player = db.Players.FirstOrDefault();
+              if (player != null)
+              {
+                  db.Items.Add(new ItemDb()
+                  {
+                      TemplateId = 1,
+                      Count = 1,
+                      Slot = 0,
+                      Owner = player
+                  });
+
+                  db.Items.Add(new ItemDb()
+                  {
+                      TemplateId = 100,
+                      Count = 1,
+                      Slot = 1,
+                      Owner = player
+                  });
+
+                  db.Items.Add(new ItemDb()
+                  {
+                      TemplateId = 101,
+                      Count = 1,
+                      Slot = 2,
+                      Owner = player
+                  });
+
+                  db.Items.Add(new ItemDb()
+                  {
+                      TemplateId = 200,
+                      Count = 10,
+                      Slot = 5,
+                      Owner = player
+                  });
+
+                  db.SaveChanges();
+              }
+          }
+  ...
+  }
+}
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/10.jpg"><img src="/assets/img/posts/unity_mmocontents/10.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
