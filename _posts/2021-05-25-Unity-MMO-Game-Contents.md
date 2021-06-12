@@ -783,7 +783,7 @@ class PacketHandler
 }
 {% endhighlight %}
 
-<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-PlayerLink.mp4" frameborder="0"> </iframe>
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Player-Link.mp4" frameborder="0"> </iframe>
 
 ## Hp Link
 
@@ -1655,8 +1655,801 @@ class Program
 }
 {% endhighlight %}
 
-<figure class="half">
+<figure>
   <a href="/assets/img/posts/unity_mmocontents/10.jpg"><img src="/assets/img/posts/unity_mmocontents/10.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+## Inventory
+
+### UI
+
+* Asset Store
+- RPG Inventory Icons
+- Fantastic UI Starter Pack
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/11.jpg"><img src="/assets/img/posts/unity_mmocontents/11.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/12.jpg"><img src="/assets/img/posts/unity_mmocontents/12.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Arrange Folders
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/13.jpg"><img src="/assets/img/posts/unity_mmocontents/13.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Make UI
+
+- UI_GameScene<
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/15.jpg"><img src="/assets/img/posts/unity_mmocontents/15.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+- UI_Stat
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/16.jpg"><img src="/assets/img/posts/unity_mmocontents/16.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+- UI_Inventory
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/17.jpg"><img src="/assets/img/posts/unity_mmocontents/17.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+- UI_Inventory_Item
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/18.jpg"><img src="/assets/img/posts/unity_mmocontents/18.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+### Client
+
+* Client\Assets\Scripts\Data\Data.Contents.cs
+{% highlight C# %}
+#region Item
+  [Serializable]
+  public class ItemData
+  {
+    public int id;
+    public string name;
+    public ItemType itemType;
+    public string iconPath;
+  }
+
+  [Serializable]
+  public class WeaponData : ItemData
+  {
+    public WeaponType weaponType;
+    public int damage;
+  }
+
+  [Serializable]
+  public class ArmorData : ItemData
+  {
+    public ArmorType armorType;
+    public int defence;
+  }
+
+  [Serializable]
+  public class ConsumableData : ItemData
+  {
+    public ConsumableType consumableType;
+    public int maxCount;
+  }
+
+  [Serializable]
+  public class ItemLoader : ILoader<int, ItemData>
+  {
+    public List<WeaponData> weapons = new List<WeaponData>();
+    public List<ArmorData> armors = new List<ArmorData>();
+    public List<ConsumableData> consumables = new List<ConsumableData>();
+
+    public Dictionary<int, ItemData> MakeDict()
+    {
+      Dictionary<int, ItemData> dict = new Dictionary<int, ItemData>();
+      foreach (ItemData item in weapons)
+      {
+        item.itemType = ItemType.Weapon;
+        dict.Add(item.id, item);
+      }
+      foreach (ItemData item in armors)
+      {
+        item.itemType = ItemType.Armor;
+        dict.Add(item.id, item);
+      }
+      foreach (ItemData item in consumables)
+      {
+        item.itemType = ItemType.Consumable;
+        dict.Add(item.id, item);
+      }
+
+      return dict;
+    }
+  }
+#endregion
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\DataManager.cs
+{% highlight C# %}
+public interface ILoader<Key, Value>
+{
+    Dictionary<Key, Value> MakeDict();
+}
+
+public class DataManager
+{
+    public Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+    public Dictionary<int, Data.ItemData> ItemDict { get; private set; } = new Dictionary<int, Data.ItemData>();
+
+	public void Init()
+    {
+        SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+        ItemDict = LoadJson<Data.ItemLoader, int, Data.ItemData>("ItemData").MakeDict();
+	}
+
+    Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+		TextAsset textAsset = Managers.Resource.Load<TextAsset>($"Data/{path}");
+        return JsonUtility.FromJson<Loader>(textAsset.text);
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\UIManager.cs
+{% highlight C# %}
+public class UIManager
+{
+    int _order = 10;
+
+    Stack<UI_Popup> _popupStack = new Stack<UI_Popup>();
+    public UI_Scene SceneUI { get; private set; }
+
+    public GameObject Root
+    {
+        get
+        {
+			GameObject root = GameObject.Find("@UI_Root");
+			if (root == null)
+				root = new GameObject { name = "@UI_Root" };
+            return root;
+		}
+    }
+
+    public void SetCanvas(GameObject go, bool sort = true)
+    {
+        Canvas canvas = Util.GetOrAddComponent<Canvas>(go);
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.overrideSorting = true;
+
+        if (sort)
+        {
+            canvas.sortingOrder = _order;
+            _order++;
+        }
+        else
+        {
+            canvas.sortingOrder = 0;
+        }
+    }
+
+	public T MakeWorldSpaceUI<T>(Transform parent = null, string name = null) where T : UI_Base
+	{
+		if (string.IsNullOrEmpty(name))
+			name = typeof(T).Name;
+
+		GameObject go = Managers.Resource.Instantiate($"UI/WorldSpace/{name}");
+		if (parent != null)
+			go.transform.SetParent(parent);
+
+        Canvas canvas = go.GetOrAddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        canvas.worldCamera = Camera.main;
+
+		return Util.GetOrAddComponent<T>(go);
+	}
+
+	public T MakeSubItem<T>(Transform parent = null, string name = null) where T : UI_Base
+	{
+		if (string.IsNullOrEmpty(name))
+			name = typeof(T).Name;
+
+		GameObject go = Managers.Resource.Instantiate($"UI/SubItem/{name}");
+		if (parent != null)
+			go.transform.SetParent(parent);
+
+		return Util.GetOrAddComponent<T>(go);
+	}
+
+	public T ShowSceneUI<T>(string name = null) where T : UI_Scene
+	{
+		if (string.IsNullOrEmpty(name))
+			name = typeof(T).Name;
+
+		GameObject go = Managers.Resource.Instantiate($"UI/Scene/{name}");
+		T sceneUI = Util.GetOrAddComponent<T>(go);
+        SceneUI = sceneUI;
+
+		go.transform.SetParent(Root.transform);
+
+		return sceneUI;
+	}
+
+	public T ShowPopupUI<T>(string name = null) where T : UI_Popup
+    {
+        if (string.IsNullOrEmpty(name))
+            name = typeof(T).Name;
+
+        GameObject go = Managers.Resource.Instantiate($"UI/Popup/{name}");
+        T popup = Util.GetOrAddComponent<T>(go);
+        _popupStack.Push(popup);
+
+        go.transform.SetParent(Root.transform);
+
+		return popup;
+    }
+
+    public void ClosePopupUI(UI_Popup popup)
+    {
+		if (_popupStack.Count == 0)
+			return;
+
+        if (_popupStack.Peek() != popup)
+        {
+            Debug.Log("Close Popup Failed!");
+            return;
+        }
+
+        ClosePopupUI();
+    }
+
+    public void ClosePopupUI()
+    {
+        if (_popupStack.Count == 0)
+            return;
+
+        UI_Popup popup = _popupStack.Pop();
+        Managers.Resource.Destroy(popup.gameObject);
+        popup = null;
+        _order--;
+    }
+
+    public void CloseAllPopupUI()
+    {
+        while (_popupStack.Count > 0)
+            ClosePopupUI();
+    }
+
+    public void Clear()
+    {
+        CloseAllPopupUI();
+        SceneUI = null;
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_ItemListHandler(PacketSession session, IMessage packet)
+  {
+    S_ItemList itemList = (S_ItemList)packet;
+
+    UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+    UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+    Managers.Inven.Clear();
+
+    // Apply Item data in Memory
+    foreach (ItemInfo itemInfo in itemList.Items)
+    {
+      Item item = Item.MakeItem(itemInfo);
+      Managers.Inven.Add(item);
+    }
+
+    // Set UI
+    invenUI.gameObject.SetActive(true);
+    invenUI.RefreshUI();
+  }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scenes\GameScene.cs
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    UI_GameScene _sceneUI;
+
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Game;
+
+        Managers.Map.LoadMap(1);
+
+        Screen.SetResolution(640, 480, false);
+
+        _sceneUI = Managers.UI.ShowSceneUI<UI_GameScene>();
+    }
+
+    public override void Clear()
+    {
+        
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\UI_Base.cs
+{% highlight C# %}
+public abstract class UI_Base : MonoBehaviour
+{
+	protected Dictionary<Type, UnityEngine.Object[]> _objects = new Dictionary<Type, UnityEngine.Object[]>();
+	public abstract void Init();
+
+  // Change Start to Awake
+  // Because sometimes RefreshUI is running first than Init
+	private void Awake()
+	{
+		Init();
+	}
+  ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Contents\Item.cs
+{% highlight C# %}
+public class Item
+{
+    public ItemInfo Info { get; } = new ItemInfo();
+
+    public int ItemDbId
+    {
+        get { return Info.ItemDbId; }
+        set { Info.ItemDbId = value; }
+    }
+
+    public int TemplateId
+    {
+        get { return Info.TemplateId; }
+        set { Info.TemplateId = value; }
+    }
+
+    public int Count
+    {
+        get { return Info.Count; }
+        set { Info.Count = value; }
+    }
+
+    public int Slot
+    {
+        get { return Info.Slot; }
+        set { Info.Slot = value; }
+    }
+
+    public ItemType ItemType { get; private set; }
+    public bool Stackable { get; protected set; }
+
+    public Item(ItemType itemType)
+    {
+        ItemType = itemType;
+    }
+
+    public static Item MakeItem(ItemInfo itemInfo)
+    {
+        Item item = null;
+
+        ItemData itemData = null;
+        Managers.Data.ItemDict.TryGetValue(itemInfo.TemplateId, out itemData);
+        if (itemData == null)
+            return null;
+
+        switch (itemData.itemType)
+        {
+            case ItemType.Weapon:
+                item = new Weapon(itemInfo.TemplateId);
+                break;
+            case ItemType.Armor:
+                item = new Armor(itemInfo.TemplateId);
+                break;
+            case ItemType.Consumable:
+                item = new Consumable(itemInfo.TemplateId);
+                break;
+        }
+
+        if (item != null)
+        {
+            item.ItemDbId = itemInfo.ItemDbId;
+            item.Count = itemInfo.Count;
+            item.Slot = itemInfo.Slot;
+        }
+
+        return item;
+    }
+}
+
+public class Weapon : Item
+{
+    public WeaponType WeaponType { get; private set; }
+    public int Damage { get; private set; }
+
+    public Weapon(int templateId) : base(ItemType.Weapon)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        Managers.Data.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Weapon)
+            return;
+
+        WeaponData data = (WeaponData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            WeaponType = data.weaponType;
+            Damage = data.damage;
+            Stackable = false;
+        }
+    }
+}
+
+public class Armor : Item
+{
+    public ArmorType ArmorType { get; private set; }
+    public int Defence { get; private set; }
+
+    public Armor(int templateId) : base(ItemType.Armor)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        Managers.Data.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Armor)
+            return;
+
+        ArmorData data = (ArmorData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ArmorType = data.armorType;
+            Defence = data.defence;
+            Stackable = false;
+        }
+    }
+}
+
+public class Consumable : Item
+{
+    public ConsumableType ConsumableType { get; private set; }
+    public int MaxCount { get; private set; }
+
+    public Consumable(int templateId) : base(ItemType.Consumable)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        Managers.Data.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Consumable)
+            return;
+
+        ConsumableData data = (ConsumableData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ConsumableType = data.consumableType;
+            MaxCount = data.maxCount;
+            Stackable = false;
+        }
+    }
+}
+
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\InventoryManager.cs
+{% highlight C# %}
+public class InventoryManager : MonoBehaviour
+{
+    public Dictionary<int, Item> Items { get; } = new Dictionary<int, Item>();
+
+    public void Add(Item item)
+    {
+        Items.Add(item.ItemDbId, item);
+    }
+
+    public Item Get(int itemDbId)
+    {
+        Item item = null;
+        Items.TryGetValue(itemDbId, out item);
+        return item;
+    }
+
+    public Item Find(Func<Item, bool> condition)
+    {
+        foreach (Item item in Items.Values)
+        {
+            if (condition.Invoke(item))
+                return item;
+        }
+
+        return null;
+    }
+
+    public void Clear()
+    {
+        Items.Clear();
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_GameScene.cs
+{% highlight C# %}
+public class UI_GameScene : UI_Scene
+{
+    public UI_Stat StatUI { get; private set; }
+    public UI_Inventory InvenUI { get; private set; }
+
+    public override void Init()
+    {
+        base.Init();
+
+        StatUI = GetComponentInChildren<UI_Stat>();
+        InvenUI = GetComponentInChildren<UI_Inventory>();
+
+        StatUI.gameObject.SetActive(false);
+        InvenUI.gameObject.SetActive(false);
+
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_Inventory.cs
+{% highlight C# %}
+public class UI_Inventory : UI_Base
+{
+    public List<UI_Inventory_Item> Items { get; } = new List<UI_Inventory_Item>();
+
+    public override void Init()
+    {
+        Items.Clear();
+
+        GameObject grid = transform.Find("ItemGrid").gameObject;
+        foreach (Transform child in grid.transform)
+            Destroy(child.gameObject);
+
+        for(int i = 0; i < 20; i++)
+        {
+            GameObject go = Managers.Resource.Instantiate("UI/Scene/UI_Inventory_Item", grid.transform);
+            UI_Inventory_Item item = go.GetOrAddComponent<UI_Inventory_Item>();
+            Items.Add(item);
+        }
+    }
+
+    public void RefreshUI()
+    {
+        List<Item> items = Managers.Inven.Items.Values.ToList();
+        items.Sort((left, right) => { return left.Slot - right.Slot; });
+
+        foreach(Item item in items)
+        {
+            if (item.Slot < 0 || item.Slot >= 20)
+                continue;
+
+            Items[item.Slot].SetItem(item.TemplateId, item.Count);
+        }
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_Inventory_Item.cs
+{% highlight C# %}
+public class UI_Inventory_Item : UI_Base
+{
+    [SerializeField]
+    Image _icon;
+
+    public override void Init()
+    {
+
+    }
+
+    public void SetItem(int templateId, int count)
+    {
+        Data.ItemData itemData = null;
+        Managers.Data.ItemDict.TryGetValue(templateId, out itemData);
+
+        Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
+        _icon.sprite = icon;
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_Stat.cs
+{% highlight C# %}
+public class UI_Stat : UI_Base
+{
+    public override void Init()
+    {
+
+    }
+}
+{% endhighlight %}
+
+### Server
+
+* Server\Game\Item\Item.cs
+{% highlight C# %}
+public class Item
+{
+    public ItemInfo Info { get; } = new ItemInfo();
+
+    public int ItemDbId
+    {
+        get { return Info.ItemDbId; }
+        set { Info.ItemDbId = value; }
+    }
+
+    public int TemplateId
+    {
+        get { return Info.TemplateId; }
+        set { Info.TemplateId = value; }
+    }
+
+    public int Count
+    {
+        get { return Info.Count; }
+        set { Info.Count = value; }
+    }
+
+    public int Slot
+    {
+        get { return Info.Slot; }
+        set { Info.Slot = value; }
+    }
+
+    public ItemType ItemType { get; private set; }
+    public bool Stackable { get; protected set; }
+
+    public Item(ItemType itemType)
+    {
+        ItemType = itemType;
+    }
+
+    public static Item MakeItem(ItemDb itemDb)
+    {
+        Item item = null;
+
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(itemDb.TemplateId, out itemData);
+        if (itemData == null)
+            return null;
+        
+        switch (itemData.itemType)
+        {
+            case ItemType.Weapon:
+                item = new Weapon(itemDb.TemplateId);
+                break;
+            case ItemType.Armor:
+                item = new Armor(itemDb.TemplateId);
+                break;
+            case ItemType.Consumable:
+                item = new Consumable(itemDb.TemplateId);
+                break;
+        }
+
+        if(item != null)
+        {
+            item.ItemDbId = itemDb.ItemDbId;
+            item.Count = itemDb.Count;
+            item.Slot = itemDb.Slot;
+        }
+
+        return item;
+    }
+}
+
+public class Weapon : Item
+{
+    public WeaponType WeaponType { get; private set; }
+    public int Damage { get; private set; }
+
+    public Weapon(int templateId) : base(ItemType.Weapon)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Weapon) 
+            return;
+
+        WeaponData data = (WeaponData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            WeaponType = data.weaponType;
+            Damage = data.damage;
+            Stackable = false;
+        }
+    }
+}
+
+public class Armor : Item
+{
+    public ArmorType ArmorType { get; private set; }
+    public int Defence { get; private set; }
+
+    public Armor(int templateId) : base(ItemType.Armor)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Armor)
+            return;
+
+        ArmorData data = (ArmorData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ArmorType = data.armorType;
+            Defence = data.defence;
+            Stackable = false;
+        }
+    }
+}
+
+public class Consumable : Item
+{
+    public ConsumableType ConsumableType { get; private set; }
+    public int MaxCount { get; private set; }
+
+    public Consumable(int templateId) : base(ItemType.Consumable)
+    {
+        Init(templateId);
+    }
+
+    void Init(int templateId)
+    {
+        ItemData itemData = null;
+        DataManager.ItemDict.TryGetValue(templateId, out itemData);
+        if (itemData.itemType != ItemType.Consumable)
+            return;
+
+        ConsumableData data = (ConsumableData)itemData;
+        {
+            TemplateId = data.id;
+            Count = 1;
+            ConsumableType = data.consumableType;
+            MaxCount = data.maxCount;
+            Stackable = false;
+        }
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/14.jpg"><img src="/assets/img/posts/unity_mmocontents/14.jpg"></a>
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
 
