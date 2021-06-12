@@ -2453,4 +2453,438 @@ public class Consumable : Item
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
 
+## Reward
+
+### Client
+
+* Assets\Resources\Data\MonsterData.json
+{% highlight json %}
+{
+  "monsters": [
+    {
+      "id": "1",
+      "name": "doppelganger",
+      "stat": {
+        "level": "1",
+        "maxHp": "20",
+        "attack": "5",
+        "speed": "5.0",
+        "totalExp": "10"
+      },
+      "rewards": [
+        {
+          "probability": "10",
+          "itemId": "1",
+          "count": "1"
+        },
+        {
+          "probability": "10",
+          "itemId": "2",
+          "count": "1"
+        },
+        {
+          "probability": "10",
+          "itemId": "100",
+          "count": "1"
+        },
+        {
+          "probability": "10",
+          "itemId": "101",
+          "count": "1"
+        },
+        {
+          "probability": "10",
+          "itemId": "200",
+          "count": "5"
+        }
+      ]
+    }
+  ]
+} 
+{% endhighlight %}
+
+* Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	bool _moveKeyPressed = false;
+
+	protected override void Init()
+	{
+		base.Init();
+	}
+
+	protected override void UpdateController()
+	{
+		GetUIKeyInput();
+    ...
+  }
+  ...
+
+  void GetUIKeyInput()
+  {
+    if (Input.GetKeyDown(KeyCode.I))
+    {
+      UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+      UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+      if (invenUI.gameObject.activeSelf)
+      {
+        invenUI.gameObject.SetActive(false);
+      }
+      else
+      {
+        invenUI.gameObject.SetActive(true);
+        invenUI.RefreshUI();
+      }
+    }
+  }
+  ...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Data\Data.Contents.cs
+{% highlight C# %}
+...
+#region Monster
+	[Serializable]
+	public class MonsterData
+	{
+		public int id;
+		public string name;
+		public StatInfo stat;
+		public string prefabPath;
+	}
+
+	[Serializable]
+	public class MonsterLoader : ILoader<int, MonsterData>
+	{
+		public List<MonsterData> monsters = new List<MonsterData>();
+
+		public Dictionary<int, MonsterData> MakeDict()
+		{
+			Dictionary<int, MonsterData> dict = new Dictionary<int, MonsterData>();
+			foreach (MonsterData monster in monsters)
+			{
+				dict.Add(monster.id, monster);
+			}
+			return dict;
+		}
+	}
+#endregion
+{% endhighlight %}
+
+* Assets\Scripts\Managers\Core\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+  public Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+  public Dictionary<int, Data.ItemData> ItemDict { get; private set; } = new Dictionary<int, Data.ItemData>();
+  public Dictionary<int, Data.MonsterData> MonsterDict { get; private set; } = new Dictionary<int, Data.MonsterData>();
+
+	public void Init()
+  {
+    SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    ItemDict = LoadJson<Data.ItemLoader, int, Data.ItemData>("ItemData").MakeDict();
+    MonsterDict = LoadJson<Data.MonsterLoader, int, Data.MonsterData>("MonsterData").MakeDict();
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Packet\MyPlayerController.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_ItemListHandler(PacketSession session, IMessage packet)
+  {
+		S_ItemList itemList = (S_ItemList)packet;
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+		Managers.Inven.Clear();
+
+		foreach (ItemInfo itemInfo in itemList.Items)
+        {
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+        }
+
+		//invenUI.gameObject.SetActive(true);
+		//invenUI.RefreshUI();
+  }
+
+	public static void S_AddItemHandler(PacketSession session, IMessage packet)
+  {
+		S_AddItem itemList = (S_AddItem)packet;
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+		// Apply Item data in Memory
+		foreach (ItemInfo itemInfo in itemList.Items)
+		{
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+		}
+
+		Debug.Log("Get Item!");
+	}
+}
+{% endhighlight %}
+
+### Server
+
+* Server\Data\Data.Contents.cs
+{% highlight C# %}
+
+#region Monster
+	[Serializable]
+	public class RewardData
+  {
+		public int probability; // 100분율
+		public int itemId;
+		public int count;
+  }
+
+	[Serializable]
+	public class MonsterData
+  {
+		public int id;
+		public string name;
+		public StatInfo stat;
+		public List<RewardData> rewards;
+		//public string prefabPath;
+  }
+
+	[Serializable]
+	public class MonsterLoader : ILoader<int, MonsterData>
+	{
+		public List<MonsterData> monsters = new List<MonsterData>();
+
+		public Dictionary<int, MonsterData> MakeDict()
+		{
+			Dictionary<int, MonsterData> dict = new Dictionary<int, MonsterData>();
+			foreach (MonsterData monster in monsters)
+			{
+				dict.Add(monster.id, monster);
+			}
+			return dict;
+		}
+	}
+#endregion
+{% endhighlight %}
+
+* Server\Data\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+  public static Dictionary<int, StatInfo> StatDict { get; private set; } = new Dictionary<int, StatInfo>();
+  public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+  public static Dictionary<int, Data.ItemData> ItemDict { get; private set; } = new Dictionary<int, Data.ItemData>();
+  public static Dictionary<int, Data.MonsterData> MonsterDict { get; private set; } = new Dictionary<int, Data.MonsterData>();
+
+  public static void LoadData()
+  {
+    StatDict = LoadJson<Data.StatData, int, StatInfo>("StatData").MakeDict();
+    SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+    ItemDict = LoadJson<Data.ItemLoader, int, Data.ItemData>("ItemData").MakeDict();
+    MonsterDict = LoadJson<Data.MonsterLoader, int, Data.MonsterData>("MonsterData").MakeDict();
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\DB\DbTransaction.cs
+{% highlight C# %}
+public class DbTransaction : JobSerializer
+{
+  ...
+
+  public static void RewardPlayer(Player player, RewardData rewardData, GameRoom room)
+  {
+    if (player == null || rewardData == null || room == null)
+      return;
+
+    // TODO : Multi Thread Problem
+    int? slot = player.Inven.GetEmptySlot();
+    if (slot == null)
+      return;
+
+    ItemDb itemDb = new ItemDb()
+    {
+      TemplateId = rewardData.itemId,
+      Count = rewardData.count,
+      Slot = slot.Value,
+      OwnerDbId = player.PlayerDbId
+    };
+
+    // You
+    Instance.Push(() =>
+    {
+      using (AppDbContext db = new AppDbContext())
+      {
+        db.Items.Add(itemDb);
+        bool success = db.SaveChangesEx();
+        if (success)
+        {
+          // Me
+          room.Push(() =>
+          {
+            Item newItem = Item.MakeItem(itemDb);
+            player.Inven.Add(newItem);
+
+            // TODO :Client Noti
+            {
+              S_AddItem ItemPacket = new S_AddItem();
+              ItemInfo itemInfo = new ItemInfo();
+              itemInfo.MergeFrom(newItem.Info);
+              ItemPacket.Items.Add(itemInfo);
+
+              player.Session.Send(ItemPacket);
+            }
+          });
+        }
+      }
+    });
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Item\Inventory.cs
+{% highlight C# %}
+public class Inventory
+{
+  ...
+  public int? GetEmptySlot()
+  {
+      for(int slot = 0; slot <20; slot++)
+      {
+          Item item = _items.Values.FirstOrDefault(i => i.Slot == slot);
+          if (item == null)
+              return slot;
+      }
+      return null;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow : Projectile
+{
+  ...
+  public override GameObject GetOwner()
+  {
+    return Owner;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+  ...
+  public virtual GameObject GetOwner()
+  {
+    return this;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  public int TemplateId { get; private set; }
+
+  public Monster()
+  {
+    ObjectType = GameObjectType.Monster;
+  }
+
+  public void Init(int templateId)
+  {
+    TemplateId = templateId;
+
+    MonsterData monsterData = null;
+    DataManager.MonsterDict.TryGetValue(TemplateId, out monsterData);
+    Stat.MergeFrom(monsterData.stat);
+    Stat.Hp = monsterData.stat.MaxHp;
+    State = CreatureState.Idle;
+  }
+  ...
+
+  public override void OnDead(GameObject attacker)
+  {
+    base.OnDead(attacker);
+
+    GameObject owner = attacker.GetOwner();
+    if(owner.ObjectType == GameObjectType.Player)
+    {
+      RewardData rewardData = GetRendomReward();
+      if(rewardData != null)
+      {
+        Player player = (Player)owner;
+        DbTransaction.RewardPlayer(player, rewardData, Room);
+      }
+    }
+  }
+
+  RewardData GetRendomReward()
+  {
+    MonsterData monsterData = null;
+    DataManager.MonsterDict.TryGetValue(TemplateId, out monsterData);
+			
+    int rand = new Random().Next(0,101);
+
+    int sum = 0;
+    foreach (RewardData rewardData in monsterData.rewards)
+    {
+      sum += rewardData.probability;
+      if(rand <= sum)
+      {
+        return rewardData;
+      }
+    }
+
+    return null;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public class GameRoom : JobSerializer
+{
+	...
+  public void Init(int mapId)
+  {
+    Map.LoadMap(mapId);
+
+    // TEMP
+    Monster monster = ObjectManager.Instance.Add<Monster>();
+    monster.Init(1);
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
+### Test
+
+* Delete Item List
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/19.jpg"><img src="/assets/img/posts/unity_mmocontents/19.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Reward.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
