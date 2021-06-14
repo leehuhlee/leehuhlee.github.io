@@ -1544,7 +1544,6 @@ public partial class ClientSession : PacketSession
 
       S_ItemList itemListPacket = new S_ItemList();
 
-      // 아이템 목록을 갖고온다
       using (AppDbContext db = new AppDbContext())
               {
         List<ItemDb> items = db.Items
@@ -2886,5 +2885,1028 @@ public class GameRoom : JobSerializer
 </figure>
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Reward.mp4" frameborder="0"> </iframe>
+
+## Item Using
+
+### Client
+
+* Client\Assets\Scripts\Contents\Item.cs
+{% highlight C# %}
+public class Item
+{
+  ...
+	public bool Equipped
+	{
+		get { return Info.Equipped; }
+		set { Info.Equipped = value; }
+	}
+  ...
+
+  public static Item MakeItem(ItemInfo itemInfo)
+	{
+		Item item = null;
+
+		ItemData itemData = null;
+		Managers.Data.ItemDict.TryGetValue(itemInfo.TemplateId, out itemData);
+
+		if (itemData == null)
+			return null;
+
+		switch (itemData.itemType)
+		{
+			case ItemType.Weapon:
+				item = new Weapon(itemInfo.TemplateId);
+				break;
+			case ItemType.Armor:
+				item = new Armor(itemInfo.TemplateId);
+				break;
+			case ItemType.Consumable:
+				item = new Consumable(itemInfo.TemplateId);
+				break;
+		}
+
+		if (item != null)
+		{
+			item.ItemDbId = itemInfo.ItemDbId;
+			item.Count = itemInfo.Count;
+			item.Slot = itemInfo.Slot;
+			item.Equipped = itemInfo.Equipped;
+		}
+
+		return item;
+	}
+}
+...
+
+public class Consumable : Item
+{
+	public ConsumableType ConsumableType { get; private set; }
+	public int MaxCount { get; set; }
+	...
+
+	void Init(int templateId)
+	{
+		ItemData itemData = null;
+		Managers.Data.ItemDict.TryGetValue(templateId, out itemData);
+		if (itemData.itemType != ItemType.Consumable)
+			return;
+
+		ConsumableData data = (ConsumableData)itemData;
+		{
+			TemplateId = data.id;
+			Count = 1;
+			MaxCount = data.maxCount;
+			ConsumableType = data.consumableType;
+			Stackable = (data.maxCount > 1);
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+	bool _moveKeyPressed = false;
+
+	public int WeaponDamage { get; private set; }
+	public int ArmorDefence { get; private set; }
+
+	protected override void Init()
+	{
+		base.Init();
+		RefreshAdditionalStat();
+	}
+  ...
+
+  public void RefreshAdditionalStat()
+	{
+		WeaponDamage = 0;
+		ArmorDefence = 0;
+
+		foreach (Item item in Managers.Inven.Items.Values)
+		{
+			if (item.Equipped == false)
+				continue;
+
+			switch (item.ItemType)
+			{
+				case ItemType.Weapon:
+					WeaponDamage += ((Weapon)item).Damage;
+					break;
+				case ItemType.Armor:
+					ArmorDefence += ((Armor)item).Defence;
+					break;
+			}
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_ItemListHandler(PacketSession session, IMessage packet)
+	{
+		S_ItemList itemList = (S_ItemList)packet;
+
+		Managers.Inven.Clear();
+
+		// 메모리에 아이템 정보 적용
+		foreach (ItemInfo itemInfo in itemList.Items)
+		{
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+		}
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+
+	public static void S_AddItemHandler(PacketSession session, IMessage packet)
+	{
+		S_AddItem itemList = (S_AddItem)packet;
+
+		// 메모리에 아이템 정보 적용
+		foreach (ItemInfo itemInfo in itemList.Items)
+		{
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+		}
+
+		Debug.Log("Get Item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		UI_Inventory invenUI = gameSceneUI.InvenUI;
+		invenUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+
+	public static void S_EquipItemHandler(PacketSession session, IMessage packet)
+	{
+		S_EquipItem equipItemOk = (S_EquipItem)packet;
+
+		// 메모리에 아이템 정보 적용
+		Item item = Managers.Inven.Get(equipItemOk.ItemDbId);
+		if (item == null)
+			return;
+
+		item.Equipped = equipItemOk.Equipped;
+		Debug.Log("Change setted item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		UI_Inventory invenUI = gameSceneUI.InvenUI;
+		invenUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+
+	public static void S_ChangeStatHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeStat itemList = (S_ChangeStat)packet;
+
+		// TODO
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_Inventory.cs
+{% highlight C# %}
+public class UI_Inventory : UI_Base
+{
+	public List<UI_Inventory_Item> Items { get; } = new List<UI_Inventory_Item>();
+
+	public override void Init()
+	{
+		Items.Clear();
+
+		GameObject grid = transform.Find("ItemGrid").gameObject;
+		foreach (Transform child in grid.transform)
+			Destroy(child.gameObject);
+
+		for (int i = 0; i < 20; i++)
+		{
+			GameObject go = Managers.Resource.Instantiate("UI/Scene/UI_Inventory_Item", grid.transform);
+			UI_Inventory_Item item = go.GetOrAddComponent<UI_Inventory_Item>();
+			Items.Add(item);
+		}
+
+		RefreshUI();
+	}
+
+	public void RefreshUI()
+	{
+		if (Items.Count == 0)
+			return;
+
+		List<Item> items = Managers.Inven.Items.Values.ToList();
+		items.Sort((left, right) => { return left.Slot - right.Slot; });
+
+		foreach (Item item in items)
+		{
+			if (item.Slot < 0 || item.Slot >= 20)
+				continue;
+
+			Items[item.Slot].SetItem(item);
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_Inventory_Item.cs
+{% highlight C# %}
+public class UI_Inventory_Item : UI_Base
+{
+	[SerializeField]
+	Image _icon = null;
+
+	[SerializeField]
+	Image _frame = null;
+
+	public int ItemDbId { get; private set; }
+	public int TemplateId { get; private set; }
+	public int Count { get; private set; }
+	public bool Equipped { get; private set; }
+
+	public override void Init()
+	{
+		_icon.gameObject.BindEvent((e) =>
+		{
+			Debug.Log("Click Item");
+
+			Data.ItemData itemData = null;
+			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+			// TODO : C_USE_ITEM 아이템 사용 패킷
+			if (itemData.itemType == ItemType.Consumable)
+				return;
+
+			C_EquipItem equipPacket = new C_EquipItem();
+			equipPacket.ItemDbId = ItemDbId;
+			equipPacket.Equipped = !Equipped;
+
+			Managers.Network.Send(equipPacket);
+		});
+	}
+
+	public void SetItem(Item item)
+	{
+		ItemDbId = item.ItemDbId;
+		TemplateId = item.TemplateId;
+		Count = item.Count;
+		Equipped = item.Equipped;
+
+		Data.ItemData itemData = null;
+		Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+		Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
+		_icon.sprite = icon;
+
+		_frame.gameObject.SetActive(Equipped);
+	}
+}
+{% endhighlight %}
+
+### Server
+
+* Server\DB\DataModel.cs
+{% highlight C# %}
+[Table("Item")]
+public class ItemDb
+{
+  public int ItemDbId { get; set; }
+  public int TemplateId { get; set; }
+  public int Count { get; set; }
+  public int Slot { get; set; }
+  public bool Equipped { get; set; } = false;
+
+  [ForeignKey("Owner")]
+  public int? OwnerDbId { get; set; }
+  public PlayerDb Owner { get; set; }
+}
+{% endhighlight %}
+
+* Server\DB\DbTransaction.cs
+{% highlight C# %}
+public partial class DbTransaction : JobSerializer
+{
+
+    ...
+    public static void RewardPlayer(Player player, RewardData rewardData, GameRoom room)
+		{
+			if (player == null || rewardData == null || room == null)
+				return;
+
+			// TODO : multi thread problem
+			// 1) Request to save on DB
+			// 2) DB Save OK
+			// 3) Apply on Memory
+			int? slot = player.Inven.GetEmptySlot();
+			if (slot == null)
+				return;
+
+			ItemDb itemDb = new ItemDb()
+			{
+				TemplateId = rewardData.itemId,
+				Count = rewardData.count,
+				Slot = slot.Value,
+				OwnerDbId = player.PlayerDbId
+			};
+
+			// You
+			Instance.Push(() =>
+			{
+				using (AppDbContext db = new AppDbContext())
+				{
+					db.Items.Add(itemDb);
+					bool success = db.SaveChangesEx();
+					if (success)
+					{
+						// Me
+						room.Push(() =>
+						{
+							Item newItem = Item.MakeItem(itemDb);
+							player.Inven.Add(newItem);
+
+							// Client Noti
+							{
+								S_AddItem itemPacket = new S_AddItem();
+								ItemInfo itemInfo = new ItemInfo();
+								itemInfo.MergeFrom(newItem.Info);
+								itemPacket.Items.Add(itemInfo);
+
+								player.Session.Send(itemPacket);
+							}
+						});
+					}
+				}
+			});
+		}
+	}
+}
+{% endhighlight %}
+
+* Server\DB\DbTransaction_Noti.cs
+{% highlight C# %}
+public partial class DbTransaction : JobSerializer
+	{
+		public static void EquipItemNoti(Player player, Item item)
+		{
+			if (player == null || item == null)
+				return;
+
+			ItemDb itemDb = new ItemDb()
+			{
+				ItemDbId = item.ItemDbId,
+				Equipped = item.Equipped
+			};
+
+			// You
+			Instance.Push(() =>
+			{
+				using (AppDbContext db = new AppDbContext())
+				{
+					db.Entry(itemDb).State = EntityState.Unchanged;
+					db.Entry(itemDb).Property(nameof(ItemDb.Equipped)).IsModified = true;
+
+					bool success = db.SaveChangesEx();
+					if (!success)
+					{
+						// Fail: Kick
+					}
+				}
+			});
+		}
+	}
+{% endhighlight %}
+
+* Server\Game\Item\Inventory.cs
+{% highlight C# %}
+public class Inventory
+{
+  public Dictionary<int, Item> Items { get; } = new Dictionary<int, Item>();
+
+  public void Add(Item item)
+  {
+    Items.Add(item.ItemDbId, item);
+  }
+
+  public Item Get(int itemDbId)
+  {
+    Item item = null;
+    Items.TryGetValue(itemDbId, out item);
+    return item;
+  }
+
+  public Item Find(Func<Item, bool> condition)
+  {
+    foreach (Item item in Items.Values)
+    {
+      if (condition.Invoke(item))
+        return item;
+    }
+
+    return null;
+  }
+
+  public int? GetEmptySlot()
+  {
+    for (int slot = 0; slot < 20; slot++)
+    {
+      Item item = Items.Values.FirstOrDefault(i => i.Slot == slot);
+      if (item == null)
+        return slot;
+    }
+
+    return null;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Item\Item.cs
+{% highlight C# %}
+public class Item
+{
+  ...
+  public bool Equipped
+  {
+    get { return Info.Equipped; }
+    set { Info.Equipped = value; }
+  }
+  ...
+
+  public static Item MakeItem(ItemDb itemDb)
+  {
+    Item item = null;
+
+    ItemData itemData = null;
+    DataManager.ItemDict.TryGetValue(itemDb.TemplateId, out itemData);
+
+    if (itemData == null)
+      return null;
+
+    switch (itemData.itemType)
+    {
+      case ItemType.Weapon:
+        item = new Weapon(itemDb.TemplateId);
+        break;
+      case ItemType.Armor:
+        item = new Armor(itemDb.TemplateId);
+        break;
+      case ItemType.Consumable:
+        item = new Consumable(itemDb.TemplateId);
+        break;
+    }
+
+    if (item != null)
+    {
+      item.ItemDbId = itemDb.ItemDbId;
+      item.Count = itemDb.Count;
+      item.Slot = itemDb.Slot;
+      item.Equipped = itemDb.Equipped;
+    }
+
+    return item;
+  }
+  ...
+
+  public class Consumable : Item
+	{
+		public ConsumableType ConsumableType { get; private set; }
+		public int MaxCount { get; set; }
+
+		public Consumable(int templateId) : base(ItemType.Consumable)
+		{
+			Init(templateId);
+		}
+
+		void Init(int templateId)
+		{
+			ItemData itemData = null;
+			DataManager.ItemDict.TryGetValue(templateId, out itemData);
+			if (itemData.itemType != ItemType.Consumable)
+				return;
+
+			ConsumableData data = (ConsumableData)itemData;
+			{
+				TemplateId = data.id;
+				Count = 1;
+				MaxCount = data.maxCount;
+				ConsumableType = data.consumableType;
+				Stackable = (data.maxCount > 1);
+			}
+		}
+}
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow : Projectile
+{
+  public GameObject Owner { get; set; }
+
+  public override void Update()
+  {
+    if (Data == null || Data.projectile == null || Owner == null || Room == null)
+      return;
+
+    int tick = (int)(1000 / Data.projectile.speed);
+    Room.PushAfter(tick, Update);
+
+    Vector2Int destPos = GetFrontCellPos();
+    if (Room.Map.CanGo(destPos))
+    {
+      CellPos = destPos;
+
+      S_Move movePacket = new S_Move();
+      movePacket.ObjectId = Id;
+      movePacket.PosInfo = PosInfo;
+      Room.Broadcast(movePacket);
+
+      Console.WriteLine("Move Arrow");
+    }
+    else
+    {
+      GameObject target = Room.Map.Find(destPos);
+      if (target != null)
+      {
+        target.OnDamaged(this, Data.damage + Owner.TotalAttack);
+      }
+
+      // 소멸
+      Room.Push(Room.LeaveGame, Id);
+    }
+  }
+
+  public override GameObject GetOwner()
+  {
+    return Owner;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+  ...
+  public virtual int TotalAttack { get { return Stat.Attack; } }
+  public virtual int TotalDefence { get { return 0; } }
+  ...
+
+  public virtual void OnDamaged(GameObject attacker, int damage)
+  {
+    if (Room == null)
+      return;
+
+    damage = Math.Max(damage - TotalDefence, 0);
+    Stat.Hp = Math.Max(Stat.Hp - damage, 0);
+
+    S_ChangeHp changePacket = new S_ChangeHp();
+    changePacket.ObjectId = Id;
+    changePacket.Hp = Stat.Hp;
+    Room.Broadcast(changePacket);
+
+    if (Stat.Hp <= 0)
+    {
+      OnDead(attacker);
+    }
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  ...
+  protected virtual void UpdateSkill()
+		{
+			if (_coolTick == 0)
+			{
+				if (_target == null || _target.Room != Room)
+				{
+					_target = null;
+					State = CreatureState.Moving;
+					BroadcastMove();
+					return;
+				}
+
+				Vector2Int dir = (_target.CellPos - CellPos);
+				int dist = dir.cellDistFromZero;
+				bool canUseSkill = (dist <= _skillRange && (dir.x == 0 || dir.y == 0));
+				if (canUseSkill == false)
+				{
+					State = CreatureState.Moving;
+					BroadcastMove();
+					return;
+				}
+
+				MoveDir lookDir = GetDirFromVec(dir);
+				if (Dir != lookDir)
+				{
+					Dir = lookDir;
+					BroadcastMove();
+				}
+
+				Skill skillData = null;
+				DataManager.SkillDict.TryGetValue(1, out skillData);
+
+				_target.OnDamaged(this, skillData.damage + TotalAttack);
+
+				S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+				skill.ObjectId = Id;
+				skill.Info.SkillId = skillData.id;
+				Room.Broadcast(skill);
+
+				int coolTick = (int)(1000 * skillData.cooldown);
+				_coolTick = Environment.TickCount64 + coolTick;
+			}
+
+			if (_coolTick > Environment.TickCount64)
+				return;
+
+			_coolTick = 0;
+		}
+    ...
+
+		RewardData GetRandomReward()
+		{
+			MonsterData monsterData = null;
+			DataManager.MonsterDict.TryGetValue(TemplateId, out monsterData);
+
+			int rand = new Random().Next(0, 101);
+
+			int sum = 0;
+			foreach (RewardData rewardData in monsterData.rewards)
+			{
+				sum += rewardData.probability;
+
+				if (rand <= sum)
+				{
+					return rewardData;
+				}
+			}
+
+			return null;
+		}
+	}
+}
+{% endhighlight %}
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player : GameObject
+{
+  ...
+  public int WeaponDamage { get; private set; }
+  public int ArmorDefence { get; private set; }
+
+  public override int TotalAttack { get { return Stat.Attack + WeaponDamage; } }
+  public override int TotalDefence { get { return ArmorDefence; } }
+  ...
+
+  public void HandleEquipItem(C_EquipItem equipPacket)
+  {
+    Item item = Inven.Get(equipPacket.ItemDbId);
+    if (item == null)
+      return;
+
+    if (item.ItemType == ItemType.Consumable)
+      return;
+
+    // If setting request, unset duplicated part
+    if (equipPacket.Equipped)
+    {
+      Item unequipItem = null;
+
+      if (item.ItemType == ItemType.Weapon)
+      {
+        unequipItem = Inven.Find(
+          i => i.Equipped && i.ItemType == ItemType.Weapon);
+      }
+      else if (item.ItemType == ItemType.Armor)
+      {
+        ArmorType armorType = ((Armor)item).ArmorType;
+        unequipItem = Inven.Find(
+          i => i.Equipped && i.ItemType == ItemType.Armor
+            && ((Armor)i).ArmorType == armorType);
+      }
+
+      if (unequipItem != null)
+      {
+        // first, apply in memory
+        unequipItem.Equipped = false;
+
+        // Noti in DB
+        DbTransaction.EquipItemNoti(this, unequipItem);
+
+        // Noti in Client
+        S_EquipItem equipOkItem = new S_EquipItem();
+        equipOkItem.ItemDbId = unequipItem.ItemDbId;
+        equipOkItem.Equipped = unequipItem.Equipped;
+        Session.Send(equipOkItem);
+      }
+    }
+
+    {
+      // first, apply in memory
+      item.Equipped = equipPacket.Equipped;
+
+      // Noti in DB
+      DbTransaction.EquipItemNoti(this, item);
+
+      // Noti in Client
+      S_EquipItem equipOkItem = new S_EquipItem();
+      equipOkItem.ItemDbId = equipPacket.ItemDbId;
+      equipOkItem.Equipped = equipPacket.Equipped;
+      Session.Send(equipOkItem);
+    }
+
+    RefreshAdditionalStat();
+  }
+
+  public void RefreshAdditionalStat()
+  {
+    WeaponDamage = 0;
+    ArmorDefence = 0;
+
+    foreach (Item item in Inven.Items.Values)
+    {
+      if (item.Equipped == false)
+        continue;
+
+      switch (item.ItemType)
+      {
+        case ItemType.Weapon:
+          WeaponDamage += ((Weapon)item).Damage;
+          break;
+        case ItemType.Armor:
+          ArmorDefence += ((Armor)item).Defence;
+          break;
+      }
+    }
+  }
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  ...
+  public void Update()
+  {
+    foreach (Monster monster in _monsters.Values)
+    {
+      monster.Update();
+    }
+
+    Flush();
+  }
+
+  public void EnterGame(GameObject gameObject)
+  {
+    if (gameObject == null)
+      return;
+
+    GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+
+    if (type == GameObjectType.Player)
+    {
+      Player player = gameObject as Player;
+      _players.Add(gameObject.Id, player);
+      player.Room = this;
+
+      player.RefreshAdditionalStat();
+
+      Map.ApplyMove(player, new Vector2Int(player.CellPos.x, player.CellPos.y));
+
+      {
+        S_EnterGame enterPacket = new S_EnterGame();
+        enterPacket.Player = player.Info;
+        player.Session.Send(enterPacket);
+
+        S_Spawn spawnPacket = new S_Spawn();
+        foreach (Player p in _players.Values)
+        {
+          if (player != p)
+            spawnPacket.Objects.Add(p.Info);
+        }
+
+        foreach (Monster m in _monsters.Values)
+          spawnPacket.Objects.Add(m.Info);
+
+        foreach (Projectile p in _projectiles.Values)
+          spawnPacket.Objects.Add(p.Info);
+
+        player.Session.Send(spawnPacket);
+      }
+    }
+    else if (type == GameObjectType.Monster)
+    {
+      Monster monster = gameObject as Monster;
+      _monsters.Add(gameObject.Id, monster);
+      monster.Room = this;
+
+      Map.ApplyMove(monster, new Vector2Int(monster.CellPos.x, monster.CellPos.y));
+    }
+    else if (type == GameObjectType.Projectile)
+    {
+      Projectile projectile = gameObject as Projectile;
+      _projectiles.Add(gameObject.Id, projectile);
+      projectile.Room = this;
+
+      projectile.Update();
+    }
+    
+    {
+      S_Spawn spawnPacket = new S_Spawn();
+      spawnPacket.Objects.Add(gameObject.Info);
+      foreach (Player p in _players.Values)
+      {
+        if (p.Id != gameObject.Id)
+          p.Session.Send(spawnPacket);
+      }
+    }
+  }
+
+  public void LeaveGame(int objectId)
+  {
+    GameObjectType type = ObjectManager.GetObjectTypeById(objectId);
+
+    if (type == GameObjectType.Player)
+    {
+      Player player = null;
+      if (_players.Remove(objectId, out player) == false)
+        return;
+
+      player.OnLeaveGame();
+      Map.ApplyLeave(player);
+      player.Room = null;
+
+      {
+        S_LeaveGame leavePacket = new S_LeaveGame();
+        player.Session.Send(leavePacket);
+      }
+    }
+    else if (type == GameObjectType.Monster)
+    {
+      Monster monster = null;
+      if (_monsters.Remove(objectId, out monster) == false)
+        return;
+
+      Map.ApplyLeave(monster);
+      monster.Room = null;
+    }
+    else if (type == GameObjectType.Projectile)
+    {
+      Projectile projectile = null;
+      if (_projectiles.Remove(objectId, out projectile) == false)
+        return;
+
+      projectile.Room = null;
+    }
+
+    {
+      S_Despawn despawnPacket = new S_Despawn();
+      despawnPacket.ObjectIds.Add(objectId);
+      foreach (Player p in _players.Values)
+      {
+        if (p.Id != objectId)
+          p.Session.Send(despawnPacket);
+      }
+    }
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameRoom_Battle.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  public void HandleMove(Player player, C_Move movePacket)
+  {
+    if (player == null)
+      return;
+
+    PositionInfo movePosInfo = movePacket.PosInfo;
+    ObjectInfo info = player.Info;
+
+    if (movePosInfo.PosX != info.PosInfo.PosX || movePosInfo.PosY != info.PosInfo.PosY)
+    {
+      if (Map.CanGo(new Vector2Int(movePosInfo.PosX, movePosInfo.PosY)) == false)
+        return;
+    }
+
+    info.PosInfo.State = movePosInfo.State;
+    info.PosInfo.MoveDir = movePosInfo.MoveDir;
+    Map.ApplyMove(player, new Vector2Int(movePosInfo.PosX, movePosInfo.PosY));
+
+    S_Move resMovePacket = new S_Move();
+    resMovePacket.ObjectId = player.Info.ObjectId;
+    resMovePacket.PosInfo = movePacket.PosInfo;
+
+    Broadcast(resMovePacket);
+  }
+
+  public void HandleSkill(Player player, C_Skill skillPacket)
+  {
+    if (player == null)
+      return;
+
+    ObjectInfo info = player.Info;
+    if (info.PosInfo.State != CreatureState.Idle)
+      return;
+
+    info.PosInfo.State = CreatureState.Skill;
+    S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+    skill.ObjectId = info.ObjectId;
+    skill.Info.SkillId = skillPacket.Info.SkillId;
+    Broadcast(skill);
+
+    Data.Skill skillData = null;
+    if (DataManager.SkillDict.TryGetValue(skillPacket.Info.SkillId, out skillData) == false)
+      return;
+
+    switch (skillData.skillType)
+    {
+      case SkillType.SkillAuto:
+        {
+          Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
+          GameObject target = Map.Find(skillPos);
+          if (target != null)
+          {
+            Console.WriteLine("Hit GameObject !");
+          }
+        }
+        break;
+      case SkillType.SkillProjectile:
+        {
+          Arrow arrow = ObjectManager.Instance.Add<Arrow>();
+          if (arrow == null)
+            return;
+
+          arrow.Owner = player;
+          arrow.Data = skillData;
+          arrow.PosInfo.State = CreatureState.Moving;
+          arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
+          arrow.PosInfo.PosX = player.PosInfo.PosX;
+          arrow.PosInfo.PosY = player.PosInfo.PosY;
+          arrow.Speed = skillData.projectile.speed;
+          Push(EnterGame, arrow);
+        }
+        break;
+    }
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameRoom_Item.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{		
+  public void HandleEquipItem(Player player, C_EquipItem equipPacket)
+  {
+    if (player == null)
+      return;
+
+    player.HandleEquipItem(equipPacket);
+  }
+}
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+public class PAcketHandler
+{
+  ...
+  public static void C_EquipItemHandler(PacketSession session, IMessage packet)
+	{
+		C_EquipItem equipPacket = (C_EquipItem)packet;
+		ClientSession clientSession = (ClientSession)session;
+
+		Player player = clientSession.MyPlayer;
+		if (player == null)
+			return;
+
+		GameRoom room = player.Room;
+		if (room == null)
+			return;
+
+		room.Push(room.HandleEquipItem, player, equipPacket);
+	}
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Item-Use.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
