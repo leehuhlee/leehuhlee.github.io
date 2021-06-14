@@ -3029,7 +3029,7 @@ class PacketHandler
 	{
 		S_AddItem itemList = (S_AddItem)packet;
 
-		// 메모리에 아이템 정보 적용
+		// Apply Item data in memory
 		foreach (ItemInfo itemInfo in itemList.Items)
 		{
 			Item item = Item.MakeItem(itemInfo);
@@ -3050,7 +3050,7 @@ class PacketHandler
 	{
 		S_EquipItem equipItemOk = (S_EquipItem)packet;
 
-		// 메모리에 아이템 정보 적용
+		// Apply Item data in memory
 		Item item = Managers.Inven.Get(equipItemOk.ItemDbId);
 		if (item == null)
 			return;
@@ -3904,6 +3904,13 @@ public class PAcketHandler
 	}
 }
 {% endhighlight %}
+
+### DB
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/20.jpg"><img src="/assets/img/posts/unity_mmocontents/20.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
 
 ### Test
 
