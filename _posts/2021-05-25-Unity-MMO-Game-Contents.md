@@ -3916,4 +3916,365 @@ public class PAcketHandler
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Item-Use.mp4" frameborder="0"> </iframe>
 
+## Stat UI
+
+* Stat UI Prefab
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/21.jpg"><img src="/assets/img/posts/unity_mmocontents/21.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Assets\Scripts\UI\Scene\UI_Stat.cs
+{% highlight C# %}
+public class UI_Stat : UI_Base
+{
+    enum Images
+    {
+        Slot_Helmet,
+        Slot_Armor,
+        Slot_Boots,
+        Slot_Weapon,
+        Slot_Shield,
+    }
+
+    enum Texts
+    {
+        NameText,
+        AttackValueText,
+        DefenceValueText,
+    }
+
+    bool _init = false;
+
+    public override void Init()
+    {
+        Bind<Image>(typeof(Images));
+        Bind<Text>(typeof(Texts));
+
+        _init = true;
+        RefreshUI();
+    }
+
+    public void RefreshUI()
+    {
+        if (_init == false)
+            return;
+
+        // Hide all at first
+        Get<Image>((int)Images.Slot_Helmet).enabled = false;
+        Get<Image>((int)Images.Slot_Armor).enabled = false;
+        Get<Image>((int)Images.Slot_Boots).enabled = false;
+        Get<Image>((int)Images.Slot_Weapon).enabled = false;
+        Get<Image>((int)Images.Slot_Shield).enabled = false;
+
+        // Fill
+        foreach (Item item in Managers.Inven.Items.Values)
+        {
+            if (item.Equipped == false)
+                continue;
+
+            ItemData itemData = null;
+            Managers.Data.ItemDict.TryGetValue(item.TemplateId, out itemData);
+
+            Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
+
+            if(item.ItemType == ItemType.Weapon)
+            {
+                Get<Image>((int)Images.Slot_Weapon).enabled = true;
+                Get<Image>((int)Images.Slot_Weapon).sprite = icon;
+            }
+            else if(item.ItemType == ItemType.Armor)
+            {
+                Armor armor = (Armor)item;
+                switch (armor.ArmorType)
+                {
+                    case ArmorType.Helmet:
+                        Get<Image>((int)Images.Slot_Helmet).enabled = true;
+                        Get<Image>((int)Images.Slot_Helmet).sprite = icon;
+                        break;
+                    case ArmorType.Armor:
+                        Get<Image>((int)Images.Slot_Armor).enabled = true;
+                        Get<Image>((int)Images.Slot_Armor).sprite = icon;
+                        break;
+                    case ArmorType.Boots:
+                        Get<Image>((int)Images.Slot_Boots).enabled = true;
+                        Get<Image>((int)Images.Slot_Boots).sprite = icon;
+                        break;
+                }
+            }
+        }
+
+        // Text
+        MyPlayerController player = Managers.Object.MyPlayer;
+        player.RefreshAdditionalStat();
+
+        Get<Text>((int)Texts.NameText).text = player.name;
+        int totalDamage = player.Stat.Attack + player.WeaponDamage;
+        Get<Text>((int)Texts.AttackValueText).text = $"{totalDamage}(+{player.WeaponDamage})";
+        Get<Text>((int)Texts.DefenceValueText).text = $"{player.ArmorDefence}";
+    }
+}
+{% endhighlight %}
+
+* Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_AddItemHandler(PacketSession session, IMessage packet)
+	{
+		S_AddItem itemList = (S_AddItem)packet;
+
+		foreach (ItemInfo itemInfo in itemList.Items)
+		{
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+		}
+
+		Debug.Log("Get Item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		gameSceneUI.InvenUI.RefreshUI();
+		gameSceneUI.StatUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+
+	public static void S_EquipItemHandler(PacketSession session, IMessage packet)
+	{
+		S_EquipItem equipItemOk = (S_EquipItem)packet;
+
+		Item item = Managers.Inven.Get(equipItemOk.ItemDbId);
+		if (item == null)
+			return;
+
+		item.Equipped = equipItemOk.Equipped;
+		Debug.Log("Change setted item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		gameSceneUI.InvenUI.RefreshUI();
+		gameSceneUI.StatUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Sciprts\UI\Scene\UI_Inventory_Item.cs
+{% highlight C# %}
+public class UI_Inventory_Item : UI_Base
+{
+	...
+	public override void Init()
+	{
+		_icon.gameObject.BindEvent((e) =>
+		{
+			Debug.Log("Click Item");
+
+			Data.ItemData itemData = null;
+			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+			if (itemData == null)
+				return;
+
+			// TODO : C_USE_ITEM 아이템 사용 패킷
+			if (itemData.itemType == ItemType.Consumable)
+				return;
+
+			C_EquipItem equipPacket = new C_EquipItem();
+			equipPacket.ItemDbId = ItemDbId;
+			equipPacket.Equipped = !Equipped;
+
+			Managers.Network.Send(equipPacket);
+		});
+	}
+
+	public void SetItem(Item item)
+	{
+		if(item == null)
+        {
+			ItemDbId = 0;
+			TemplateId = 0;
+			Count = 0;
+			Equipped = false;
+
+			_icon.gameObject.SetActive(false);
+			_frame.gameObject.SetActive(false);
+        }
+        else
+        {
+			ItemDbId = item.ItemDbId;
+			TemplateId = item.TemplateId;
+			Count = item.Count;
+			Equipped = item.Equipped;
+
+			Data.ItemData itemData = null;
+			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+			Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
+			_icon.sprite = icon;
+
+			_icon.gameObject.SetActive(true);
+			_frame.gameObject.SetActive(Equipped);
+		}
+	}
+}
+{% endhighlihgt %}
+
+* Assets\Scripts\Controllers\BaseController.cs
+{% highlight C# %}
+public class BaseController : MonoBehaviour
+{
+	public int Id { get; set; }
+
+	StatInfo _stat = new StatInfo();
+	public virtual StatInfo Stat
+	{
+		get { return _stat; }
+		set
+		{
+			if (_stat.Equals(value))
+				return;
+
+			_stat.MergeFrom(value);
+		}
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+  ...
+  void GetUIKeyInput()
+	{
+		if (Input.GetKeyDown(KeyCode.I))
+		{
+			UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+			UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+			if (invenUI.gameObject.activeSelf)
+			{
+				invenUI.gameObject.SetActive(false);
+			}
+			else
+			{
+				invenUI.gameObject.SetActive(true);
+				invenUI.RefreshUI();
+			}
+		}
+		else if (Input.GetKeyDown(KeyCode.C))
+		{
+			UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+			UI_Stat statUI = gameSceneUI.StatUI;
+
+			if (statUI.gameObject.activeSelf)
+			{
+				statUI.gameObject.SetActive(false);
+			}
+			else
+			{
+				statUI.gameObject.SetActive(true);
+				statUI.RefreshUI();
+			}
+		}
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Managers\Core\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+  ...
+  Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+		TextAsset textAsset = Managers.Resource.Load<TextAsset>($"Data/{path}");
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Loader>(textAsset.text);
+	}
+}
+{% endhighlight %}
+
+* Assets\Scripts\Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	...
+	public void Add(ObjectInfo info, bool myPlayer = false)
+	{
+		GameObjectType objectType = GetObjectTypeById(info.ObjectId);
+		if (objectType == GameObjectType.Player)
+		{
+			if (myPlayer)
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				MyPlayer = go.GetComponent<MyPlayerController>();
+				MyPlayer.Id = info.ObjectId;
+				MyPlayer.PosInfo = info.PosInfo;
+				MyPlayer.Stat.MergeFrom(info.StatInfo);
+				MyPlayer.SyncPos();
+			}
+			else
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/Player");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				PlayerController pc = go.GetComponent<PlayerController>();
+				pc.Id = info.ObjectId;
+				pc.PosInfo = info.PosInfo;
+				pc.Stat.MergeFrom(info.StatInfo);
+				pc.SyncPos();
+			}
+		}
+		else if (objectType == GameObjectType.Monster)
+		{
+			GameObject go = Managers.Resource.Instantiate("Creature/Monster");
+			go.name = info.Name;
+			_objects.Add(info.ObjectId, go);
+
+			MonsterController mc = go.GetComponent<MonsterController>();
+			mc.Id = info.ObjectId;
+			mc.PosInfo = info.PosInfo;
+			mc.Stat = info.StatInfo;
+			mc.SyncPos();
+		}
+		else if (objectType == GameObjectType.Projectile)
+		{
+			GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+			go.name = "Arrow";
+			_objects.Add(info.ObjectId, go);
+
+			ArrowController ac = go.GetComponent<ArrowController>();
+			ac.PosInfo = info.PosInfo;
+			ac.Stat = info.StatInfo;
+			ac.SyncPos();
+		}
+	}
+  ...
+}
+{% endhighlight %}
+
+* Add Library
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/22.jpg"><img src="/assets/img/posts/unity_mmocontents/22.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Stat-UI.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
