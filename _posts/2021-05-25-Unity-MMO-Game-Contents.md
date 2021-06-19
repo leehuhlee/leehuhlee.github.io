@@ -4064,66 +4064,146 @@ class PacketHandler
 }
 {% endhighlight %}
 
-* Assets\Sciprts\UI\Scene\UI_Inventory_Item.cs
+* Assets\Scripts\Controllers\BaseController.cs
 {% highlight C# %}
-public class UI_Inventory_Item : UI_Base
+public class BaseController : MonoBehaviour
 {
-	...
-	public override void Init()
+	public int Id { get; set; }
+
+	StatInfo _stat = new StatInfo();
+	public virtual StatInfo Stat
 	{
-		_icon.gameObject.BindEvent((e) =>
+		get { return _stat; }
+		set
 		{
-			Debug.Log("Click Item");
-
-			Data.ItemData itemData = null;
-			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
-
-			if (itemData == null)
+			if (_stat.Equals(value))
 				return;
 
-			if (itemData.itemType == ItemType.Consumable)
-				return;
-
-			C_EquipItem equipPacket = new C_EquipItem();
-			equipPacket.ItemDbId = ItemDbId;
-			equipPacket.Equipped = !Equipped;
-
-			Managers.Network.Send(equipPacket);
-		});
-	}
-
-	public void SetItem(Item item)
-	{
-		if(item == null)
-        {
-			ItemDbId = 0;
-			TemplateId = 0;
-			Count = 0;
-			Equipped = false;
-
-			_icon.gameObject.SetActive(false);
-			_frame.gameObject.SetActive(false);
-        }
-        else
-        {
-			ItemDbId = item.ItemDbId;
-			TemplateId = item.TemplateId;
-			Count = item.Count;
-			Equipped = item.Equipped;
-
-			Data.ItemData itemData = null;
-			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
-
-			Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
-			_icon.sprite = icon;
-
-			_icon.gameObject.SetActive(true);
-			_frame.gameObject.SetActive(Equipped);
+			_stat.MergeFrom(value);
 		}
 	}
+  ...
 }
-{% endhighlihgt %}
+{% endhighlight %}
 
+* Assets\Scripts\Controllers\MyPlayerController.cs
+{% highlight C# %}
+public class MyPlayerController : PlayerController
+{
+  ...
+  void GetUIKeyInput()
+	{
+		if (Input.GetKeyDown(KeyCode.I))
+		{
+			UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+			UI_Inventory invenUI = gameSceneUI.InvenUI;
+
+			if (invenUI.gameObject.activeSelf)
+			{
+				invenUI.gameObject.SetActive(false);
+			}
+			else
+			{
+				invenUI.gameObject.SetActive(true);
+				invenUI.RefreshUI();
+			}
+		}
+		else if (Input.GetKeyDown(KeyCode.C))
+		{
+			UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+			UI_Stat statUI = gameSceneUI.StatUI;
+
+			if (statUI.gameObject.activeSelf)
+			{
+				statUI.gameObject.SetActive(false);
+			}
+			else
+			{
+				statUI.gameObject.SetActive(true);
+				statUI.RefreshUI();
+			}
+		}
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Scripts\Managers\Core\DataManager.cs
+{% highlight C# %}
+...
+public class DataManager
+{
+  ...
+  Loader LoadJson<Loader, Key, Value>(string path) where Loader : ILoader<Key, Value>
+    {
+		TextAsset textAsset = Managers.Resource.Load<TextAsset>($"Data/{path}");
+        return Newtonsoft.Json.JsonConvert.DeserializeObject<Loader>(textAsset.text);
+	}
+}
+{% endhighlight %}
+
+* Assets\Scripts\Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+	...
+	public void Add(ObjectInfo info, bool myPlayer = false)
+	{
+		GameObjectType objectType = GetObjectTypeById(info.ObjectId);
+		if (objectType == GameObjectType.Player)
+		{
+			if (myPlayer)
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/MyPlayer");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				MyPlayer = go.GetComponent<MyPlayerController>();
+				MyPlayer.Id = info.ObjectId;
+				MyPlayer.PosInfo = info.PosInfo;
+				MyPlayer.Stat.MergeFrom(info.StatInfo);
+				MyPlayer.SyncPos();
+			}
+			else
+			{
+				GameObject go = Managers.Resource.Instantiate("Creature/Player");
+				go.name = info.Name;
+				_objects.Add(info.ObjectId, go);
+
+				PlayerController pc = go.GetComponent<PlayerController>();
+				pc.Id = info.ObjectId;
+				pc.PosInfo = info.PosInfo;
+				pc.Stat.MergeFrom(info.StatInfo);
+				pc.SyncPos();
+			}
+		}
+		else if (objectType == GameObjectType.Monster)
+		{
+			GameObject go = Managers.Resource.Instantiate("Creature/Monster");
+			go.name = info.Name;
+			_objects.Add(info.ObjectId, go);
+
+			MonsterController mc = go.GetComponent<MonsterController>();
+			mc.Id = info.ObjectId;
+			mc.PosInfo = info.PosInfo;
+			mc.Stat = info.StatInfo;
+			mc.SyncPos();
+		}
+		else if (objectType == GameObjectType.Projectile)
+		{
+			GameObject go = Managers.Resource.Instantiate("Creature/Arrow");
+			go.name = "Arrow";
+			_objects.Add(info.ObjectId, go);
+
+			ArrowController ac = go.GetComponent<ArrowController>();
+			ac.PosInfo = info.PosInfo;
+			ac.Stat = info.StatInfo;
+			ac.SyncPos();
+		}
+	}
+  ...
+}
+{% endhighlight %}
 
 * Add Library
 
