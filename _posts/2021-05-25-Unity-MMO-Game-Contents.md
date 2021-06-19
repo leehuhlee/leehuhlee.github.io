@@ -4017,8 +4017,6 @@ public class UI_Stat : UI_Base
 }
 {% endhighlight %}
 
-
-
 * Add Library
 
 <figure>
