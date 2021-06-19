@@ -4017,6 +4017,114 @@ public class UI_Stat : UI_Base
 }
 {% endhighlight %}
 
+* Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_AddItemHandler(PacketSession session, IMessage packet)
+	{
+		S_AddItem itemList = (S_AddItem)packet;
+
+		foreach (ItemInfo itemInfo in itemList.Items)
+		{
+			Item item = Item.MakeItem(itemInfo);
+			Managers.Inven.Add(item);
+		}
+
+		Debug.Log("Get Item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		gameSceneUI.InvenUI.RefreshUI();
+		gameSceneUI.StatUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+
+	public static void S_EquipItemHandler(PacketSession session, IMessage packet)
+	{
+		S_EquipItem equipItemOk = (S_EquipItem)packet;
+
+		Item item = Managers.Inven.Get(equipItemOk.ItemDbId);
+		if (item == null)
+			return;
+
+		item.Equipped = equipItemOk.Equipped;
+		Debug.Log("Change setted item!");
+
+		UI_GameScene gameSceneUI = Managers.UI.SceneUI as UI_GameScene;
+		gameSceneUI.InvenUI.RefreshUI();
+		gameSceneUI.StatUI.RefreshUI();
+
+		if (Managers.Object.MyPlayer != null)
+			Managers.Object.MyPlayer.RefreshAdditionalStat();
+	}
+  ...
+}
+{% endhighlight %}
+
+* Assets\Sciprts\UI\Scene\UI_Inventory_Item.cs
+{% highlight C# %}
+public class UI_Inventory_Item : UI_Base
+{
+	...
+	public override void Init()
+	{
+		_icon.gameObject.BindEvent((e) =>
+		{
+			Debug.Log("Click Item");
+
+			Data.ItemData itemData = null;
+			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+			if (itemData == null)
+				return;
+
+			if (itemData.itemType == ItemType.Consumable)
+				return;
+
+			C_EquipItem equipPacket = new C_EquipItem();
+			equipPacket.ItemDbId = ItemDbId;
+			equipPacket.Equipped = !Equipped;
+
+			Managers.Network.Send(equipPacket);
+		});
+	}
+
+	public void SetItem(Item item)
+	{
+		if(item == null)
+        {
+			ItemDbId = 0;
+			TemplateId = 0;
+			Count = 0;
+			Equipped = false;
+
+			_icon.gameObject.SetActive(false);
+			_frame.gameObject.SetActive(false);
+        }
+        else
+        {
+			ItemDbId = item.ItemDbId;
+			TemplateId = item.TemplateId;
+			Count = item.Count;
+			Equipped = item.Equipped;
+
+			Data.ItemData itemData = null;
+			Managers.Data.ItemDict.TryGetValue(TemplateId, out itemData);
+
+			Sprite icon = Managers.Resource.Load<Sprite>(itemData.iconPath);
+			_icon.sprite = icon;
+
+			_icon.gameObject.SetActive(true);
+			_frame.gameObject.SetActive(Equipped);
+		}
+	}
+}
+{% endhighlihgt %}
+
+
 * Add Library
 
 <figure>
