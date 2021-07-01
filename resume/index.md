@@ -9,6 +9,10 @@ comments: false
 <center><a href="https://leehuhlee.github.io/resume/Resume_JihyunLee.pdf"><b>This</b></a> is my résumé.</center>
 
 ## Career
+* Full-time, KEHAG Energiehandel GmbH
+  - Web Developer
+  - Invoice Developer
+
 * Intern, Oneday Korea
   - Chatbot Developer
   - Front-End Developer
