@@ -44,8 +44,10 @@ See [my codes](https://github.com/leehuhlee) hosted on GitHub.
 * IT Skills
   - Programming Language: <br>
         C/C++ &nbsp;&nbsp;&nbsp;■■■■■<br>
-        Python &nbsp;■■■■□<br>
-        JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□
+        C# &nbsp;&nbsp;&nbsp;&nbsp;■■■■□<br>
+        JAVA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■□□<br>
+        Python &nbsp;■■■■□
+        
   - MS Office &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;■■■■■
   - Photoshop &nbsp;&nbsp;&nbsp;&nbsp;■■■■■
       
