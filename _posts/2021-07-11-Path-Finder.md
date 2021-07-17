@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "[C#] Path Finder"
-date: 2021-05-25
+date: 2021-07-11
 excerpt: "KATA Path Finder Series"
 tags: [C#, Maze, Algorithm]
 comments: false
@@ -64,6 +64,8 @@ public class Finder
 	<figcaption>C# Path Finder 01</figcaption>
 </figure>
 
+# Path Finder #2: shortest path
+
 ## Task
 You are at position [0, 0] in maze NxN and you can only move in one of the four cardinal directions (i.e. North, East, South, West). Return the minimal number of steps to exit position [N-1, N-1] if it is possible to reach the exit from the starting position. Otherwise, return -1.
 
@@ -118,7 +120,74 @@ public class Finder
 ## Test
 <figure>
   <a href="/assets/img/posts/cshap_pathfinder/1.jpg"><img src="/assets/img/posts/cshap_pathfinder/1.jpg"></a>
-	<figcaption>C# Path Finder 01</figcaption>
+	<figcaption>C# Path Finder 02</figcaption>
+</figure>
+
+# Path Finder #3: the Alpinist
+
+## Task
+You are at start location [0, 0] in mountain area of NxN and you can only move in one of the four cardinal directions (i.e. North, East, South, West). Return minimal number of climb rounds to target location [N-1, N-1]. Number of climb rounds between adjacent locations is defined as difference of location altitudes (ascending or descending).
+
+- Location altitude is defined as an integer number (0-9).
+
+## Solution
+{% highlight C# %}
+public class Finder
+{
+    public static int INF = int.MaxValue;
+
+    public static int PathFinder(string maze)
+    {
+        var field = maze.Split('\n').Select(s => s.Select(c => Int32.Parse(c.ToString())).ToArray()).ToArray();
+        field = field.Select(r => (r.Length < field[field.Length - 1].Length) ? r.Concat(Enumerable.Repeat(field[0].Last(), (field[field.Length - 1].Length - r.Length))).ToArray() : r.ToArray()).ToArray();
+        return dijkstra(field, (0, 0), (field[field.Length - 1].Length - 1, field.Length - 1));
+    }
+
+    private static int dijkstra(int[][] field, (int x, int y) startPos, (int x, int y) endPos)
+    {
+        Func<(int x, int y), IEnumerable<(int x, int y)>> getNig = 
+            pos => new (int x, int y)[] { (pos.x - 1, pos.y), (pos.x + 1, pos.y), (pos.x, pos.y - 1), (pos.x, pos.y + 1)}
+                    .Where(p => p.y >= 0 && p.y < field.Length && p.x >= 0 && p.x < field[p.y].Length);
+
+        var dist = new Dictionary<(int x, int y), int>();
+
+        for (int y = 0; y < field.Length; y++)
+            for (int x = 0; x < field[y].Length; x++)
+                dist[(x, y)] = INF;
+
+        dist[(0, 0)] = 0;
+
+        var Q = new SortedList<(int x, int y), int>();
+        Q.Add((0, 0), 0);
+        while (Q.Count > 0)
+        {
+            var v = Q.First();
+            Q.Remove(v.Key);
+
+            foreach (var node in getNig(v.Key))
+            {
+                var alt = dist[v.Key] + Math.Abs(field[v.Key.y][v.Key.x] - field[node.y][node.x]);
+                if (alt < dist[node])
+                {
+                    Q.Remove(node);
+                    dist[node] = alt;
+                    Q.Add(node, alt);
+                }
+            }
+        }
+        return dist[endPos];
+    }
+}
+{% endhighlight %}
+
+- It can be solved Dijkstra.
+- But past posted Dijkstra need `Priority Queue`.
+- So you should use `SortedList` instead of.
+
+## Test
+<figure>
+  <a href="/assets/img/posts/cshap_pathfinder/2.jpg"><img src="/assets/img/posts/cshap_pathfinder/2.jpg"></a>
+	<figcaption>C# Path Finder 03</figcaption>
 </figure>
 
 [Download](https://github.com/leehuhlee/CShap){: .btn}
