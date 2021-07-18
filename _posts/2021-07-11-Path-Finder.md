@@ -190,4 +190,71 @@ public class Finder
 	<figcaption>C# Path Finder 03</figcaption>
 </figure>
 
+# Path Finder #4: : where are you?
+
+## Task
+- Hint is in Test Code
+
+{% highlight C# %}
+[TestFixture]
+public class SolutionTest
+{
+    [TestCaseSource("samples")]
+    public void MyTest(string s, Point p)
+    {
+        Assert.AreEqual(p, PathFinder.iAmHere(s));
+    }
+
+    static TestCaseData[] samples =
+    {
+        new TestCaseData("", new Point(0, 0)).SetName("Sample Test"),
+        new TestCaseData("RLrl", new Point(0, 0)).SetName("Sample Test"),
+        new TestCaseData("r5L2l4", new Point(4, 3)).SetName("Sample Test"),
+        new TestCaseData("r5L2l4", new Point(0, 0)).SetName("Sample Test"),
+        new TestCaseData("10r5r0", new Point(-10, 5)).SetName("Sample Test"),
+        new TestCaseData("10r5r0", new Point(0, 0)).SetName("Sample Test")
+    };
+}
+{% endhighlight %}
+
+- It means that r is turn right, l is turn left, R is turn right twice, and L is turn left twice
+
+## Solution
+{% highlight C# %}
+public class PathFinder
+{
+    private static Point p = new Point(0, 0);
+    private static Point[] ix = new Point[] { new Point(-1, 0), new Point(0, 1), new Point(1, 0), new Point(0, -1) };
+    private static int cd = 0;
+
+    public static Point iAmHere(string s)
+    {
+        foreach (Match m in Regex.Matches("q" + s, @"[qrRlL]\d*"))
+        {
+            string ms = m.ToString();
+            switch (ms[0])
+            {
+                case 'r': cd = (cd + 1) % 4; break;
+                case 'l': cd = (cd + 3) % 4; break;
+                case 'q': break;
+                default: cd = (cd + 2) % 4; break;
+            }
+            if (ms.Length > 1)
+            {
+                int dq = Int32.Parse(ms.Substring(1));
+                p.X += dq * ix[cd].X;
+                p.Y += dq * ix[cd].Y;
+            }
+        }
+        return p;
+    }
+}
+{% endhighlight %}
+
+## Test
+<figure>
+  <a href="/assets/img/posts/cshap_pathfinder/3.jpg"><img src="/assets/img/posts/cshap_pathfinder/3.jpg"></a>
+	<figcaption>C# Path Finder 04</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/CShap){: .btn}
