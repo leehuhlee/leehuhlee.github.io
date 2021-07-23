@@ -4276,4 +4276,238 @@ public class UI_Inventory_Item : UI_Base
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Stat-UI.mp4" frameborder="0"> </iframe>
 
+### Large Structure Management
+
+* Server\Job\Job.cs
+{% highlight C# %}
+public abstract class IJob
+{
+  public abstract void Execute();
+  public bool Cancel { get; set; } = false;
+}
+
+public class Job : IJob
+{
+  Action _action;
+
+  public Job(Action action)
+  {
+    _action = action;
+  }
+
+  public override void Execute()
+  {
+    if(Cancel == false)
+      _action.Invoke();
+  }
+}
+
+public class Job<T1> : IJob
+{
+  Action<T1> _action;
+  T1 _t1;
+
+  public Job(Action<T1> action, T1 t1)
+  {
+    _action = action;
+    _t1 = t1;
+  }
+
+  public override void Execute()
+  {
+    if (Cancel == false)
+      _action.Invoke(_t1);
+  }
+}
+
+public class Job<T1, T2> : IJob
+{
+  Action<T1, T2> _action;
+  T1 _t1;
+  T2 _t2;
+
+  public Job(Action<T1, T2> action, T1 t1, T2 t2)
+  {
+    _action = action;
+    _t1 = t1;
+    _t2 = t2;
+  }
+
+  public override void Execute()
+  {
+    if (Cancel == false)
+      _action.Invoke(_t1, _t2);
+  }
+}
+
+public class Job<T1, T2, T3> : IJob
+{
+  Action<T1, T2, T3> _action;
+  T1 _t1;
+  T2 _t2;
+  T3 _t3;
+
+  public Job(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3)
+  {
+    _action = action;
+    _t1 = t1;
+    _t2 = t2;
+    _t3 = t3;
+  }
+
+  public override void Execute()
+  {
+    if (Cancel == false)
+      _action.Invoke(_t1, _t2, _t3);
+  }
+}
+{% endhighlight %}
+
+* Server\Job\JobSerializer.cs
+{% highlight C# %}
+public class JobSerializer
+{
+  JobTimer _timer = new JobTimer();
+  Queue<IJob> _jobQueue = new Queue<IJob>();
+  object _lock = new object();
+  bool _flush = false;
+
+  public IJob PushAfter(int tickAfter, Action action) { return PushAfter(tickAfter, new Job(action)); }
+  public IJob PushAfter<T1>(int tickAfter, Action<T1> action, T1 t1) { return PushAfter(tickAfter, new Job<T1>(action, t1)); }
+  public IJob PushAfter<T1, T2>(int tickAfter, Action<T1, T2> action, T1 t1, T2 t2) { return PushAfter(tickAfter, new Job<T1, T2>(action, t1, t2)); }
+  public IJob PushAfter<T1, T2, T3>(int tickAfter, Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3) { return PushAfter(tickAfter, new Job<T1, T2, T3>(action, t1, t2, t3)); }
+
+  public IJob PushAfter(int tickAfter, IJob job)
+  {
+    _timer.Push(job, tickAfter);
+    return job;
+  }
+
+  public void Push(Action action) { Push(new Job(action)); }
+  public void Push<T1>(Action<T1> action, T1 t1) { Push(new Job<T1>(action, t1)); }
+  public void Push<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2) { Push(new Job<T1, T2>(action, t1, t2)); }
+  public void Push<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3) { Push(new Job<T1, T2, T3>(action, t1, t2, t3)); }
+
+  public void Push(IJob job)
+  {
+    lock (_lock)
+    {
+      _jobQueue.Enqueue(job);
+    }
+  }
+
+  public void Flush()
+  {
+    _timer.Flush();
+
+    while (true)
+    {
+      IJob job = Pop();
+      if (job == null)
+        return;
+
+      job.Execute();
+    }
+  }
+
+  IJob Pop()
+  {
+    lock (_lock)
+    {
+      if (_jobQueue.Count == 0)
+      {
+        _flush = false;
+        return null;
+      }
+      return _jobQueue.Dequeue();
+    }
+  }
+}
+{% endhighlight %}
+
+* Server\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  ...
+  IJob _job;
+  public override void Update()
+  {
+    switch (State)
+    {
+      case CreatureState.Idle:
+        UpdateIdle();
+        break;
+      case CreatureState.Moving:
+        UpdateMoving();
+        break;
+      case CreatureState.Skill:
+        UpdateSkill();
+        break;
+      case CreatureState.Dead:
+        UpdateDead();
+        break;
+    }
+
+    // 5프레임 (0.2초마다 한번씩 Update)
+    if (Room != null)
+      _job = Room.PushAfter(200, Update);
+  }
+  
+  ...
+  public override void OnDead(GameObject attacker)
+  {
+    if (_job != null)
+    {
+      _job.Cancel = true;
+      _job = null;
+    }
+
+    base.OnDead(attacker);
+
+    GameObject owner = attacker.GetOwner();
+    if (owner.ObjectType == GameObjectType.Player)
+    {
+      RewardData rewardData = GetRandomReward();
+      if (rewardData != null)
+      {
+        Player player = (Player)owner;
+        DbTransaction.RewardPlayer(player, rewardData, Room);
+      }
+    }
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Room\GameRoom.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  ...
+  public void Update()
+  {
+    Flush();
+  }
+  ...
+
+  public void EnterGame(GameObject gameObject)
+  {
+    ...
+    else if (type == GameObjectType.Monster)
+    {
+      Monster monster = gameObject as Monster;
+      _monsters.Add(gameObject.Id, monster);
+      monster.Room = this;
+
+      Map.ApplyMove(monster, new Vector2Int(monster.CellPos.x, monster.CellPos.y));
+
+      monster.Update();
+    }
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
