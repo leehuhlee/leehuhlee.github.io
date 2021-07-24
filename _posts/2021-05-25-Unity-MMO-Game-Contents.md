@@ -4510,4 +4510,245 @@ public partial class GameRoom : JobSerializer
 }
 {% endhighlight %}
 
+## Game Structure change
+
+* Server\Game\Room\GameLogic.cs
+  - Change RoomManager.cs to GameLogic.cs
+
+{% highlight C# %}
+public class GameLogic : JobSerializer
+{
+    public static GameLogic Instance { get; } = new GameLogic();
+
+    Dictionary<int, GameRoom> _rooms = new Dictionary<int, GameRoom>();
+    int _roomId = 1;
+
+    public void Update()
+    {
+        Flush();
+
+        foreach (GameRoom room in _rooms.Values)
+        {
+            room.Update();
+        }
+    }
+
+    public GameRoom Add(int mapId)
+    {
+        GameRoom gameRoom = new GameRoom();
+        gameRoom.Push(gameRoom.Init, mapId);
+
+        gameRoom.RoomId = _roomId;
+        _rooms.Add(_roomId, gameRoom);
+        _roomId++;
+
+        return gameRoom;
+    }
+
+    public bool Remove(int roomId)
+    {
+
+        return _rooms.Remove(roomId);
+    }
+
+    public GameRoom Find(int roomId)
+    {
+
+        GameRoom room = null;
+        if (_rooms.TryGetValue(roomId, out room))
+            return room;
+
+        return null;
+
+    }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  public PlayerServerState ServerState { get; private set; } = PlayerServerState.ServerStateLogin;
+
+  public Player MyPlayer { get; set; }
+  public int SessionId { get; set; }
+
+  object _lock = new object();
+  List<ArraySegment<byte>> _reserveQueue = new List<ArraySegment<byte>>();
+
+  #region Network
+  public void Send(IMessage packet)
+  {
+    string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+    MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+    ushort size = (ushort)packet.CalculateSize();
+    byte[] sendBuffer = new byte[size + 4];
+    Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+    Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+    Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
+    lock (_lock)
+    {
+      _reserveQueue.Add(sendBuffer);
+    }
+  }
+
+  public void FlushSend()
+  {
+    List<ArraySegment<byte>> sendList = null;
+
+    lock (_lock)
+    {
+      if (_reserveQueue.Count == 0)
+      return;
+
+      sendList = _reserveQueue;
+      _reserveQueue = new List<ArraySegment<byte>>();
+    }
+
+    Send(sendList);
+  }
+
+  ...
+
+  public override void OnDisconnected(EndPoint endPoint)
+  {
+    GameLogic.Instance.Push(() =>
+    {
+      GameRoom room = GameLogic.Instance.Find(1);
+      room.Push(room.LeaveGame, MyPlayer.Info.ObjectId);
+    });
+    
+    SessionManager.Instance.Remove(this);
+
+    Console.WriteLine($"OnDisconnected : {endPoint}");
+  }
+
+  public override void OnSend(int numOfBytes){ }
+  #endregion
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession_PreGame.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  ...
+
+  public void HandleEnterGame(C_EnterGame enterGamePacket)
+  {
+    ...
+
+    GameLogic.Instance.Push(() =>
+    {
+      GameRoom room = GameLogic.Instance.Find(1);
+      room.Push(room.EnterGame, MyPlayer);
+    });
+  }
+
+  ...
+}
+{% endhighlight %}
+
+* Server\Session\SessionManager.cs
+{% highlight C# %}
+class SessionManager
+{
+  static SessionManager _session = new SessionManager();
+  public static SessionManager Instance { get { return _session; } }
+
+  int _sessionId = 0;
+  Dictionary<int, ClientSession> _sessions = new Dictionary<int, ClientSession>();
+  object _lock = new object();
+
+  public List<ClientSession> GetSessions()
+  {
+    List<ClientSession> sessions = new List<ClientSession>();
+
+    lock (_lock)
+    {
+      sessions = _sessions.Values.ToList();
+    }
+
+    return sessions;
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+  static Listener _listener = new Listener();
+
+  static void GameLogicTask()
+  {
+    while (true)
+    {
+      GameLogic.Instance.Update();
+      Thread.Sleep(0);
+    }
+  }
+
+  static void DbTask()
+  {
+    while (true)
+    {
+      DbTransaction.Instance.Flush();
+      Thread.Sleep(0);
+    }
+  }
+
+  static void NetworkTask()
+  {
+    while (true)
+    {
+      List<ClientSession> sessions = SessionManager.Instance.GetSessions();
+      foreach(ClientSession session in sessions)
+      {
+        session.FlushSend();
+      }
+
+      Thread.Sleep(0);
+    }
+  }
+
+  static void Main(string[] args)
+  {
+    ConfigManager.LoadConfig();
+    DataManager.LoadData();
+
+    GameLogic.Instance.Push(() => {	GameLogic.Instance.Add(1); });
+    
+
+    // DNS (Domain Name System)
+    string host = Dns.GetHostName();
+    IPHostEntry ipHost = Dns.GetHostEntry(host);
+    IPAddress ipAddr = ipHost.AddressList[0];
+    IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+    _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+    Console.WriteLine("Listening...");
+
+    // GameLogicTask
+    {
+      Task gameLogicTask = new Task(GameLogicTask, TaskCreationOptions.LongRunning);
+      gameLogicTask.Start();
+    }
+
+    // NetworkTask
+    {
+      Task networkTask = new Task(NetworkTask, TaskCreationOptions.LongRunning);
+      networkTask.Start();
+    }
+
+    // DbTask
+    {
+      DbTask();
+    }
+  }
+}
+{% endhighlight %}
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
