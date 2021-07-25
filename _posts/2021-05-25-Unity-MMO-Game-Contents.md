@@ -4751,4 +4751,929 @@ class Program
 }
 {% endhighlight %}
 
+## Zone
+
+* Zone
+- Current game manages whole section of game
+- From now on, game should be managed by spilited section
+- This is good for performance because game doesn't need to manage whole game
+
+* Client\Assets\Scripts\Managers\Contents\ObjectManager.cs
+{% highlight C# %}
+public class ObjectManager
+{
+  ...
+  public void Add(ObjectInfo info, bool myPlayer = false)
+	{
+		if (MyPlayer != null && MyPlayer.Id == info.ObjectId)
+			return;
+		if (_objects.ContainsKey(info.ObjectId))
+			return;
+    ...
+  }
+  ...
+
+  public void Remove(int id)
+	{
+		if (MyPlayer != null && MyPlayer.Id == id)
+			return;
+		if (_objects.ContainsKey(id) == false)
+			return;
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+{% highlight C# %}
+public class Arrow : Projectile
+{
+  public GameObject Owner { get; set; }
+
+  public override void Update()
+  {
+    if (Data == null || Data.projectile == null || Owner == null || Room == null)
+      return;
+
+    int tick = (int)(1000 / Data.projectile.speed);
+    Room.PushAfter(tick, Update);
+
+    Vector2Int destPos = GetFrontCellPos();
+    if (Room.Map.ApplyMove(this, destPos, collision: false))
+    {
+      S_Move movePacket = new S_Move();
+      movePacket.ObjectId = Id;
+      movePacket.PosInfo = PosInfo;
+      Room.Broadcast(CellPos, movePacket);
+
+      Console.WriteLine("Move Arrow");
+    }
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\GameObject.cs
+{% highlight C# %}
+public class GameObject
+{
+  ...
+  public virtual void OnDamaged(GameObject attacker, int damage)
+  {
+    if (Room == null)
+      return;
+
+    damage = Math.Max(damage - TotalDefence, 0);
+    Stat.Hp = Math.Max(Stat.Hp - damage, 0);
+
+    S_ChangeHp changePacket = new S_ChangeHp();
+    changePacket.ObjectId = Id;
+    changePacket.Hp = Stat.Hp;
+    Room.Broadcast(CellPos, changePacket);
+
+    if (Stat.Hp <= 0)
+    {
+      OnDead(attacker);
+    }
+  }
+
+  public virtual void OnDead(GameObject attacker)
+  {
+    if (Room == null)
+      return;
+
+    S_Die diePacket = new S_Die();
+    diePacket.ObjectId = Id;
+    diePacket.AttackerId = attacker.Id;
+    Room.Broadcast(CellPos, diePacket);
+
+    GameRoom room = Room;
+    room.LeaveGame(Id);
+
+    Stat.Hp = Stat.MaxHp;
+    PosInfo.State = CreatureState.Idle;
+    PosInfo.MoveDir = MoveDir.Down;
+
+    room.EnterGame(this, randomPos: true);
+  }
+  ...
+}
+{% endhighlight %}
+
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  void BroadcastMove()
+		{
+			S_Move movePacket = new S_Move();
+			movePacket.ObjectId = Id;
+			movePacket.PosInfo = PosInfo;
+			Room.Broadcast(CellPos, movePacket);
+		}
+
+		long _coolTick = 0;
+		protected virtual void UpdateSkill()
+		{
+			if (_coolTick == 0)
+			{
+				if (_target == null || _target.Room != Room)
+				{
+					_target = null;
+					State = CreatureState.Moving;
+					BroadcastMove();
+					return;
+				}
+
+				Vector2Int dir = (_target.CellPos - CellPos);
+				int dist = dir.cellDistFromZero;
+				bool canUseSkill = (dist <= _skillRange && (dir.x == 0 || dir.y == 0));
+				if (canUseSkill == false)
+				{
+					State = CreatureState.Moving;
+					BroadcastMove();
+					return;
+				}
+
+				MoveDir lookDir = GetDirFromVec(dir);
+				if (Dir != lookDir)
+				{
+					Dir = lookDir;
+					BroadcastMove();
+				}
+
+				Skill skillData = null;
+				DataManager.SkillDict.TryGetValue(1, out skillData);
+
+				_target.OnDamaged(this, skillData.damage + TotalAttack);
+
+				S_Skill skill = new S_Skill() { Info = new SkillInfo() };
+				skill.ObjectId = Id;
+				skill.Info.SkillId = skillData.id;
+				Room.Broadcast(CellPos, skill);
+
+				int coolTick = (int)(1000 * skillData.cooldown);
+				_coolTick = Environment.TickCount64 + coolTick;
+			}
+
+			if (_coolTick > Environment.TickCount64)
+				return;
+
+			_coolTick = 0;
+		}
+}
+{% endhighlight %}
+
+
+* Server\Game\Object\Player.cs
+{% highlight C# %}
+public class Player : GameObject
+{
+  ...
+  public VisionCube Vision { get; private set; }
+  ...
+
+  public Player()
+  {
+    ObjectType = GameObjectType.Player;
+    Vision = new VisionCube(this);
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameLogic.cs
+{% highlight C# %}
+public class GameLogic : JobSerializer
+{
+  ...
+  public GameRoom Add(int mapId)
+  {
+      GameRoom gameRoom = new GameRoom();
+      gameRoom.Push(gameRoom.Init, mapId, 10);
+
+      gameRoom.RoomId = _roomId;
+      _rooms.Add(_roomId, gameRoom);
+      _roomId++;
+
+      return gameRoom;
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  public const int VisionCells = 5;
+
+  public int RoomId { get; set; }
+
+  Dictionary<int, Player> _players = new Dictionary<int, Player>();
+  Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
+  Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
+
+  public Zone[,] Zones { get; private set; }
+  public int ZoneCells { get; private set; }
+
+  public Map Map { get; private set; } = new Map();
+
+  public Zone GetZone(Vector2Int cellPos)
+      {
+    int x = (cellPos.x - Map.MinX) / ZoneCells;
+    int y = (Map.MaxY - cellPos.y) / ZoneCells;
+
+    if (x < 0 || x >= Zones.GetLength(1))
+      return null;
+    if (y < 0 || y >= Zones.GetLength(0))
+      return null;
+
+    return Zones[y, x];
+      }
+
+  public void Init(int mapId, int zoneCells)
+  {
+    Map.LoadMap(mapId);
+
+    // Zone
+    ZoneCells = zoneCells;
+    int countY = (Map.SizeY + zoneCells - 1) / zoneCells;
+    int countX = (Map.SizeX + zoneCells - 1) / zoneCells;
+    Zones = new Zone[countY, countX];
+
+    for(int y=0; y<countY; y++)
+          {
+      for(int x=0; x<countX; x++)
+              {
+        Zones[y, x] = new Zone(y, x);
+              }
+          }
+
+    Monster monster = ObjectManager.Instance.Add<Monster>();
+    monster.Init(1);
+    EnterGame(monster, randomPos: true);
+  }
+
+  public void Update()
+  {
+    Flush();
+  }
+
+  Random _rand = new Random();
+  public void EnterGame(GameObject gameObject, bool randomPos)
+  {
+    if (gameObject == null)
+      return;
+
+          if (randomPos)
+          {
+      Vector2Int respawnPos;
+      while (true)
+      {
+        respawnPos.x = _rand.Next(Map.MinX, Map.MaxX + 1);
+        respawnPos.y = _rand.Next(Map.MinY, Map.MaxY + 1);
+        if (Map.Find(respawnPos) == null)
+        {
+          gameObject.CellPos = respawnPos;
+          break;
+        }
+      }
+    }
+
+    GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+
+    if (type == GameObjectType.Player)
+    {
+      Player player = gameObject as Player;
+      _players.Add(gameObject.Id, player);
+      player.Room = this;
+
+      player.RefreshAdditionalStat();
+
+      Map.ApplyMove(player, new Vector2Int(player.CellPos.x, player.CellPos.y));
+      GetZone(player.CellPos).Players.Add(player);
+
+      {
+        S_EnterGame enterPacket = new S_EnterGame();
+        enterPacket.Player = player.Info;
+        player.Session.Send(enterPacket);
+
+        player.Vision.Update();
+      }
+    }
+    else if (type == GameObjectType.Monster)
+    {
+      Monster monster = gameObject as Monster;
+      _monsters.Add(gameObject.Id, monster);
+      monster.Room = this;
+
+      GetZone(monster.CellPos).Monsters.Add(monster);
+      Map.ApplyMove(monster, new Vector2Int(monster.CellPos.x, monster.CellPos.y));
+      monster.Update();
+    }
+    else if (type == GameObjectType.Projectile)
+    {
+      Projectile projectile = gameObject as Projectile;
+      _projectiles.Add(gameObject.Id, projectile);
+      projectile.Room = this;
+
+      GetZone(projectile.CellPos).Projectiles.Add(projectile);
+      projectile.Update();
+    }
+
+    {
+      S_Spawn spawnPacket = new S_Spawn();
+      spawnPacket.Objects.Add(gameObject.Info);
+      Broadcast(gameObject.CellPos, spawnPacket);
+    }
+  }
+
+  public void LeaveGame(int objectId)
+  {
+    GameObjectType type = ObjectManager.GetObjectTypeById(objectId);
+    Vector2Int cellPos;
+
+    if (type == GameObjectType.Player)
+    {
+      Player player = null;
+      if (_players.Remove(objectId, out player) == false)
+        return;
+
+      cellPos = player.CellPos;
+
+      player.OnLeaveGame();
+      Map.ApplyLeave(player);
+      player.Room = null;
+
+      {
+        S_LeaveGame leavePacket = new S_LeaveGame();
+        player.Session.Send(leavePacket);
+      }
+    }
+    else if (type == GameObjectType.Monster)
+    {
+      Monster monster = null;
+      if (_monsters.Remove(objectId, out monster) == false)
+        return;
+
+      cellPos = monster.CellPos;
+
+      Map.ApplyLeave(monster);
+      monster.Room = null;
+    }
+    else if (type == GameObjectType.Projectile)
+    {
+      Projectile projectile = null;
+      if (_projectiles.Remove(objectId, out projectile) == false)
+        return;
+
+      cellPos = projectile.CellPos;
+      Map.ApplyLeave(projectile);
+      projectile.Room = null;
+    }
+          else
+          {
+      return;
+    }
+
+    {
+      S_Despawn despawnPacket = new S_Despawn();
+      despawnPacket.ObjectIds.Add(objectId);
+      Broadcast(cellPos, despawnPacket);
+    }
+  }
+
+  public Player FindPlayer(Func<GameObject, bool> condition)
+  {
+    foreach (Player player in _players.Values)
+    {
+      if (condition.Invoke(player))
+        return player;
+    }
+
+    return null;
+  }
+
+  public void Broadcast(Vector2Int pos, IMessage packet)
+  {
+    List<Zone> zones = GetAdjacentZones(pos);
+
+    foreach(Player p in zones.SelectMany(z => z.Players))
+    {
+      int dx = p.CellPos.x - pos.x;
+      int dy = p.CellPos.y - pos.y;
+      if (Math.Abs(dx) > GameRoom.VisionCells)
+        continue;
+      if (Math.Abs(dy) > GameRoom.VisionCells)
+        continue;
+
+      p.Session.Send(packet);
+    }
+  }
+
+  public List<Zone> GetAdjacentZones(Vector2Int cellPos, int cells = GameRoom.VisionCells)
+  {
+    HashSet<Zone> zones = new HashSet<Zone>();
+
+    int[] delta = new int[2] { -cells, +cells };
+    foreach(int dy in delta)
+    {
+      foreach(int dx in delta)
+      {
+        int y = cellPos.y + dy;
+        int x = cellPos.x + dx;
+        Zone zone = GetZone(new Vector2Int(x, y));
+        if (zone == null)
+          continue;
+
+        zones.Add(zone);
+      }
+    }
+
+    return zones.ToList();
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Room\GameRoom_Battle.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  public void HandleMove(Player player, C_Move movePacket)
+  {
+    ...
+    Broadcast(player.CellPos, resMovePacket);
+  }
+
+  public void HandleSkill(Player player, C_Skill skillPacket)
+  {
+    ...
+    Broadcast(player.CellPos, skill);
+    ...
+
+        case SkillType.SkillProjectile:
+        {
+          ...
+          Push(EnterGame, arrow, false);
+        }
+        break;
+  }
+}
+{% endhighlight %}
+
+* Server\Game\Room\Map.cs
+{% highlight C# %}
+public struct Pos
+{
+  ...
+  
+  public static bool operator==(Pos lhs, Pos rhs)
+  {
+    return lhs.Y == rhs.Y && lhs.X == rhs.X;
+  }
+
+  public static bool operator!=(Pos lhs, Pos rhs)
+  {
+    return !(lhs == rhs);
+  }
+
+  public override bool Equals(object obj)
+  {
+    return (Pos)obj == this;
+  }
+
+  public override int GetHashCode()
+  {
+    long value = (Y << 32) | X;
+    return value.GetHashCode();
+  }
+
+  public override string ToString()
+  {
+    return base.ToString();
+  }
+}
+...
+
+public class Map
+{
+  ...
+
+  public bool ApplyLeave(GameObject gameObject)
+  {
+    if (gameObject.Room == null)
+      return false;
+    if (gameObject.Room.Map != this)
+      return false;
+
+    PositionInfo posInfo = gameObject.PosInfo;
+    if (posInfo.PosX < MinX || posInfo.PosX > MaxX)
+      return false;
+    if (posInfo.PosY < MinY || posInfo.PosY > MaxY)
+      return false;
+
+    // Zone
+    Zone zone = gameObject.Room.GetZone(gameObject.CellPos);
+    zone.Remove(gameObject);
+
+    {
+      int x = posInfo.PosX - MinX;
+      int y = MaxY - posInfo.PosY;
+      if (_objects[y, x] == gameObject)
+        _objects[y, x] = null;
+    }
+
+    return true;
+  }
+
+  public bool ApplyMove(GameObject gameObject, Vector2Int dest, bool checkObjects = true, bool collision = true)
+  {
+    if (gameObject.Room == null)
+      return false;
+    if (gameObject.Room.Map != this)
+      return false;
+
+    PositionInfo posInfo = gameObject.PosInfo;
+    if (CanGo(dest, checkObjects) == false)
+      return false;
+
+    if(collision)
+    {
+      // Remove
+      {
+        int x = posInfo.PosX - MinX;
+        int y = MaxY - posInfo.PosY;
+        if (_objects[y, x] == gameObject)
+          _objects[y, x] = null;
+      }
+              {
+        int x = dest.x - MinX;
+        int y = MaxY - dest.y;
+        _objects[y, x] = gameObject;
+      }
+    }
+
+    // Zone
+    GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+    if (type == GameObjectType.Player)
+    {
+      Player player = (Player)gameObject;
+      Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+      Zone after = gameObject.Room.GetZone(dest);
+      if (now != after)
+      {
+        now.Players.Remove(player);
+        after.Players.Add(player);
+      }
+    }
+    else if (type == GameObjectType.Monster)
+          {
+      Monster monster = (Monster)gameObject;
+      Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+      Zone after = gameObject.Room.GetZone(dest);
+      if (now != after)
+      {
+        now.Monsters.Remove(monster);
+        after.Monsters.Add(monster);
+      }
+    }
+    else if(type == GameObjectType.Projectile)
+          {
+      Projectile projectile = (Projectile)gameObject;
+      Zone now = gameObject.Room.GetZone(gameObject.CellPos);
+      Zone after = gameObject.Room.GetZone(dest);
+      if (now != after)
+      {
+        now.Projectiles.Remove(projectile);
+        after.Projectiles.Add(projectile);
+      }
+    }
+    ...
+  }
+
+  #region A* PathFinding
+  ... 
+
+  // Change Array to Structure
+  public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true)
+  {
+    List<Pos> path = new List<Pos>();
+    HashSet<Pos> closeList = new HashSet<Pos>();
+
+    Dictionary<Pos, int> openList = new Dictionary<Pos, int>();
+    Dictionary<Pos, Pos> parent = new Dictionary<Pos, Pos>();
+
+    PriorityQueue<PQNode> pq = new PriorityQueue<PQNode>();
+
+    // CellPos -> ArrayPos
+    Pos pos = Cell2Pos(startCellPos);
+    Pos dest = Cell2Pos(destCellPos);
+
+    openList.Add(pos, 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)));
+
+    pq.Push(new PQNode() { F = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)), G = 0, Y = pos.Y, X = pos.X });
+    parent.Add(pos, pos);
+
+    while (pq.Count > 0)
+    {
+      PQNode pqNode = pq.Pop();
+      Pos node = new Pos(pqNode.Y, pqNode.X);
+      if (closeList.Contains(node))
+        continue;
+
+      closeList.Add(node);
+      if (node.Y == dest.Y && node.X == dest.X)
+        break;
+
+      for (int i = 0; i < _deltaY.Length; i++)
+      {
+        Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
+
+        if (next.Y != dest.Y || next.X != dest.X)
+        {
+          if (CanGo(Pos2Cell(next), checkObjects) == false) // CellPos
+            continue;
+        }
+
+        if (closeList.Contains(next))
+          continue;
+
+        int g = 0;// node.G + _cost[i];
+        int h = 10 * ((dest.Y - next.Y) * (dest.Y - next.Y) + (dest.X - next.X) * (dest.X - next.X));
+
+        int value = 0;
+        if (openList.TryGetValue(next, out value) == false)
+          value = Int32.MaxValue;
+
+        if (value < g + h)
+          continue;
+
+        if (openList.TryAdd(next, g + h) == false)
+          openList[next] = g + h;
+
+        pq.Push(new PQNode() { F = g + h, G = g, Y = next.Y, X = next.X });
+
+        if (parent.TryAdd(next, node) == false)
+          parent[next] = node;
+      }
+    }
+
+    return CalcCellPathFromParent(parent, dest);
+  }
+
+  List<Vector2Int> CalcCellPathFromParent(Dictionary<Pos, Pos> parent, Pos dest)
+  {
+    List<Vector2Int> cells = new List<Vector2Int>();
+
+    Pos pos = dest;
+
+    while (parent[pos] != pos)
+    {
+      cells.Add(Pos2Cell(pos));
+      pos = parent[pos];
+    }
+    cells.Add(Pos2Cell(pos));
+    cells.Reverse();
+
+    return cells;
+  }
+  ...
+  #endregion
+}
+{% endhighlight %}
+
+* Server\Game\Room\VisionCube.cs
+{% highlight C# %}
+public class VisionCube
+{
+    public Player Owner { get; private set; }
+    public HashSet<GameObject> PreviousObjects { get; private set; } = new HashSet<GameObject>();
+
+    public VisionCube(Player owner)
+    {
+        Owner = owner;
+    }
+
+    public HashSet<GameObject> GatherObjects()
+    {
+        if (Owner == null || Owner.Room == null)
+            return null;
+
+        HashSet<GameObject> objects = new HashSet<GameObject>();
+
+        Vector2Int cellPos = Owner.CellPos;
+        List<Zone> zones = Owner.Room.GetAdjacentZones(cellPos);
+
+        foreach(Zone zone in zones)
+        {
+            foreach(Player player in zone.Players)
+            {
+                int dx = player.CellPos.x - cellPos.x;
+                int dy = player.CellPos.y - cellPos.y;
+                if (Math.Abs(dx) > GameRoom.VisionCells)
+                    continue;
+                if (Math.Abs(dy) > GameRoom.VisionCells)
+                    continue;
+                objects.Add(player);
+            }
+
+            foreach (Monster monster in zone.Monsters)
+            {
+                int dx = monster.CellPos.x - cellPos.x;
+                int dy = monster.CellPos.y - cellPos.y;
+                if (Math.Abs(dx) > GameRoom.VisionCells)
+                    continue;
+                if (Math.Abs(dy) > GameRoom.VisionCells)
+                    continue;
+                objects.Add(monster);
+            }
+
+            foreach (Projectile projectile in zone.Projectiles)
+            {
+                int dx = projectile.CellPos.x - cellPos.x;
+                int dy = projectile.CellPos.y - cellPos.y;
+                if (Math.Abs(dx) > GameRoom.VisionCells)
+                    continue;
+                if (Math.Abs(dy) > GameRoom.VisionCells)
+                    continue;
+                objects.Add(projectile);
+            }
+        }
+
+        return objects;
+    }
+
+    public void Update()
+    {
+        if (Owner == null || Owner.Room == null)
+            return;
+
+        HashSet<GameObject> currentObjects = GatherObjects();
+
+        List<GameObject> added = currentObjects.Except(PreviousObjects).ToList();
+        if(added.Count > 0)
+        {
+            S_Spawn spawnPacket = new S_Spawn();
+
+            foreach(GameObject gameObject in added)
+            {
+                ObjectInfo info = new ObjectInfo();
+                info.MergeFrom(gameObject.Info);
+                spawnPacket.Objects.Add(info);
+            }
+
+            Owner.Session.Send(spawnPacket);
+        }
+
+        List<GameObject> removed = PreviousObjects.Except(currentObjects).ToList();
+        if (removed.Count > 0)
+        {
+            S_Despawn despawnPacket = new S_Despawn();
+
+            foreach (GameObject gameObject in removed)
+            {
+                despawnPacket.ObjectIds.Add(gameObject.Id);
+            }
+
+            Owner.Session.Send(despawnPacket);
+        }
+
+        PreviousObjects = currentObjects;
+
+        Owner.Room.PushAfter(100, Update);
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Room\Zone.cs
+{% highlight C# %}
+public class Zone
+{
+    public int IndexY { get; private set; }
+    public int IndexX { get; private set; }
+
+    public HashSet<Player> Players { get; set; } = new HashSet<Player>();
+    public HashSet<Monster> Monsters { get; set; } = new HashSet<Monster>();
+    public HashSet<Projectile> Projectiles { get; set; } = new HashSet<Projectile>();
+
+    public Zone(int y, int x)
+    {
+        IndexY = y;
+        IndexX = x;
+    }
+
+    public void Remove(GameObject gameObject)
+    {
+        GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
+
+        switch (type)
+        {
+            case GameObjectType.Player:
+                Players.Remove((Player)gameObject);
+                break;
+            case GameObjectType.Monster:
+                Monsters.Remove((Monster)gameObject);
+                break;
+            case GameObjectType.Projectile:
+                Projectiles.Remove((Projectile)gameObject);
+                break;
+        }
+    }
+
+    public Player FindOnePlayer(Func<Player, bool> condition)
+    {
+        foreach(Player player in Players)
+        {
+            if (condition.Invoke(player))
+                return player;
+
+        }
+
+        return null;
+    }
+
+    public List<Player> FinaAllPlayers(Func<Player, bool> condition)
+    {
+        List<Player> findList = new List<Player>();
+
+        foreach (Player player in Players)
+        {
+            if (condition.Invoke(player))
+                findList.Add(player);
+
+        }
+
+        return findList;
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Session\ClientSession_PreGame.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  ...
+  public void HandleEnterGame(C_EnterGame enterGamePacket)
+  {
+    ...
+    GameLogic.Instance.Push(() =>
+    {
+      GameRoom room = GameLogic.Instance.Find(1);
+      room.Push(room.EnterGame, MyPlayer, true);
+    });
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+  ...
+  static void Main(string[] args)
+  {
+    ConfigManager.LoadConfig();
+    DataManager.LoadData();
+
+    GameLogic.Instance.Push(() => {	GameLogic.Instance.Add(1); });
+
+    // DNS (Domain Name System)
+    string host = Dns.GetHostName();
+    IPHostEntry ipHost = Dns.GetHostEntry(host);
+    IPAddress ipAddr = ipHost.AddressList[0];
+    IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+    _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+    Console.WriteLine("Listening...");
+
+    // DbTask
+    {
+      Thread t = new Thread(DbTask);
+      t.Name = "DB";
+      t.Start();
+          }
+
+    // NetworkTask
+    {
+      Thread t = new Thread(NetworkTask);
+      t.Name = "Network Send";
+      t.Start();
+    }
+
+    // GameLogicTask
+    Thread.CurrentThread.Name = "GameLogic";
+    GameLogicTask();
+  }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Zone.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
