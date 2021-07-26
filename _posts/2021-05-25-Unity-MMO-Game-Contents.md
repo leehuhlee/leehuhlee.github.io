@@ -5676,4 +5676,253 @@ class Program
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Zone.mp4" frameborder="0"> </iframe>
 
+## Massive Structure Final
+
+* Multi Player
+  - [File]-[Build Settings]-[Player Settings]
+  - set `Api Compatibility Level` to `.Net 4.x`
+  - This is because of `NewtonJson` Package
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/23.jpg"><img src="/assets/img/posts/unity_mmocontents/23.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/24.jpg"><img src="/assets/img/posts/unity_mmocontents/24.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Map
+  - change the map more bigger
+  - [Tool]-[GenerateMap]
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/28.jpg"><img src="/assets/img/posts/unity_mmocontents/28.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Client\Assets\Scripts\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void S_ConnectedHandler(PacketSession session, IMessage packet)
+	{
+		Debug.Log("S_ConnectedHandler");
+		C_Login loginPacket = new C_Login();
+
+		string path = Application.dataPath;
+		loginPacket.UniqueId = path.GetHashCode().ToString();
+		Managers.Network.Send(loginPacket);
+	}
+  ...
+
+  public static void S_PingHandler(PacketSession session, IMessage packet)
+    {
+		C_Pong pongPacket = new C_Pong();
+		Debug.Log("[Server] PingCheck");
+		Managers.Network.Send(pongPacket);
+    }
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  ...
+  protected virtual void UpdateMoving()
+  {
+    ...
+    List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: true);
+    if (path.Count < 2 || path.Count > _chaseCellDist)
+    {
+      _target = null;
+      State = CreatureState.Idle;
+      BroadcastMove();
+      return;
+    }
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  ...
+  public void Init(int mapId, int zoneCells)
+  {
+    Map.LoadMap(mapId);
+
+    // Zone
+    ZoneCells = zoneCells;
+    int countY = (Map.SizeY + zoneCells - 1) / zoneCells;
+    int countX = (Map.SizeX + zoneCells - 1) / zoneCells;
+    Zones = new Zone[countY, countX];
+
+    for(int y=0; y<countY; y++)
+          {
+      for(int x=0; x<countX; x++)
+              {
+        Zones[y, x] = new Zone(y, x);
+              }
+          }
+
+    // TEMP
+    for(int i=0; i<500; i++)
+          {
+      Monster monster = ObjectManager.Instance.Add<Monster>();
+      monster.Init(1);
+      EnterGame(monster, randomPos: true);
+    }
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Room\Map.cs
+{% highlight C# %}
+...
+public class Map
+{
+  ...
+  public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true, int maxDist = 10)
+  {
+    ...
+    for (int i = 0; i < _deltaY.Length; i++)
+    {
+      Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
+
+      // Skip if it is too far
+      if (Math.Abs(pos.Y - next.Y) + Math.Abs(pos.X - next.X) > maxDist)
+        continue;
+      ...
+    }
+  }
+  ...
+
+  List<Vector2Int> CalcCellPathFromParent(Dictionary<Pos, Pos> parent, Pos dest)
+  {
+    List<Vector2Int> cells = new List<Vector2Int>();
+
+    if (parent.ContainsKey(dest) == false)
+    {
+      Pos best = new Pos();
+      int bestDist = Int32.MaxValue;
+
+      foreach(Pos pos in parent.Keys)
+      {
+        int dist = Math.Abs(dest.X - pos.X) + Math.Abs(dest.Y - pos.Y);
+
+        if(dist < bestDist)
+        {
+          best = pos;
+          bestDist = dist;
+        }
+      }
+
+      dest = best;
+    }
+
+    {
+      Pos pos = dest;
+
+      while (parent[pos] != pos)
+      {
+        cells.Add(Pos2Cell(pos));
+        pos = parent[pos];
+      }
+      cells.Add(Pos2Cell(pos));
+      cells.Reverse();
+    }
+
+    return cells;
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+  ...
+  public static void C_PongHandler(PacketSession session, IMessage packet)
+    {
+		ClientSession clientSession = (ClientSession)session;
+		clientSession.HandlePoing();
+    }
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  ...
+  long _pingpongTick = 0;
+  public void Ping()
+  {
+    if(_pingpongTick > 0)
+    {
+      long delta = (System.Environment.TickCount64 - _pingpongTick);
+      if(delta > 30 * 1000)
+      {
+        Console.WriteLine("Disconnected by PingCheck");
+        Disconnect();
+        return;
+      }
+    } 
+
+    S_Ping pingPacket = new S_Ping();
+    Send(pingPacket);
+
+    GameLogic.Instance.PushAfter(5000, Ping);
+  }
+
+  public void HandlePoing()
+  {
+    _pingpongTick = System.Environment.TickCount64;
+  }
+  ...
+
+  public override void OnConnected(EndPoint endPoint)
+  {
+    Console.WriteLine($"OnConnected : {endPoint}");
+
+    {
+      S_Connected connectedPacket = new S_Connected();
+      Send(connectedPacket);
+    }
+
+    GameLogic.Instance.PushAfter(5000, Ping);
+  }
+  ...
+
+  public override void OnDisconnected(EndPoint endPoint)
+  {
+    GameLogic.Instance.Push(() =>
+    {
+      if (MyPlayer != null)
+        return;
+
+      GameRoom room = GameLogic.Instance.Find(1);
+      room.Push(room.LeaveGame, MyPlayer.Info.ObjectId);
+    });
+    ...
+  }
+  ...
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Multi.mp4" frameborder="0"> </iframe>
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/26.jpg"><img src="/assets/img/posts/unity_mmocontents/26.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/27.jpg"><img src="/assets/img/posts/unity_mmocontents/26.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
