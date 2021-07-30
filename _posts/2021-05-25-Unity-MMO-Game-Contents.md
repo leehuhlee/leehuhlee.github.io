@@ -5850,7 +5850,7 @@ class PacketHandler
   public static void C_PongHandler(PacketSession session, IMessage packet)
     {
 		ClientSession clientSession = (ClientSession)session;
-		clientSession.HandlePoing();
+		clientSession.HandlePong();
     }
 }
 {% endhighlight %}
@@ -5880,7 +5880,7 @@ public partial class ClientSession : PacketSession
     GameLogic.Instance.PushAfter(5000, Ping);
   }
 
-  public void HandlePoing()
+  public void HandlePong()
   {
     _pingpongTick = System.Environment.TickCount64;
   }
@@ -5921,8 +5921,728 @@ public partial class ClientSession : PacketSession
 
 <figure class="half">
   <a href="/assets/img/posts/unity_mmocontents/26.jpg"><img src="/assets/img/posts/unity_mmocontents/26.jpg"></a>
-  <a href="/assets/img/posts/unity_mmocontents/27.jpg"><img src="/assets/img/posts/unity_mmocontents/26.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/27.jpg"><img src="/assets/img/posts/unity_mmocontents/27.jpg"></a>
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
+
+# Dummy Client
+
+* Create Console Application in Server Solution
+  - name is DummyClient
+  - set start project `Server` and `DummyClient`
+
+* Common\protoc-3.12.3-win64\bin\GenProto.bat
+  - add DummyClient to make `Protocol.cs` and `ClientPacketManager.cs`
+
+{% highlight bat %}
+protoc.exe -I=./ --csharp_out=./ ./Protocol.proto 
+IF ERRORLEVEL 1 PAUSE
+
+START ../../../Server/PacketGenerator/bin/PacketGenerator.exe ./Protocol.proto
+XCOPY /Y Protocol.cs "../../../Client/Assets/Scripts/Packet"
+XCOPY /Y Protocol.cs "../../../Server/DummyClient/Packet"
+COPY /Y Protocol.cs "../../../Server/Server/Packet"
+XCOPY /Y ClientPacketManager.cs "../../../Client/Assets/Scripts/Packet"
+XCOPY /Y ClientPacketManager.cs "../../../Server/DummyClient/Packet"
+XCOPY /Y ServerPacketManager.cs "../../../Server/Server/Packet"
+{% endhighlight %}
+  
+  - run GenProto.bat
+
+* DummyClient\Packet\PacketHandler.cs
+{% highlight C# %}
+class PacketHandler
+{
+	// Step 4
+	public static void S_EnterGameHandler(PacketSession session, IMessage packet)
+	{
+		S_EnterGame enterGamePacket = packet as S_EnterGame;
+	}
+
+	public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
+	{
+		S_LeaveGame leaveGameHandler = packet as S_LeaveGame;
+	}
+
+	public static void S_SpawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Spawn spawnPacket = packet as S_Spawn;
+	}
+
+	public static void S_DespawnHandler(PacketSession session, IMessage packet)
+	{
+		S_Despawn despawnPacket = packet as S_Despawn;
+	}
+
+	public static void S_MoveHandler(PacketSession session, IMessage packet)
+	{
+		S_Move movePacket = packet as S_Move;
+	}
+
+	public static void S_SkillHandler(PacketSession session, IMessage packet)
+	{
+		S_Skill skillPacket = packet as S_Skill;
+	}
+
+	public static void S_ChangeHpHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeHp changePacket = packet as S_ChangeHp;
+	}
+
+	public static void S_DieHandler(PacketSession session, IMessage packet)
+	{
+		S_Die diePacket = packet as S_Die;
+	}
+
+	// Step 1
+	public static void S_ConnectedHandler(PacketSession session, IMessage packet)
+	{
+		C_Login loginPacket = new C_Login();
+
+		ServerSession serverSession = (ServerSession)session;
+		loginPacket.UniqueId = $"DummyClient_{serverSession.DummyId.ToString("0000")}";
+		serverSession.Send(loginPacket);
+	}
+
+	// Step 2
+	public static void S_LoginHandler(PacketSession session, IMessage packet)
+	{
+		S_Login loginPacket = (S_Login)packet;
+		ServerSession serverSession = (ServerSession)session;
+
+		if (loginPacket.Players == null || loginPacket.Players.Count == 0)
+		{
+			C_CreatePlayer createPacket = new C_CreatePlayer();
+			createPacket.Name = $"Player_{serverSession.DummyId.ToString("0000")}";
+			serverSession.Send(createPacket);
+		}
+		else
+		{
+			// First Login
+			LobbyPlayerInfo info = loginPacket.Players[0];
+			C_EnterGame enterGamePacket = new C_EnterGame();
+			enterGamePacket.Name = info.Name;
+			serverSession.Send(enterGamePacket);
+		}
+	}
+
+	// Step 3
+	public static void S_CreatePlayerHandler(PacketSession session, IMessage packet)
+	{
+		S_CreatePlayer createOkPacket = (S_CreatePlayer)packet;
+		ServerSession serverSession = (ServerSession)session;
+
+		if (createOkPacket.Player == null)
+		{
+			// Skip
+		}
+		else
+		{
+			C_EnterGame enterGamePacket = new C_EnterGame();
+			enterGamePacket.Name = createOkPacket.Player.Name;
+			serverSession.Send(enterGamePacket);
+		}
+	}
+
+	public static void S_ItemListHandler(PacketSession session, IMessage packet)
+	{
+		S_ItemList itemList = (S_ItemList)packet;
+	}
+
+	public static void S_AddItemHandler(PacketSession session, IMessage packet)
+	{
+	}
+
+	public static void S_EquipItemHandler(PacketSession session, IMessage packet)
+	{
+	}
+
+	public static void S_ChangeStatHandler(PacketSession session, IMessage packet)
+	{
+		S_ChangeStat itemList = (S_ChangeStat)packet;
+	}
+
+	public static void S_PingHandler(PacketSession session, IMessage packet)
+	{
+		C_Pong pongPacket = new C_Pong();
+	}
+}
+{% endhighlight %}
+
+* DummyClient\Session\SessionManager.cs
+{% highlight C# %}
+public class SessionManager
+{
+    public static SessionManager Instance { get; } = new SessionManager();
+
+    HashSet<ServerSession> _sessions = new HashSet<ServerSession>();
+    object _lock = new object();
+    int _dummyId = 1;
+
+    public ServerSession Generate()
+    {
+        lock (_lock)
+        {
+            ServerSession session = new ServerSession();
+            session.DummyId = _dummyId;
+            _dummyId++;
+
+            _sessions.Add(session);
+            Console.WriteLine($"Connected({_sessions.Count}) Players");
+            return session;
+        }
+    }
+
+    public void Remove(ServerSession session)
+    {
+        lock (_lock)
+        {
+            _sessions.Remove(session);
+            Console.WriteLine($"Connected({_sessions.Count}) Players");
+        }
+    }
+}   
+{% endhighlight %}
+
+* DummyClient\Session\ServerSession.cs
+{% highlight C# %}
+public class ServerSession : PacketSession
+{
+	public int DummyId { get; set; }
+
+	public void Send(IMessage packet)
+	{
+		string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+		MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+		ushort size = (ushort)packet.CalculateSize();
+		byte[] sendBuffer = new byte[size + 4];
+		Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+		Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+		Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+		Send(new ArraySegment<byte>(sendBuffer));
+	}
+
+	public override void OnConnected(EndPoint endPoint)	{ }
+
+	public override void OnDisconnected(EndPoint endPoint)	{	}
+
+	public override void OnRecvPacket(ArraySegment<byte> buffer)
+	{
+		PacketManager.Instance.OnRecvPacket(this, buffer);
+	}
+
+	public override void OnSend(int numOfBytes)	{	}
+}
+{% endhighlight %}
+
+* DummyClient\Program.cs
+{% highlight C# %}
+class Program
+{
+  static int DummyClientCount { get; } = 50;
+
+  static void Main(string[] args)
+  {
+    Thread.Sleep(3000);
+
+    string host = Dns.GetHostName();
+    IPHostEntry ipHost = Dns.GetHostEntry(host);
+    IPAddress ipAddr = ipHost.AddressList[0];
+    IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+    Connector connector = new Connector();
+
+    connector.Connect(endPoint,
+        () => { return SessionManager.Instance.Generate(); },
+        Program.DummyClientCount);
+
+    while (true) 
+    {
+        Thread.Sleep(10000);
+    }
+  }
+}
+{% endhighlight %}
+
+* Server\DB\AppDbContext.cs
+{% highlight C# %}
+public class AppDbContext : DbContext
+{
+  ...
+  protected override void OnConfiguring(DbContextOptionsBuilder options)
+  {
+    options
+      //.UseLoggerFactory(_logger)
+      .UseSqlServer(ConfigManager.Config == null ? _connectionString : ConfigManager.Config.connectionString);
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\DB\DbTransaction.cs
+  - Remove Logs
+
+{% highlight C# %}
+public partial class DbTransaction : JobSerializer
+{
+  ...
+  public static void SavePlayerStatus_AllInOne(Player player, GameRoom room)
+  {
+    if (player == null || room == null)
+      return;
+
+    // Me (GameRoom)
+    PlayerDb playerDb = new PlayerDb();
+    playerDb.PlayerDbId = player.PlayerDbId;
+    playerDb.Hp = player.Stat.Hp;
+
+    // You
+    Instance.Push(() =>
+    {
+      using (AppDbContext db = new AppDbContext())
+      {
+        db.Entry(playerDb).State = EntityState.Unchanged;
+        db.Entry(playerDb).Property(nameof(PlayerDb.Hp)).IsModified = true;
+        bool success = db.SaveChangesEx();
+        if (success)
+        {
+          // Me
+          //room.Push(() => Console.WriteLine($"Hp Saved({playerDb.Hp})"));
+        }
+      }
+    });			
+  }
+  ...
+  public static void SavePlayerStatus_Step3(int hp)
+  {
+    //Console.WriteLine($"Hp Saved({hp})");
+  }
+  ...
+  }
+{% endhighlight %}
+
+* Server\Game\Object\Arrow.cs
+  - Remove Logs
+
+{% highlight C# %}
+public class Arrow : Projectile
+{
+  ...
+  public override void Update()
+  {
+    ...
+    if (Room.Map.ApplyMove(this, destPos, collision: false))
+    {
+      ...
+      //Console.WriteLine("Move Arrow");
+    }
+  ...
+}
+{% endhighlight %}
+
+* Server\Game\Object\Monster.cs
+{% highlight C# %}
+public class Monster : GameObject
+{
+  ...
+  protected virtual void UpdateIdle()
+  {
+    if (_nextSearchTick > Environment.TickCount64)
+      return;
+    _nextSearchTick = Environment.TickCount64 + 1000;
+
+    Player target = Room.FindClosestPlayer(CellPos, _searchCellDist);
+
+    if (target == null)
+      return;
+
+    _target = target;
+    State = CreatureState.Moving;
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Room\GameRoom.cs
+{% highlight C# %}
+public partial class GameRoom : JobSerializer
+{
+  ...
+  public Zone GetZone(Vector2Int cellPos)
+  {
+    int x = (cellPos.x - Map.MinX) / ZoneCells;
+    int y = (Map.MaxY - cellPos.y) / ZoneCells;
+    return GetZone(y, x);
+  }
+
+  public Zone GetZone(int indexY, int indexX)
+  {
+    if (indexX < 0 || indexX >= Zones.GetLength(1))
+      return null;
+    if (indexY < 0 || indexY >= Zones.GetLength(0))
+      return null;
+
+    return Zones[indexY, indexX];
+  }
+  ...
+
+  Player FindPlayer(Func<GameObject, bool> condition)
+  {
+    foreach (Player player in _players.Values)
+    {
+      if (condition.Invoke(player))
+        return player;
+    }
+
+    return null;
+  }
+
+  public Player FindClosestPlayer(Vector2Int pos, int range)
+  {
+    List<Player> players = GetAdjacentPlayers(pos, range);
+
+    players.Sort((left, right) =>
+    {
+      int leftDist = (left.CellPos - pos).cellDistFromZero;
+      int rightDist = (right.CellPos - pos).cellDistFromZero;
+      return leftDist - rightDist;
+    });
+
+    foreach(Player player in players)
+    {
+      List<Vector2Int> path = Map.FindPath(pos, player.CellPos, checkObjects: true);
+      if (path.Count < 2 || path.Count > range)
+        continue;
+
+      return player;
+    }
+
+    return null;
+  }
+  ...
+
+  public List<Player> GetAdjacentPlayers(Vector2Int pos, int range)
+  {
+    List<Zone> zones = GetAdjacentZones(pos, range);
+    return zones.SelectMany(z => z.Players).ToList();
+  }
+
+  public List<Zone> GetAdjacentZones(Vector2Int cellPos, int range = GameRoom.VisionCells)
+  {
+    HashSet<Zone> zones = new HashSet<Zone>();
+
+    int maxY = cellPos.y + range;
+    int minY = cellPos.y - range;
+    int maxX = cellPos.x + range;
+    int minx = cellPos.x - range;
+
+    // left top
+    Vector2Int leftTop = new Vector2Int(minx, maxY);
+
+    int minIndexY = (Map.MaxY - leftTop.y) / ZoneCells;
+    int minIndexX = (leftTop.x - Map.MinX) / ZoneCells;
+
+    // right bottom
+    Vector2Int rightBot = new Vector2Int(maxX, minY);
+
+    int maxIndexY = (Map.MaxY - rightBot.y) / ZoneCells;
+    int maxIndexX = (rightBot.x - Map.MinX) / ZoneCells;
+
+    for(int x = minIndexX; x<=maxIndexX; x++)
+    {
+      for(int y=minIndexY; y<=maxIndexY; y++)
+      {
+        Zone zone = GetZone(y, x);
+        if (zone == null)
+          continue;
+
+        zones.Add(zone);
+      }
+    }
+
+    int[] delta = new int[2] { -range, +range };
+    foreach(int dy in delta)
+    {
+      foreach(int dx in delta)
+      {
+        int y = cellPos.y + dy;
+        int x = cellPos.x + dx;
+        Zone zone = GetZone(new Vector2Int(x, y));
+        if (zone == null)
+          continue;
+
+        zones.Add(zone);
+      }
+    }
+
+    return zones.ToList();
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Session\ClientSession.cs
+{% highlight C# %}
+public partial class ClientSession : PacketSession
+{
+  ...
+  // Packet Merge Send
+  int _reservedSendBytes = 0;
+  long _lastSendTick = 0;
+  ...
+  
+  public void Send(IMessage packet)
+  {
+    string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+    MsgId msgId = (MsgId)Enum.Parse(typeof(MsgId), msgName);
+    ushort size = (ushort)packet.CalculateSize();
+    byte[] sendBuffer = new byte[size + 4];
+    Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+    Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+    Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
+          lock (_lock)
+          {
+      _reserveQueue.Add(sendBuffer);
+      _reservedSendBytes += sendBuffer.Length;
+    }
+  }
+
+  public void FlushSend()
+  {
+    List<ArraySegment<byte>> sendList = null;
+
+    lock (_lock)
+    {
+      // already past 0.1 sec or too many packets are merged(1 million bytes)
+      long delta = (System.Environment.TickCount64 - _lastSendTick);
+      if (delta < 100 && _reservedSendBytes < 10000)
+        return;
+
+      // Packet Merge Send
+      _reservedSendBytes = 0;
+      _lastSendTick = System.Environment.TickCount64;
+
+      if (_reserveQueue.Count == 0)
+        return;
+
+      sendList = _reserveQueue;
+      _reserveQueue = new List<ArraySegment<byte>>();
+    }
+
+    Send(sendList);
+  }
+
+  public override void OnConnected(EndPoint endPoint)
+  {
+    //Console.WriteLine($"OnConnected : {endPoint}");
+
+    {
+      S_Connected connectedPacket = new S_Connected();
+      Send(connectedPacket);
+    }
+
+    GameLogic.Instance.PushAfter(5000, Ping);
+  }
+  ...
+
+  public override void OnDisconnected(EndPoint endPoint)
+  {
+    GameLogic.Instance.Push(() =>
+    {
+      if (MyPlayer != null)
+        return;
+
+      GameRoom room = GameLogic.Instance.Find(1);
+      room.Push(room.LeaveGame, MyPlayer.Info.ObjectId);
+    });
+    
+    SessionManager.Instance.Remove(this);
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Session\SessionManager.cs
+{% highlight C# %}
+class SessionManager
+{
+  ...
+  public ClientSession Generate()
+  {
+    lock (_lock)
+    {
+      int sessionId = ++_sessionId;
+
+      ClientSession session = new ClientSession();
+      session.SessionId = sessionId;
+      _sessions.Add(sessionId, session);
+
+      Console.WriteLine($"Connected({_sessions.Count}) Players");
+
+      return session;
+    }
+  }
+  ...
+  public void Remove(ClientSession session)
+  {
+    lock (_lock)
+    {
+      _sessions.Remove(session.SessionId);
+              Console.WriteLine($"Connected({_sessions.Count}) Players");
+    }
+  }
+}
+{% endhighlight %}
+
+* ServerCore\Connector.cs
+{% highlight C# %}
+public class Connector
+{
+  ...
+  public void Connect(IPEndPoint endPoint, Func<Session> sessionFactory, int count = 1)
+  {
+    for (int i = 0; i < count; i++)
+    {
+      Socket socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+      _sessionFactory = sessionFactory;
+
+      SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+      args.Completed += OnConnectCompleted;
+      args.RemoteEndPoint = endPoint;
+      args.UserToken = socket;
+
+      RegisterConnect(args);
+
+      //TEMP
+      Thread.Sleep(10);
+    }
+  }
+
+  void RegisterConnect(SocketAsyncEventArgs args)
+  {
+    Socket socket = args.UserToken as Socket;
+    if (socket == null)
+      return;
+    try
+    {
+      bool pending = socket.ConnectAsync(args);
+      if (pending == false)
+        OnConnectCompleted(null, args);
+    }
+    catch(Exception e)
+    {
+      Console.WriteLine(e);
+    }
+  }
+
+  void OnConnectCompleted(object sender, SocketAsyncEventArgs args)
+  {
+    try
+    {
+      if (args.SocketError == SocketError.Success)
+      {
+        Session session = _sessionFactory.Invoke();
+        session.Start(args.ConnectSocket);
+        session.OnConnected(args.RemoteEndPoint);
+      }
+      else
+      {
+        Console.WriteLine($"OnConnectCompleted Fail: {args.SocketError}");
+      }
+    }
+    catch(Exception e)
+    {
+      Console.WriteLine(e);
+    }
+  }
+}
+{% endhighlight %}
+
+* ServerCore\Listener.cs
+{% highlight C# %}
+public class Listener
+{
+  ...
+  void RegisterAccept(SocketAsyncEventArgs args)
+  {
+    args.AcceptSocket = null;
+
+          try
+          {
+      bool pending = _listenSocket.AcceptAsync(args);
+      if (pending == false)
+        OnAcceptCompleted(null, args);
+    }
+    catch(Exception e)
+          {
+              Console.WriteLine(e);
+          }
+  }
+
+  void OnAcceptCompleted(object sender, SocketAsyncEventArgs args)
+  {
+          try
+          {
+      if (args.SocketError == SocketError.Success)
+      {
+        Session session = _sessionFactory.Invoke();
+        session.Start(args.AcceptSocket);
+        session.OnConnected(args.AcceptSocket.RemoteEndPoint);
+      }
+      else
+        Console.WriteLine(args.SocketError.ToString());
+    }
+          catch(Exception e)
+          {
+              Console.WriteLine(e);
+          }
+
+    RegisterAccept(args);
+  }
+}
+{% endhighlight %}
+
+* ServerCore\Session.cs
+{% highlight C# %}
+public abstract class PacketSession : Session
+{
+  ...
+  public sealed override int OnRecv(ArraySegment<byte> buffer)
+  {
+    int processLen = 0;
+
+    while (true)
+    {
+      if (buffer.Count < HeaderSize)
+        break;
+
+      ushort dataSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+      if (buffer.Count < dataSize)
+        break;
+
+      OnRecvPacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
+
+      processLen += dataSize;
+      buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
+    }
+
+    return processLen;
+  }
+
+  public abstract void OnRecvPacket(ArraySegment<byte> buffer);
+}
+...
+{% endhighlight %}
+
+### Test
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/29.jpg"><img src="/assets/img/posts/unity_mmocontents/29.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/30.jpg"><img src="/assets/img/posts/unity_mmocontents/30.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-DummyClient.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
