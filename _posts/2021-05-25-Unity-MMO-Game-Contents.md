@@ -6645,4 +6645,405 @@ public abstract class PacketSession : Session
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-DummyClient.mp4" frameborder="0"> </iframe>
 
+# Account
+
+## Server
+
+* Create new Asp.Net Core Web Application
+  - Application name is `AccountServer`
+  - Remove `WeatherForecast~`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/31.jpg"><img src="/assets/img/posts/unity_mmocontents/31.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Download Nuget Packeage 
+  - Microsoft.EntityFrameworkCore.Dsign
+  - Microsoft.EntityFrameworkCore.SqlServer
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/37.jpg"><img src="/assets/img/posts/unity_mmocontents/37.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* AccountServer\DB\AppDbContext.cs
+{% highlight C# %}
+public class AppDbContext : DbContext
+{
+    public DbSet<AccountDb> Accounts { get; set; }
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+
+    }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.Entity<AccountDb>()
+            .HasIndex(a => a.AccountName)
+            .IsUnique();
+    }
+}
+{% endhighlight %}
+
+* AccountServer\DB\DataModel.cs
+{% highlight C# %}
+[Table("Account")]
+	public class AccountDb
+	{
+		public int AccountDbId { get; set; }
+		public string AccountName { get; set; }
+		public string Password { get; set; }
+
+	}
+{% endhighlight %}
+
+* AccountServer\DB\WebPacket.cs
+{% highlight C# %}
+// Client -> Server
+public class CreateAccountPacketReq
+{
+    public string AccountName { get; set; }
+    public string Password { get; set; }
+}
+
+// Server -> Client
+public class CreateAccountPacketRes
+{
+    public bool CreateOk { get; set; }
+}
+
+public class LoginAccountPacketReq
+{
+    public string AccountName { get; set; }
+    public string Password { get; set; }
+}
+
+public class ServerInfo
+{
+    public string Name { get; set; }
+    public string Ip { get; set; }
+    public int CrowdedLevel { get; set; }
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk { get; set; }
+    public List<ServerInfo> ServerList { get; set; } = new List<ServerInfo>();
+}
+{% endhighlight %}
+
+* AccountServer\Properties\launchSettings.json
+{% highlight json %}
+...
+  "AccountServer": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "launchUrl": "api/account",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+...
+{% endhighlight %}
+
+* Create Database
+  - name is `AccountDB`
+  - copy `ConnectionStrings` and paste in `appsettings.json`
+
+* AccountServer\Properties\appsettings.json
+{% highlight json %}
+...
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=AccountDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
+  },
+...
+{% endhighlight %}
+
+* AccountServer\Properties\Extensions.cs
+{% highlight C# %}
+public static class Extensions
+{
+  public static bool SaveChangesEx(this AppDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+}
+{% endhighlight %}
+
+* AccountServer\Startup.cs
+{% highlight C# %}
+public class Startup
+{
+  ...
+  public void ConfigureServices(IServiceCollection services)
+  {
+      services.AddControllers().AddJsonOptions(options=>
+      {
+          options.JsonSerializerOptions.PropertyNamingPolicy = null;
+          options.JsonSerializerOptions.DictionaryKeyPolicy = null;
+      });
+
+      services.AddDbContext<AppDbContext>(options =>
+          options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+  }
+  ...
+}
+{% endhighlight %}
+
+* Migration and Update Database
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/32.jpg"><img src="/assets/img/posts/unity_mmocontents/32.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Create API Controller
+  - name is `AccountController.cs`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/33.jpg"><img src="/assets/img/posts/unity_mmocontents/33.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* AccountServer\Controller\AccountController.cs
+{% highlight C# %}
+[Route("api/[controller]")]
+[ApiController]
+public class AccountController : ControllerBase
+{
+    AppDbContext _context;
+
+    public AccountController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpPost]
+    [Route("create")]
+    public CreateAccountPacketRes CreateAccount([FromBody] CreateAccountPacketReq req)
+    {
+        CreateAccountPacketRes res = new CreateAccountPacketRes();
+
+        AccountDb account = _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.AccountName == req.AccountName)
+            .FirstOrDefault();
+
+        if(account == null)
+        {
+            _context.Accounts.Add(new AccountDb()
+            {
+                AccountName = req.AccountName,
+                Password = req.Password
+            });
+
+            bool success = _context.SaveChangesEx();
+            res.CreateOk = success;
+        }
+        else
+        {
+            res.CreateOk = false;
+        }
+
+        return res;
+    }
+
+    [HttpPost]
+    [Route("login")]
+    public LoginAccountPacketRes LoginAccount([FromBody] LoginAccountPacketReq req)
+    {
+        LoginAccountPacketRes res = new LoginAccountPacketRes();
+
+        AccountDb account = _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.AccountName == req.AccountName && a.Password == req.Password)
+            .FirstOrDefault();
+
+        if(account == null)
+        {
+            res.LoginOk = false;
+        }
+        else
+        {
+            res.LoginOk = true;
+
+            // TODO 서버 목록
+            res.ServerList = new List<ServerInfo>()
+            {
+                new ServerInfo(){Name = "Deforejue", Ip = "127.0.0.1", CrowdedLevel = 0 },
+                new ServerInfo(){Name = "Atun", Ip = "127.0.0.1", CrowdedLevel = 3 }
+            };
+        }
+
+        return res;
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\WebManager.cs
+{% highlight C# %}
+public class WebManager
+{
+    public string BaseUrl { get; set; } = "https://localhost:5001/api";
+
+    public void SendPostRequest<T>(string url, object obj, Action<T> res)
+    {
+        Managers.Instance.StartCoroutine(CoSendWebRequest(url, UnityWebRequest.kHttpVerbPOST, obj, res));
+    }
+    // T is respon object type
+    IEnumerator CoSendWebRequest<T>(string url, string method, object obj, Action<T> res)
+    {
+        string sendUrl = $"{BaseUrl}/{url}";
+
+        byte[] jsonBytes = null;
+        if(obj != null)
+        {
+            string jsonStr = JsonUtility.ToJson(obj);
+            jsonBytes = Encoding.UTF8.GetBytes(jsonStr);
+        }
+
+        using (var uwr = new UnityWebRequest(sendUrl, method))
+        {
+            uwr.uploadHandler = new UploadHandlerRaw(jsonBytes);
+            uwr.downloadHandler = new DownloadHandlerBuffer();
+            uwr.SetRequestHeader("Content-Type", "application/json");
+
+            yield return uwr.SendWebRequest();
+
+            if(uwr.isNetworkError || uwr.isHttpError)
+            {
+                Debug.Log(uwr.error);
+            }
+            else
+            {
+                T resObj = JsonUtility.FromJson<T>(uwr.downloadHandler.text);
+                res.Invoke(resObj);
+            }
+
+        }
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+    ...
+
+    #region Contents
+    ...
+    public static WebManager Web { get { return Instance._web ; } }
+	  #endregion
+    ...
+}
+{% endhighlight %}
+
+
+* Client\Assets\Scripts\Scenes\GameScene.cs
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    ...
+
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Game;
+
+        // Temp
+        Managers.Web.BaseUrl = "https://localhost:5001/api";
+        WebPacket.SendCreateAccount("Hanna", "1234");
+
+        ...
+    }
+    ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Web\WebPacket.cs
+{% highlight C# %}
+public class CreateAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class CreateAccountPacketRes
+{
+    public bool CreateOk;
+}
+
+public class LoginAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class ServerInfo
+{
+    public string Name;
+    public string Ip;
+    public int CrowdedLevel;
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk;
+    public List<ServerInfo> ServerList = new List<ServerInfo>();
+}
+
+public class WebPacket
+{
+    public static void SendCreateAccount(string account, string password)
+    {
+        CreateAccountPacketReq packet = new CreateAccountPacketReq()
+        {
+            AccountName = account,
+            Password = password
+        };
+
+        Managers.Web.SendPostRequest<CreateAccountPacketRes>("account/create", packet, (res) =>
+        {
+            Debug.Log(res.CreateOk);
+        });
+    }
+
+    public static void SendLoginAccount(string account, string password)
+    {
+        LoginAccountPacketReq packet = new LoginAccountPacketReq()
+        {
+            AccountName = account,
+            Password = password
+        };
+
+        Managers.Web.SendPostRequest<LoginAccountPacketRes>("account/login", packet, (res) =>
+        {
+            Debug.Log(res.LoginOk);
+        });
+    }
+}
+{% endhighlight %}
+
+### Test
+
+<figure class="third">
+  <a href="/assets/img/posts/unity_mmocontents/34.jpg"><img src="/assets/img/posts/unity_mmocontents/34.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/35.jpg"><img src="/assets/img/posts/unity_mmocontents/35.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/36.jpg"><img src="/assets/img/posts/unity_mmocontents/36.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
