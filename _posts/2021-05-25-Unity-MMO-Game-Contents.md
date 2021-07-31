@@ -6878,7 +6878,6 @@ public class AccountController : ControllerBase
         {
             res.LoginOk = true;
 
-            // TODO 서버 목록
             res.ServerList = new List<ServerInfo>()
             {
                 new ServerInfo(){Name = "Deforejue", Ip = "127.0.0.1", CrowdedLevel = 0 },
@@ -7045,5 +7044,259 @@ public class WebPacket
   <a href="/assets/img/posts/unity_mmocontents/36.jpg"><img src="/assets/img/posts/unity_mmocontents/36.jpg"></a>
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
+
+## Client
+
+* Download Asset Store
+  - Easy Profile System(But not Support now!!)
+
+* Create Scene
+  - copy and paste the `Game`
+  - change name to `Login`
+  - change game object name to `LoginScnene`
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/38.jpg"><img src="/assets/img/posts/unity_mmocontents/38.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Add Prefab
+  - move `LoginScreen` in UniBit folder to `Prefab\UI\Scene`
+  - change name to `UI_LoginScnene`
+  - Change Fields
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/39.jpg"><img src="/assets/img/posts/unity_mmocontents/39.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Client\Assets\Scripts\Managers\Contents\NetworkManager.cs
+{% highlight C# %}
+public class CreateAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class CreateAccountPacketRes
+{
+    public bool CreateOk;
+}
+
+public class LoginAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class ServerInfo
+{
+    public string Name;
+    public string Ip;
+    public int CrowdedLevel;
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk;
+    public List<ServerInfo> ServerList = new List<ServerInfo>();
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Managers.cs
+{% highlight C# %}
+public class Managers : MonoBehaviour
+{
+  ...
+  static void Init()
+  {
+      if (s_instance == null)
+      {
+    GameObject go = GameObject.Find("@Managers");
+          if (go == null)
+          {
+              go = new GameObject { name = "@Managers" };
+              go.AddComponent<Managers>();
+          }
+
+          DontDestroyOnLoad(go);
+          s_instance = go.GetComponent<Managers>();
+
+          s_instance._data.Init();
+          s_instance._pool.Init();
+          s_instance._sound.Init();
+      }		
+  }
+  ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Scenes\GameScene.cs
+{% highlight C# %}
+public class GameScene : BaseScene
+{
+    UI_GameScene _sceneUI;
+
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Game;
+
+        Managers.Map.LoadMap(1);
+
+        Screen.SetResolution(640, 480, false);
+
+        _sceneUI = Managers.UI.ShowSceneUI<UI_GameScene>();
+    }
+
+    public override void Clear()
+    {
+        
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Scenes\LoginScene.cs
+{% highlight C# %}
+public class LoginScene : BaseScene
+{
+    UI_LoginScene _sceneUI;
+
+    protected override void Init()
+    {
+        base.Init();
+
+        SceneType = Define.Scene.Login;
+
+        Managers.Web.BaseUrl = "https://localhost:5001/api";
+
+        Screen.SetResolution(640, 480, false);
+
+        _sceneUI = Managers.UI.ShowSceneUI<UI_LoginScene>();
+    }
+
+    public override void Clear()
+    {
+        
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_LoginScene.cs
+{% highlight C# %}
+public class UI_LoginScene : UI_Scene
+{
+    enum GameObjects
+    {
+        AccountName,
+        Password
+    }
+
+    enum Images
+    {
+        CreateBtn,
+        LoginBtn
+    }
+
+    public override void Init()
+	{
+        base.Init();
+
+        Bind<GameObject>(typeof(GameObjects));
+        Bind<Image>(typeof(Images));
+
+        GetImage((int)Images.CreateBtn).gameObject.BindEvent(OnClickCreateButton);
+        GetImage((int)Images.LoginBtn).gameObject.BindEvent(OnClickLoginButton);
+	}
+
+    public void OnClickCreateButton(PointerEventData evt)
+    {
+        Debug.Log("OnClickCreateButton");
+
+        string account = Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text;
+        string password = Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text;
+
+        CreateAccountPacketReq packet = new CreateAccountPacketReq()
+        {
+            AccountName = account,
+            Password = password
+        };
+
+        Managers.Web.SendPostRequest<CreateAccountPacketRes>("account/create", packet, (res) =>
+        {
+            Debug.Log(res.CreateOk);
+
+            Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text = "";
+            Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text = "";
+        });
+    }
+
+    public void OnClickLoginButton(PointerEventData evt)
+    {
+        Debug.Log("OnClickLoginButton");
+
+        string account = Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text;
+        string password = Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text;
+
+        LoginAccountPacketReq packet = new LoginAccountPacketReq()
+        {
+            AccountName = account,
+            Password = password
+        };
+
+        Managers.Web.SendPostRequest<LoginAccountPacketRes>("account/login", packet, (res) =>
+        {
+            Debug.Log(res.LoginOk);
+            Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text = "";
+            Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text = "";
+
+            if (res.LoginOk)
+            {
+                Managers.Network.ConnectToGame();
+                Managers.Scene.LoadScene(Define.Scene.Game);
+            }
+
+        });
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Web\WebPacket.cs
+{% highlight C# %}
+public class CreateAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class CreateAccountPacketRes
+{
+    public bool CreateOk;
+}
+
+public class LoginAccountPacketReq
+{
+    public string AccountName;
+    public string Password;
+}
+
+public class ServerInfo
+{
+    public string Name;
+    public string Ip;
+    public int CrowdedLevel;
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk;
+    public List<ServerInfo> ServerList = new List<ServerInfo>();
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Account.mp4" frameborder="0"> </iframe>
 
 [Download](https://github.com/leehuhlee/Unity){: .btn}
