@@ -7299,4 +7299,501 @@ public class LoginAccountPacketRes
 
 <iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-Account.mp4" frameborder="0"> </iframe>
 
+## Shared DB
+
+* Create a new class library
+  - name is `SharedDB`
+  - download nuget packages
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/41.jpg"><img src="/assets/img/posts/unity_mmocontents/41.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* SharedDB\DataModel.cs
+{% highlight C# %}
+[Table("Token")]
+public class TokenDb
+{
+    public int TokenDbId { get; set; }
+    public int AccountDbId { get; set; }
+    public int Token { get; set; }
+    public DateTime Expired { get; set; }
+}
+
+[Table("ServerInfo")]
+public class ServerDb
+{
+    public int ServerDbId { get; set; }
+    public string Name { get; set; }
+    public string IpAddress { get; set; }
+    public int Port { get; set; }
+    public int BusyScore { get; set; }
+}
+{% endhighlight %}
+
+* SharedDB\SharedDbContext.cs
+{% highlight C# %}
+public class SharedDbContext : DbContext
+{
+    public DbSet<TokenDb> Tokens { get; set; }
+    public DbSet<ServerDb> Servers { get; set; }
+
+    // GameServer
+    public SharedDbContext()
+    {
+
+    }
+
+    // ASP.NET
+    public SharedDbContext(DbContextOptions<SharedDbContext> options) : base(options)
+    {
+
+    }
+
+    // GameServer
+    public static string ConnectionString { get; set; } = @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=SharedDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
+    protected override void OnConfiguring(DbContextOptionsBuilder options)
+    {
+
+        if(options.IsConfigured == false)
+        {
+            options
+            //.UseLoggerFactory(_logger)
+            .UseSqlServer(ConnectionString);
+        }
+    }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.Entity<TokenDb>()
+            .HasIndex(t => t.AccountDbId)
+            .IsUnique();
+
+        builder.Entity<ServerDb>()
+            .HasIndex(s => s.Name)
+            .IsUnique();
+    }
+}
+{% endhighlight %}
+
+* DB Migration
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/40.jpg"><img src="/assets/img/posts/unity_mmocontents/40.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Server\Session\SessionManager.cs
+{% highlight C# %}
+class SessionManager
+{
+  static SessionManager _session = new SessionManager();
+  public static SessionManager Instance { get { return _session; } }
+
+  int _sessionId = 0;
+  Dictionary<int, ClientSession> _sessions = new Dictionary<int, ClientSession>();
+  object _lock = new object();
+
+  public int GetBusyScore()
+  {
+    int count = 0;
+
+    lock (_lock)
+    {
+      count = _sessions.Count;
+    }
+
+    return count / 100;
+  }
+  ...
+}
+{% endhighlight %}
+
+* Server\Utils\Extension.cs
+{% highlight C# %}
+public static class Extensions
+{
+  public static bool SaveChangesEx(this AppDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+
+  public static bool SaveChangesEx(this SharedDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+}
+{% endhighlight %}
+
+* Server\Program.cs
+{% highlight C# %}
+class Program
+{
+  ...
+  static void NetworkTask()
+  {
+      while (true)
+      {
+          List<ClientSession> sessions = SessionManager.Instance.GetSessions();
+          foreach (ClientSession session in sessions)
+          {
+              session.FlushSend();
+          }
+
+          Thread.Sleep(0);
+      }
+  }
+
+  static void StartServerInfoTask()
+  {
+      var t = new System.Timers.Timer();
+      t.AutoReset = true;
+      t.Elapsed += new System.Timers.ElapsedEventHandler((s, e) =>
+      {
+          using (SharedDbContext shared = new SharedDbContext())
+          {
+              ServerDb serverDb = shared.Servers.Where(s => s.Name == Name).FirstOrDefault();
+              if(serverDb != null)
+              {
+                  serverDb.IpAddress = IpAddress;
+                  serverDb.Port = Port;
+                  serverDb.BusyScore = SessionManager.Instance.GetBusyScore();
+                  shared.SaveChangesEx();
+              }
+              else
+              {
+                  serverDb = new ServerDb()
+                  {
+                      Name = Program.Name,
+                      IpAddress = Program.IpAddress,
+                      Port = Program.Port,
+                      BusyScore = SessionManager.Instance.GetBusyScore()
+                  };
+                  shared.Servers.Add(serverDb);
+                  shared.SaveChangesEx();
+              }
+          }
+      });
+      t.Interval = 10 * 1000;
+      t.Start();
+  }
+
+  public static string Name { get; } = "Deforju";
+  public static int Port { get; } = 7777;
+  public static string IpAddress { get; set; }
+
+  static void Main(string[] args)
+  {
+      ConfigManager.LoadConfig();
+      DataManager.LoadData();
+
+      GameLogic.Instance.Push(() => { GameLogic.Instance.Add(1); });
+
+
+      // DNS (Domain Name System)
+      string host = Dns.GetHostName();
+      IPHostEntry ipHost = Dns.GetHostEntry(host);
+      IPAddress ipAddr = ipHost.AddressList[1];
+      IPEndPoint endPoint = new IPEndPoint(ipAddr, Port);
+
+      IpAddress = ipAddr.ToString();
+
+      _listener.Init(endPoint, () => { return SessionManager.Instance.Generate(); });
+      Console.WriteLine("Listening...");
+
+      StartServerInfoTask();
+
+      // DbTask
+      {
+          Thread t = new Thread(DbTask);
+          t.Name = "DB";
+          t.Start();
+      }
+
+      // NetworkTask
+      {
+          Thread t = new Thread(NetworkTask);
+          t.Name = "Network Send";
+          t.Start();
+      }
+
+      // GameLogicTask
+      Thread.CurrentThread.Name = "GameLogic";
+      GameLogicTask();
+  }
+}
+{% endhighlight %}
+
+* DummyClient\Program.cs
+{% highlight C# %}
+class Program
+{
+    ...
+    static void Main(string[] args)
+    {
+        Thread.Sleep(3000);
+
+        string host = Dns.GetHostName();
+        IPHostEntry ipHost = Dns.GetHostEntry(host);
+        IPAddress ipAddr = ipHost.AddressList[1];
+        
+        ...
+    }
+}
+{% endhighlight %}
+
+* AccountServer\Controllers\AccountController.cs
+{% highlight C# %}
+[Route("api/[controller]")]
+[ApiController]
+public class AccountController : ControllerBase
+{
+    AppDbContext _context;
+    SharedDbContext _shared;
+
+    public AccountController(AppDbContext context, SharedDbContext shared)
+    {
+        _context = context;
+        _shared = shared;
+    }
+    ...
+
+    [HttpPost]
+    [Route("login")]
+    public LoginAccountPacketRes LoginAccount([FromBody] LoginAccountPacketReq req)
+    {
+        LoginAccountPacketRes res = new LoginAccountPacketRes();
+
+        AccountDb account = _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.AccountName == req.AccountName && a.Password == req.Password)
+            .FirstOrDefault();
+
+        if(account == null)
+        {
+            res.LoginOk = false;
+        }
+        else
+        {
+            res.LoginOk = true;
+
+            // Create Token
+            DateTime expired = DateTime.UtcNow;
+            expired.AddSeconds(600);
+
+            TokenDb tokenDb = _shared.Tokens.Where(t => t.AccountDbId == account.AccountDbId).FirstOrDefault();
+            if(tokenDb != null)
+            {
+                tokenDb.Token = new Random().Next(Int32.MinValue, Int32.MaxValue);
+                tokenDb.Expired = expired;
+                _shared.SaveChangesEx();
+            }
+            else
+            {
+                tokenDb = new TokenDb()
+                {
+                    AccountDbId = account.AccountDbId,
+                    Token = new Random().Next(Int32.MinValue, Int32.MaxValue),
+                    Expired = expired
+                };
+
+                _shared.Add(tokenDb);
+                _shared.SaveChangesEx();
+            }
+
+            res.AccountId = account.AccountDbId;
+            res.Token = tokenDb.Token;
+            res.ServerList = new List<ServerInfo>();
+
+            foreach (ServerDb serverDb in _shared.Servers)
+            {
+                res.ServerList.Add(new ServerInfo()
+                {
+                    Name = serverDb.Name,
+                    IpAddress = serverDb.IpAddress,
+                    Port = serverDb.Port,
+                    BusyScore = serverDb.BusyScore
+                });
+            }
+        }
+
+        return res;
+    }
+}
+{% endhighlight %}
+
+* AccountServer\DB\WebPacket.cs
+{% highlight C# %}
+...
+public class ServerInfo
+{
+    public string Name { get; set; }
+    public string IpAddress { get; set; }
+    public int Port { get; set; }
+    public int BusyScore { get; set; }
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk { get; set; }
+    public int AccountId { get; set; }
+    public int Token { get; set; }
+    public List<ServerInfo> ServerList { get; set; } = new List<ServerInfo>();
+}
+{% endhighlight %}
+
+* AccountServer\Extension.cs
+{% highlight C# %}
+public static class Extensions
+{
+  public static bool SaveChangesEx(this AppDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+
+  public static bool SaveChangesEx(this SharedDbContext db)
+  {
+    try
+    {
+      db.SaveChanges();
+      return true;
+    }
+    catch
+    {
+      return false;
+    }
+  }
+}
+{% endhighlight %}
+
+
+* AccountServer\Startup.cs
+{% highlight C# %}
+public class Startup
+{
+  ...
+  public void ConfigureServices(IServiceCollection services)
+  {
+      services.AddControllers().AddJsonOptions(options=>
+      {
+          options.JsonSerializerOptions.PropertyNamingPolicy = null;
+          options.JsonSerializerOptions.DictionaryKeyPolicy = null;
+      });
+
+      services.AddDbContext<AppDbContext>(options =>
+          options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+      services.AddDbContext<SharedDbContext>(options =>
+          options.UseSqlServer(Configuration.GetConnectionString("SharedConnection")));
+  }
+  ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager
+{
+	...
+	public void ConnectToGame()
+	{
+		// DNS (Domain Name System)
+		string host = Dns.GetHostName();
+		IPHostEntry ipHost = Dns.GetHostEntry(host);
+		IPAddress ipAddr = ipHost.AddressList[1];
+		IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+
+		Connector connector = new Connector();
+
+		connector.Connect(endPoint,
+			() => { return _session; },
+			1);
+	}
+  ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Managers\Contents\WebManager.cs
+{% highlight C# %}
+public class WebManager
+{
+    ...
+    // T is respon object type
+    IEnumerator CoSendWebRequest<T>(string url, string method, object obj, Action<T> res)
+    {
+        ...
+        if(obj != null)
+        {
+            // change JsonUnility to Newtonsoft
+            string jsonStr = Newtonsoft.Json.JsonConvert.SerializeObject(obj);
+            jsonBytes = Encoding.UTF8.GetBytes(jsonStr);
+        }
+
+        using (var uwr = new UnityWebRequest(sendUrl, method))
+        {
+            ...
+            else
+            {
+                T resObj = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(uwr.downloadHandler.text);
+                res.Invoke(resObj);
+            }
+
+        }
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\Web\WebPacket.cs
+{% highlight C# %}
+...
+public class ServerInfo
+{
+    public string Name;
+    public string IpAddress;
+    public int Port;
+    public int BusyScore;
+}
+
+public class LoginAccountPacketRes
+{
+    public bool LoginOk;
+    public int AccountId;
+    public int Token;
+    public List<ServerInfo> ServerList = new List<ServerInfo>();
+}
+{% endhighlight %}
+
+### Test
+
+<figure>
+  <a href="/assets/img/posts/unity_mmocontents/42.jpg"><img src="/assets/img/posts/unity_mmocontents/42.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
