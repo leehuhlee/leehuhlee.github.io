@@ -3,11 +3,17 @@ layout: post
 title: "[Unity] MMO Game Contents"
 date: 2021-05-25
 excerpt: "MMO Game Contents"
+project: true
 tags: [C#, Unity, Game, MMO, 2D, DB]
 comments: false
 ---
 
 <center>Reference by <a href="https://www.inflearn.com/course/%EC%9C%A0%EB%8B%88%ED%8B%B0-mmorpg-%EA%B0%9C%EB%B0%9C-part9/dashboard">[C#과 유니티로 만드는 MMORPG 게임 개발 시리즈] Part9: MMO 컨텐츠 구현 (DB연동 + 대형 구조 + 라이브)</a></center>
+
+### Demo
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-ServerSelection.mp4" frameborder="0"> </iframe>
+
 
 # DB
 
