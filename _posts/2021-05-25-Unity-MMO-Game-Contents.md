@@ -7796,4 +7796,170 @@ public class LoginAccountPacketRes
 	<figcaption>Unity MMO Contents</figcaption>
 </figure>
 
+## Server Selection
+
+* Create Select Server
+
+<figure class="half">
+  <a href="/assets/img/posts/unity_mmocontents/43.jpg"><img src="/assets/img/posts/unity_mmocontents/43.jpg"></a>
+  <a href="/assets/img/posts/unity_mmocontents/44.jpg"><img src="/assets/img/posts/unity_mmocontents/44.jpg"></a>
+	<figcaption>Unity MMO Contents</figcaption>
+</figure>
+
+* Client\Assets\Scripts\Managers\Contents\NetworkManager.cs
+{% highlight C# %}
+public class NetworkManager
+{
+	public int AccountId { get; set; }
+	public int Token { get; set; }
+
+	ServerSession _session = new ServerSession();
+
+	public void Send(IMessage packet)
+	{
+		_session.Send(packet);
+	}
+
+	public void ConnectToGame(ServerInfo info)
+	{
+		IPAddress ipAddr = IPAddress.Parse(info.IpAddress);
+		IPEndPoint endPoint = new IPEndPoint(ipAddr, info.Port);
+
+		Connector connector = new Connector();
+
+		connector.Connect(endPoint,
+			() => { return _session; },
+			1);
+	}
+  ...
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Popup\UI_SelectServerPopup.cs
+{% highlight C# %}
+public class UI_SelectServerPopup : UI_Popup
+{
+	public List<UI_SelectServerPopup_Item> Items { get; } = new List<UI_SelectServerPopup_Item>();
+
+	public override void Init()
+	{
+		base.Init();
+	}
+
+	public void SetServer(List<ServerInfo> servers)
+    {
+		Items.Clear();
+
+		GameObject grid = GetComponentInChildren<GridLayoutGroup>().gameObject;
+		foreach (Transform child in grid.transform)
+			Destroy(child.gameObject);
+
+		for (int i = 0; i < servers.Count; i++)
+		{
+			GameObject go = Managers.Resource.Instantiate("UI/Popup/UI_SelectServerPopup_Item", grid.transform);
+			UI_SelectServerPopup_Item item = go.GetOrAddComponent<UI_SelectServerPopup_Item>();
+			Items.Add(item);
+
+			item.Info = servers[i];
+		}
+
+		RefreshUI();
+	}
+
+	public void RefreshUI()
+	{
+		if (Items.Count == 0)
+			return;
+
+		foreach (var item in Items)
+		{
+			item.RefreshUI();
+		}
+	}
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Popup\UI_SelectServerPopup_Item.cs
+{% highlight C# %}
+public class UI_SelectServerPopup_Item : UI_Base
+{
+	public ServerInfo Info { get; set; }
+
+	enum Buttons
+    {
+		SelectServerButton
+    }
+
+	enum Texts
+    {
+		NameText
+    }
+
+	public override void Init()
+	{
+		Bind<Button>(typeof(Buttons));
+		Bind<Text>(typeof(Texts));
+
+		GetButton((int)Buttons.SelectServerButton).gameObject.BindEvent(OnClickButton);
+	}
+
+	public void RefreshUI()
+    {
+		if (Info == null)
+			return;
+
+		GetText((int)Texts.NameText).text = Info.Name;
+    }
+
+	void OnClickButton(PointerEventData evt)
+    {
+		Managers.Network.ConnectToGame(Info);
+		Managers.Scene.LoadScene(Define.Scene.Game);
+		Managers.UI.ClosePopupUI();
+    }
+}
+{% endhighlight %}
+
+* Client\Assets\Scripts\UI\Scene\UI_LoginScene.cs
+{% highlight C# %}
+public class UI_LoginScene : UI_Scene
+{
+  ...
+  public void OnClickLoginButton(PointerEventData evt)
+  {
+      Debug.Log("OnClickLoginButton");
+
+      string account = Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text;
+      string password = Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text;
+
+      LoginAccountPacketReq packet = new LoginAccountPacketReq()
+      {
+          AccountName = account,
+          Password = password
+      };
+
+      Managers.Web.SendPostRequest<LoginAccountPacketRes>("account/login", packet, (res) =>
+      {
+          Debug.Log(res.LoginOk);
+          Get<GameObject>((int)GameObjects.AccountName).GetComponent<InputField>().text = "";
+          Get<GameObject>((int)GameObjects.Password).GetComponent<InputField>().text = "";
+
+          if (res.LoginOk)
+          {
+              Managers.Network.AccountId = res.AccountId;
+              Managers.Network.Token = res.Token;
+
+              UI_SelectServerPopup popup = Managers.UI.ShowPopupUI<UI_SelectServerPopup>();
+              popup.SetServer(res.ServerList);
+          }
+
+      });
+  }
+}
+{% endhighlight %}
+
+### Test
+
+<iframe width="560" height="315" src="/assets/video/posts/unity_mmocontents/MMO-Contents-ServerSelection.mp4" frameborder="0"> </iframe>
+
 [Download](https://github.com/leehuhlee/Unity){: .btn}
