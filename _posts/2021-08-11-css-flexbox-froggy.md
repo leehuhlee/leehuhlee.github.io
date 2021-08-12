@@ -7,7 +7,7 @@ tags: [CSS, Frontend, Web]
 comments: false
 ---
 
-<center>Reference by <a href="https://flexboxfroggy.com/"></a></center>
+<center>Reference by <a href="https://flexboxfroggy.com/">FLEXBOX FROGGY</a></center>
 
 # justify-content 
 
