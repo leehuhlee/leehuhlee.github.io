@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "[Python] Funny Poop"
-date: 2021-08-12
+title: "[Python] Pang"
+date: 2021-08-13
 excerpt: "Python Game"
 tags: [Python, Game, Logic]
 comments: false
