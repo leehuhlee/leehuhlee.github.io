@@ -127,9 +127,16 @@ comments: false
         pupil=eye.querySelector('.pupil'),
         eyearea=eye.getBoundingClientRect();
         var pupilrolling=function(mouseX,mouseY){
+            // Math.atan2 returns radian value
             var radians=Math.atan2(mouseY-(eyearea.y+eyearea.height*0.5),mouseX-(eyearea.x+eyearea.width*0.5));
+            // angle = 180*radians/Math.PI
+            // angle needs -90
+            // because init eye direction is bottom
             pupil.style.transform='rotate('+(180*radians/Math.PI-90)+'deg)';
         };
+
+        // return object
+        // method: function
         return{
             pupilrolling:pupilrolling
         };
