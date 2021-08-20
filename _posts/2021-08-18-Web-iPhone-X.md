@@ -97,6 +97,7 @@ comments: false
     }
     
     #video-studiomeal{
+        /* This video scale will be changed */
         transform:scale(1)
     }
 </style>
@@ -118,8 +119,8 @@ comments: false
             scrollY=0, // current scroll pos
             relativeScrollY=0, // relative scroll pos in each frame
             prevDurations=0, // duration from prev keyframe
-            totalScrollHeight=0, // total height for scrol
-            currentKeyframe=0, // current keyframe
+            totalScrollHeight=0, // total height for scroll(body height)
+            currentKeyframe=0, // current keyframe (0, 1)
             phoneWidth=4000, // iPhone image width
             phoneHeight=4000, // iPhone image height
             resizeHandler,
@@ -129,24 +130,29 @@ comments: false
             calcAnimationValue,
             calcFinalValue,
             init,
-            pixelDuration=0,
+            pixelDuration=0, // scroll height of each keyframe
+
+            // there is 2 keyframes
+            // first keyframe: start
+            // second keyframe: change X to iPhone
             keyframes=[
                 {
                     animationValues:{
-                        videoScale:[1,2],
-                        triangleMove:[0,200],
+                        videoScale:[1,2], // to be bigger
+                        triangleMove:[0,200], // X
                         rectangleMove:[0,500]
                     }
                 },
                 {
                     animationValues:{
-                        videoScale:[2,0.5],
+                        videoScale:[2,0.5], // to be smaller
                         triangleMove:[200,1000],
                         rectangleMove:[500,500]
                     }
                 }
             ],
 
+            // canvas
             elemBody=document.body,
             elemCanvas=document.getElementById('cover-canvas'),
             context=elemCanvas.getContext('2d');
@@ -158,13 +164,16 @@ comments: false
 
             resizeHandler();
             render();
-            
+
+            // requestAnimationFrame is for smooth rendering
+            // because resize and scroll are frequent event.
             window.addEventListener('resize',function(){
                 requestAnimationFrame(resizeHandler);
             });
             window.addEventListener('scroll',function(){
                 requestAnimationFrame(scrollHandler);
             });
+
             elemPhone=document.createElement('img');
             elemPhone.src='phone.png';
             elemPhone.addEventListener('load',function(){
@@ -177,8 +186,10 @@ comments: false
             windowWidth=window.innerWidth;
             windowHeight=window.innerHeight;
             totalScrollHeight=0;
+            // one keyframe duration is half of window height
             pixelDuration=0.5*windowHeight;
 
+            // totalScrollHeight = windowHeight
             for(i=0;i<keyframes.length;i++){
                 totalScrollHeight+=pixelDuration;
             }
@@ -192,18 +203,25 @@ comments: false
         };
 
         scrollHandler=function(){
-            scrollY=window.pageYOffset;
+            scrollY=window.pageYOffset; // current scroll pos
+
+            // scroll range valid check
             if(scrollY<0||scrollY>(totalScrollHeight-windowHeight)){
                 return;
             }
+
+            // when scroll down 
             if(scrollY>pixelDuration+prevDurations){
                 prevDurations+=pixelDuration;
                 currentKeyframe++;
             }
+            // when scroll up
             else if(scrollY<prevDurations){
                 currentKeyframe--;
                 prevDurations-=pixelDuration;
             }
+
+            // current keyframe scroll pos
             relativeScrollY=scrollY-prevDurations;
             render();
         };
@@ -221,13 +239,19 @@ comments: false
                 return;
             }
             elemVideo.style.transform='scale('+videoScale+')';
+
+            // clear canvas every time before drawing
             context.clearRect(0,0,canvasWidth,canvasHeight);
+
             if(elemPhone){
                 drawCanvas(videoScale,triangleMove,rectangleMove);
             }
         };
 
         calcAnimationValue=function(values){
+            // current keyframe scroll pos / keyframe scroll = ratio
+            // values[1]-values[0] is diff value
+            // values[0] is init value
             return(relativeScrollY/pixelDuration)*(values[1]-values[0])+values[0];
         };
 
@@ -235,11 +259,16 @@ comments: false
             var videoScale=videoScale||1,
                 triangleMove=triangleMove||0,
                 rectangleMove=rectangleMove||0;
+
             context.save();
             context.translate((canvasWidth-phoneWidth*videoScale)*0.5,(canvasHeight-phoneHeight*videoScale)*0.5);
+            // phone image scale is changed by video scale
             context.drawImage(elemPhone,0,0,phoneWidth*videoScale,phoneHeight*videoScale);
             context.restore();
+
             context.fillStyle='black';
+
+            // top triangle
             context.beginPath();
             context.moveTo(canvasWidth*0.5-1500,-triangleMove-1700);
             context.lineTo(canvasWidth*0.5,canvasHeight*0.5-150-triangleMove);
@@ -247,6 +276,8 @@ comments: false
             context.lineTo(canvasWidth*0.5-1500,-triangleMove-1700);
             context.fill();
             context.closePath();
+
+            // bottom triangle
             context.beginPath();
             context.moveTo(canvasWidth*0.5-1500,canvasHeight+triangleMove+1700);
             context.lineTo(canvasWidth*0.5,canvasHeight*0.5+150+triangleMove);
@@ -254,6 +285,8 @@ comments: false
             context.lineTo(canvasWidth*0.5-1500,canvasHeight+triangleMove+1700);
             context.fill();
             context.closePath();
+
+            // left triangle
             context.beginPath();
             context.moveTo(canvasWidth*0.5-1700-triangleMove,-1700);
             context.lineTo(canvasWidth*0.5-130-triangleMove,canvasHeight*0.5);
@@ -261,6 +294,8 @@ comments: false
             context.lineTo(canvasWidth*0.5-1700-triangleMove,-1700);
             context.fill();
             context.closePath();
+
+            // right triangle
             context.beginPath();
             context.moveTo(canvasWidth*0.5+1700+triangleMove,-1700);
             context.lineTo(canvasWidth*0.5+130+triangleMove,canvasHeight*0.5);
@@ -268,6 +303,8 @@ comments: false
             context.lineTo(canvasWidth*0.5+1700+triangleMove,-1700);
             context.fill();
             context.closePath();
+
+            // Box top, bottom
             context.fillRect(0,canvasHeight*0.5-2600-rectangleMove,canvasWidth,2000);
             context.fillRect(0,canvasHeight*0.5+600+rectangleMove,canvasWidth,2000);
         };
