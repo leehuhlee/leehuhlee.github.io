@@ -1071,10 +1071,10 @@ comments: false
 
   * Bad
     {% highlight js %}
-      /**
-      * Port on which fitnesse would run. Defaults to <b>8082</b>.
-      * 
-      * @oaram fitnessePort
+      /*
+       Port on which fitnesse would run. Defaults to <b>8082</b>.
+       
+       @oaram fitnessePort
       */
       public void setFitnessePort(int fitnessePort){
         this.fitnessePort = fitnessePort;
