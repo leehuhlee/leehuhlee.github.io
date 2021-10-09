@@ -1113,8 +1113,8 @@ comments: false
   * Bad
     {% highlight js %}
       /* 
-       * start with an array that is big enough to hold all the pixels
-       * (plus filter bytes), and an extra 200 bytes for header info
+        start with an array that is big enough to hold all the pixels
+        (plus filter bytes), and an extra 200 bytes for header info
        */
        this.pngBytes = new byte[((this.width + 1) * this.height * 3) + 200];
     {% endhighlight %}
