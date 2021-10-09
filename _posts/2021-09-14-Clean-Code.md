@@ -322,8 +322,6 @@ comments: false
   - It will pay off in the short term and continue to pay in the long term.
 
 # Chapter 3: Functions
-
-## Introduction
   - Functions are the first line of organization in any program.
   
 ### Example 1
@@ -615,4 +613,513 @@ comments: false
 ## Conclusion
   - Functions are the verbs of that language, and classes are the nouns.
   - But, never forget that your real goal is to tell the story of the system, and that the functions you write need to fit cleanly together into a clear and precise language to help you with that telling.
+
+# Chapter 4: Comments
+  - If our programming languages were expressive enough, or if we had the talent to subtly wield those languages to express our intent, we would not need comments very much.
+  - Comments are always failures.
+  - Programmers can't realistically maintain them.
+  - Therefore, though comments are sometimes necessary, we will expand significant energy to minimize them.
+
+## Comments Do Not Make Up for Bad Code
+  - Clear and expressive code with few comments is far superior to cluttered and complex code with lots of comments.
+
+## Explain Yourself in Code
+  - There are certainly times when code makes a poor vehicle for explanation.
+  - It takes only a few seconds of thought to explain most of your intent in code.
+  - In many cases it's simply a matter of creating a function that says the same thing as the comment you want to write.
+
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    // Check to see if the employee is eligible for full benefits
+    if((employee.flags & HOURLY_FLAG) && (employee.age > 65))
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+    if(employee.isEligibleForFullBenefits())
+  {% endhighlight %}
   
+## Good Comments
+  - Some comments are necessary or beneficial.
+  - Keep in mind, however, that the only truly good comment is the comment you found a way not to write.
+
+## Legal Comments
+  - Copyright and authorship statements are necessary and reasonable things to put into a comment at the start of each source file.
+  - Where possible, refer to a standard license or other external document rather than putting all the terms and conditions into the comment.
+
+## Informative Comments
+  - Still, it might have been better, and clearer, then the comment would likely habe been superfluous.
+
+## Explanation of Intent
+  - Sometimes a comment goes beyond just useful information about the implementation and provides the intent behind a decision.
+
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    function compareTo(o){
+      if(o instanceof WikiPagePath)
+      {
+        var p = o;
+        var compressedName = StringUtil.join(names, "");
+        var compressedArgumentName = StringUtil.join(p.name, "");
+        return compressdName.compareTo(compressedArgumentName);
+      }
+      return 1; // we are greater because we are the right type.
+    }
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+    function testConcurrentAddwidgets() throws Exceiption{
+      var widgetBuilder = new WidgetBuilder(new Class[]{BoldWidget.class});
+      var text = "'''bold text'''";
+      var parent = new BoldWidget(new MockWidgetRoot(), "'''bold text'''");
+      var failFlag = new AtomicBoolean();
+      failFlag.set(false);
+
+      // This is our best attempt to get a race condition
+      // by creating large number of threads.
+      for(var i = 0; i < 25000; i++){
+        var widgetBuilderThread = new WidgetBuilderThread(widgetBuilder, text, parent, failFlag);
+        var thread = new Thread(widgetBuilderThread);
+        thread.start();
+      }
+      assertEquals(false, failFlag.get());
+    }
+  {% endhighlight %}
+
+## Clarification
+  - When its part of the standard library, or in code that you cannot alter, then a helpful clarifying comment can be useful.
+  - Before writing comments like this, take care that there is no better way, and then take even more care that they are accurate.
+
+## Warning of Consequences
+  - It will prevent some overly eager programmer from using a static initializer in the name of efficiency.
+  
+### Example 1
+
+  * Good
+  {% highlight js %}
+    // Don't run unless you
+    // have some time to kill.
+    function _testWithReallyBigFile(){
+      writeLinesToFile(1000000000);
+
+      response.setBody(testFile);
+      response.readyToSend(this);
+      var responseString = output.toString();
+      assertSubString("Content-Length: 1000000000", responseString);
+      assertTrue(bytesSent > 1000000000);
+    }
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+    function testConcurrentAddwidgets() throws Exceiption{
+      // SimpleDateFormat is not thread sage.
+      // so we need to create each instance independently.
+      var df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
+      df.setTimeZone(TimeZone.getTimeZone("GMT"));
+      return df;
+    }
+  {% endhighlight %}
+
+## TODO Comments
+  - It is sometimes resonable to leave "To do" notes in the form of `//TODO` comments.
+  - The `TODO` comments explains why the function has a degenerate implementation and what that function's future should be.
+  - `TODOs` are jobs that the programmer thinks should be done, but for some reason can't do at the moment.
+  - So scan through them regularly and eliminate the ones you can.
+
+### Example 1
+
+  * Good
+  {% highlight js %}
+    // TODO-MDM these are not needed
+    // We expect this to go away when we do the checkout model
+    function makeVersion() throw Exceptions{
+      return null;
+    }
+  {% endhighlight %}
+
+## Amplification
+  - A comment may be used to amplify the importance of something that may otherwise seem inconsequential.
+
+### Example 1
+
+  * Good
+  {% highlight js %}
+    var listItemContent = match.group(3).trim();
+    // the trim is real important. It removes the starting 
+    // spaces that could cause the item to be recognised
+    // as another list.
+    new ListItemWidget(this, ListItemContent, this.level + 1);
+    return buildList.substring(match.end());
+  {% endhighlight %}
+
+## Bad Comments
+  - Usually they are crutches or excuses for poor code or justifications for insufficient decisions, amounting to little more than the programmer talking to himself.
+
+## Mumbling
+  - If you decide to write a comment, then spend the time necessary to make sure it is the best comment you can write.
+  - Any commment that forces you to look in another module for the meaning of that comment ahs failed to communicate to you and is not worth th bits if consumes.
+
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    function loadProperties(){
+      try{
+        var propertiesPath = propertiesLocation + "/" + PROPERTIES_FILE;
+        var peropertiesStream = new FileInputStream(propertiesPath);
+        loadedProperties.load(propertiesStream);
+      }
+      catch(e){
+        // No peoperties files means all defaults are loaded
+      }
+    }
+  {% endhighlight %}
+
+## Redundant Comments
+  - It's certainly not more informative than the code.
+  
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    // Utility method that returns when this.closed is true. Throws an exception
+    // if the timeout is reached.
+    function waitForClose(timeoutMillis) throws Exception{
+      if(!closed){
+        wait(timeoutMillis);
+        if(!closed)
+          throw new Exception("MockResponseSender could not be closed");
+      }
+    }
+  {% endhighlight %}
+
+## Misleading Comments
+  - This subtle bit of misinformation, couched in a comment that is harder to read than the body of the code, coyld cause another programmer to blithely call this function in the expectation.
+  - That poor programmer would then find himself in a debugging session trying to figure out why his code executed so slowly.
+
+## Mandated Comments
+  - It is just plain silly to have a rule that says every function must have a javadoc, or every variable must have a comment.
+  - This clutter adds nothing and serves only to obfuscate the code and create the potential for lies and misdirection.
+
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    /**
+    *
+    * @ param title The title of the CD
+    * @ param author The  author of the CD
+    * @ param tracks The number of tracks on the CD
+    * @ param durationInMinutes The duration of the CD in minutes
+    */
+  {% endhighlight %}
+
+## Journal Comments
+  - These comments accumulate as a kind of journal, or log, of every change that has ever been made.
+  - They should be completely removed.
+
+## Noise Comments
+  - They restate the obvious and provide no new information.
+  - Eventually the comments begin to lie as the code around them changes.
+  - Rather than venting in a worthless and noisy comment, the programmer should have recognized that his frustration could be resolved by improving the structure of his code.
+  - Replace the temptation to create noise with the determination to clean your code.
+
+### Example 1
+
+  * Bad
+  {% highlight js %}
+    /** 
+    * Default constructor.
+    */
+    function AnnualDateRule(){ }
+  {% endhighlight %}
+
+### Example 2
+
+  * Bad
+  {% highlight js %}
+    /** The day of the month */
+    var dayOfMonth;
+  {% endhighlight %}
+
+### Example 3
+
+  * Bad
+    {% highlight js %}
+      /** 
+      * Returns the day of the month.
+      * 
+      * @return the day of the month.
+      */
+      function getDayOfMonth(){
+        return dayOfMonth;
+      }
+    {% endhighlight %}
+
+### Example 4
+
+  * Bad
+    {% highlight js %}
+      function startSending(){
+        try{
+          doSending();
+        }
+        catch(SocketException e){
+          // normal. someone stopped the request.
+        }
+        catch(Exception e){
+          try{
+            response.add(ErrorResponder.makeExceptionString(e));
+            response.closeAll();
+          }
+          catch{
+            // Give me a break!
+          }
+        }
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      function startSending(){
+        try{
+          doSending();
+        }
+        catch(SocketException e){
+          // normal. someone stopped the request.
+        }
+        catch(Exception e){
+          addExceptionAndCloseResponse(e);
+        }
+      }
+
+      function addExceptionAndCloseResponse(Exception e){
+        try{
+          response.add(ErorResponder.makeExceptionString(e));
+          response.closeAll();
+        }
+        catch(Exception e){ }
+      }
+    {% endhighlight %}
+
+## Scary Noise
+  - They are just redundant noisy comments written out of some misplaced desire to provide documentation.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /** The name. */
+      var name;
+
+      /** The version. */
+      var version;
+
+      /** The licenceName */
+      var licenceName;
+
+      /** The version */
+      var info;
+    {% endhighlight %}
+  
+## Don't Use a Comment When You Can Use a Function or a Variable
+  - The author of the original may have written the comment first and then written the code to fulfill the comment.
+
+ ### Example 1
+
+  * Bad
+    {% highlight js %}
+      // does the module from the global list <mod> depend on the 
+      // subsystem we are part of?
+      if (smodule.getDependSubsystems().contains(subSysMod.getSubsystem()))
+    {% endhighlight %}  
+  
+  * Good
+    {% highlight js %}
+      var moduleDependees = smodule.getDependSubsystems();
+      var ourSubSystem = subSysMod.getSubSystem();
+      if (moduleDependees.contains(ourSubSystem))
+    {% endhighlight %}  
+
+## Position Markers
+  - So use them very sparingly, and only when the benefit is significant.
+  - If you overuse banners, they'll fall into the background noise and be ignored.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      // Actions //////////////////////////////
+    {% endhighlight %}
+
+## Closing Brace Comments
+  - Although this might make sense for long functions with deeply nested structures, it serves only to clutter the kind of small and encapsulated functions that we prefer.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      class wc{
+        function main(args){
+          var in = new BufferedReader(new InputStreamReader(System.in));
+          var line;
+          var lineCount = 0;
+          var charCount = 0;
+          var wordCount = 0;
+          try{
+            while((line = in.readLine()) != null){
+              lineCount++;
+              charCount += line.length();
+              var words = line.split("\\W");
+              wordCount += words.length;
+            } // while
+            console.log("wordCount = " + wordCount);
+            console.log("lineCount = " + lineCount);
+            console.log("CharCount = " + charCount);
+          } // try
+          catch(e){
+            console.log("Error:" +)
+          }
+        }
+      }
+    {% endhighlight %} 
+
+## Attributions and Bylines
+  - Again, the source code control system is a better place for this kind of information.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /* Added by Rick */
+    {% endhighlight %}
+
+## Commented-Out Code
+  - Few practices are as odious as commenting-out code.
+  - Other will think it is there for a reason and is too important to delete.
+  - Just delete the code.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      InputStreamResponse response = new InputStreamResponse();
+      response.setBody(formatter.getResultStream(), formatter.getByteCount());
+      // InputStream resultsStream = formatter.getResultStream();
+      // StreamReader reader = new StreamReader(resultsStream);
+      // response.setContent(reader.read(formatter.getByteCount()));
+    {% endhighlight %}
+
+### Example 2
+
+  * Bad
+    {% highlight js %}
+      this.bytePos = writeBytes(pngIdBytes, 0);
+      // hdrPos = bytePos;
+      writeHeader();
+      writeResolution();
+      // dataPos = bytePos;
+      if(writeImageData()){
+        writeEnd();
+        this.pngBytes = resizeByteArray(this.pngBytes, this.maxPos);
+      }
+      else{
+        this.pngBytes = null;
+      }
+      return this.pngBytes;
+    {% endhighlight %}
+
+## HTML Comments
+  - It makes the comments hard to read in the one place where they should be easy to read=the ediot/IDE.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /**
+       * Task to run fit tests.
+       * This task runs fitnesse tests and publishes the results.
+       * <p/>
+       * <pre>
+       * Usage:
+       * &lt;taskdef name=&quot;execute-fitnesse-tests&quot;
+       *     classname=&quot;fitnesse.ant.ExecuteFitnesseTestsTask&quot;
+       *     classpathref=&quot;classpath&quot; /&gt;
+       * OR
+       * &lt;taskdef classpathref=&quot;classpath&quot;
+       *             resource=&quot;tasks.properties&quot; /&gt;
+       * <p/>
+       * &lt;execute-fitnesse-tests
+       *     suitepage=&quot;FitNesse.SuitAcceptanceTests&quot;
+       *     fitnesseport=&quot;8082&quot;
+       *     resultsdir=&quot;${results.dir}&quot;
+       *     resultshtmlpage=&quot;fit-results.html&quot;
+       *     classpathref=&quot;classpath&quot; /&gt;
+       * </pre>
+       */
+    {% endhighlight %}
+
+## Nonlocal Information
+  - If you must write a comment, then make sure it describes the code it appears near.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /**
+      * Port on which fitnesse would run. Defaults to <b>8082</b>.
+      * 
+      * @oaram fitnessePort
+      */
+      public void setFitnessePort(int fitnessePort){
+        this.fitnessePort = fitnessePort;
+      }
+    {% endhighlight %}
+
+## Too Much Information
+  - Don't put interesting historical discussions or irrelevant descriptions of details into your comments.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /*
+        RFC 2045 - Multipurpose Internet Mail Extensions (MIME)
+        Part One: Format of Internet Message Bodies
+        section 6.8. Base64 Content-Transfer-Encoding
+        The encoding process represents 24-bit groups of input bits as output
+        strings of 4 encoded characters. Proceeding from left to right, a 
+        24-bit input group is formed by concatenating 3 8-bit input groups.
+        These 24 bits are then treated as 4 concatenated 6-bit groups, each
+        of which is translated into a single digit in the base64 alphabet.
+        When encoding a bit stream via the base64 encoding, the bit first.
+        That is, the first bit in the stream will be the high-order bit in 
+        the first 8-bit byte, and the eighth bit will be the low-order bit in
+        the first 8-bit byte, and so on.
+      */
+    {% endhighlight %}
+
+## Inobvious Connection
+  - The connection between an comment and the code it describes should be obvious.
+  - The purpose of a comment is to explain code that does not explain itself.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      /* 
+       * start with an array that is big enough to hold all the pixels
+       * (plus filter bytes), and an extra 200 bytes for header info
+       * /
+       this.pngBytes = new byte[((this.width + 1) * this.height * 3) + 200];
+    {% endhighlight %}
+
+## Function Headers 
+  - Short functions don't need much description.
+  - A well-chosen name for a small function that does one thing is usually better a comment header.
