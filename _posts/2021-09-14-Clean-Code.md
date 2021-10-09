@@ -811,12 +811,11 @@ comments: false
 
   * Bad
   {% highlight js %}
-    /**
-    *
-    * @ param title The title of the CD
-    * @ param author The  author of the CD
-    * @ param tracks The number of tracks on the CD
-    * @ param durationInMinutes The duration of the CD in minutes
+    /*
+     @ param title The title of the CD
+     @ param author The  author of the CD
+     @ param tracks The number of tracks on the CD
+     @ param durationInMinutes The duration of the CD in minutes
     */
   {% endhighlight %}
 
@@ -834,8 +833,8 @@ comments: false
 
   * Bad
   {% highlight js %}
-    /** 
-    * Default constructor.
+    /*
+     Default constructor.
     */
     function AnnualDateRule(){ }
   {% endhighlight %}
@@ -844,7 +843,7 @@ comments: false
 
   * Bad
   {% highlight js %}
-    /** The day of the month */
+    /* The day of the month */
     var dayOfMonth;
   {% endhighlight %}
 
@@ -852,10 +851,10 @@ comments: false
 
   * Bad
     {% highlight js %}
-      /** 
-      * Returns the day of the month.
-      * 
-      * @return the day of the month.
+      /*
+       Returns the day of the month.
+       
+       @return the day of the month.
       */
       function getDayOfMonth(){
         return dayOfMonth;
@@ -1042,27 +1041,27 @@ comments: false
 
   * Bad
     {% highlight js %}
-      /**
-       * Task to run fit tests.
-       * This task runs fitnesse tests and publishes the results.
-       * <p/>
-       * <pre>
-       * Usage:
-       * &lt;taskdef name=&quot;execute-fitnesse-tests&quot;
-       *     classname=&quot;fitnesse.ant.ExecuteFitnesseTestsTask&quot;
-       *     classpathref=&quot;classpath&quot; /&gt;
-       * OR
-       * &lt;taskdef classpathref=&quot;classpath&quot;
-       *             resource=&quot;tasks.properties&quot; /&gt;
-       * <p/>
-       * &lt;execute-fitnesse-tests
-       *     suitepage=&quot;FitNesse.SuitAcceptanceTests&quot;
-       *     fitnesseport=&quot;8082&quot;
-       *     resultsdir=&quot;${results.dir}&quot;
-       *     resultshtmlpage=&quot;fit-results.html&quot;
-       *     classpathref=&quot;classpath&quot; /&gt;
-       * </pre>
-       */
+      /*
+        Task to run fit tests.
+        This task runs fitnesse tests and publishes the results.
+        <p/>
+        <pre>
+        Usage:
+        &lt;taskdef name=&quot;execute-fitnesse-tests&quot;
+            classname=&quot;fitnesse.ant.ExecuteFitnesseTestsTask&quot;
+            classpathref=&quot;classpath&quot; /&gt;
+        OR
+        &lt;taskdef classpathref=&quot;classpath&quot;
+                    resource=&quot;tasks.properties&quot; /&gt;
+        <p/>
+        &lt;execute-fitnesse-tests
+            suitepage=&quot;FitNesse.SuitAcceptanceTests&quot;
+            fitnesseport=&quot;8082&quot;
+            resultsdir=&quot;${results.dir}&quot;
+            resultshtmlpage=&quot;fit-results.html&quot;
+            classpathref=&quot;classpath&quot; /&gt;
+        </pre>
+      */
     {% endhighlight %}
 
 ## Nonlocal Information
@@ -1116,7 +1115,7 @@ comments: false
       /* 
        * start with an array that is big enough to hold all the pixels
        * (plus filter bytes), and an extra 200 bytes for header info
-       * /
+       */
        this.pngBytes = new byte[((this.width + 1) * this.height * 3) + 200];
     {% endhighlight %}
 
