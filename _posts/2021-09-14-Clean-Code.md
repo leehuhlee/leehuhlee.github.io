@@ -1122,3 +1122,456 @@ comments: false
 ## Function Headers 
   - Short functions don't need much description.
   - A well-chosen name for a small function that does one thing is usually better a comment header.
+
+# Chapter 5: Formatting
+  - You should take care that your code is nicely formatted.
+  - You should choose a set of simple rules that govern the format of your code, and then you consistently apply those rules.
+
+## The Purpose of Formatting
+  - Code formatting is about communication, and communication is the professional developer's first order of business.
+  - The coding style and readabilty set precedents that continue to affect maintainability and extensibility long after the original code has been changed beyond recognition.
+
+## Vertical Formatting
+  - It turns out that there is a huge range of sizes and some remarkable differences in style.
+  - small files are usually easier to understand than large files are.
+
+## The Newspaper Metaphor
+  - You read it vertically.
+  - The name should be simple but explanatory.
+  - Detail should increase as we move downward, until at the end we find the lowest level functions and details in the source file.
+
+## Vertical Openness Between Concepts
+  - Each line represents an expression or a clause, and each group of lines represents a complete thought. Those thoughts should be separated from each other iwht blank lines.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      class BoldWidget extends ParentWidget{
+        var REGEXP = "'''.+?'''";
+        var pattern = Pattern.compile("'''(.+?)'''", Pattern.MULTILINE + Pattern.DOTALL);
+        function BoldWidget(ParentWidget parent, String text) throws Exception{
+          super(parent);
+          var match = pattern.matcher(text);
+          match.find();
+          addChildWidgets(match.group(1));}
+        function render() throws Exception{
+          var html = new StringBuffer("<b>");
+          html.append(childHtml()).append("</b>");
+          return html.toString();
+        }
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      class BoldWidget extends ParentWidget{
+        var REGEXP = "'''.+?'''";
+        var pattern = Pattern.compile("'''(.+?)'''", 
+          Pattern.MULTILINE + Pattern.DOTALL
+        );
+
+        function BoldWidget(ParentWidget parent, String text) throws Exception{
+          super(parent);
+          var match = pattern.matcher(text);
+          match.find();
+          addChildWidgets(match.group(1));
+        }
+
+        function render() throws Exception{
+          var html = new StringBuffer("<b>");
+          html.append(childHtml()).append("</b>");
+          return html.toString();
+        }
+      }
+    {% endhighlight %}
+
+## Vertical Density
+- So lines of code that are tightly related appear vertically dense.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      class ReporterConfig{
+        /*
+           The class name of the reporter listener
+        */
+        var m_className;
+
+        /*
+           The properties of the reporter listener
+        */
+        var m_properties = new ArrayList<Property>();
+
+        function(property){
+          m_properties.add(property);
+        }
+      }
+    {% endhighlight %} 
+
+    * Good
+    {% highlight js %}
+      class ReporterConfig{
+        var m_className;
+        var m_properties = new ArrayList<Property>();
+
+        function(property){
+          m_properties.add(property);
+        }
+      }
+    {% endhighlight %} 
+
+## Vertical Distance
+- Concepts that are closely related should be kept vertically close to each other.
+- Clearly this rule doesn't work for concepts that belong in separate files.
+- But then closely related concepts should not be separated into different files.
+- Indeed, this is one of the reasons that protected variables hould be avoided.
+- For those concepts that are so closely related that they belong in the same source file, their vertical separation should be a measure of how importnat each is to the understandability of the other.
+
+* Variable Declarations
+- Variables should be declared as close to their usage as possible.
+- Because our functions are very short, local variables should appear at the top of each function.
+- Control variables for loops should usually be declared within the loop statement.
+- In rare cases a variable might be declared at the top of a block or just before a loop in a longish function.
+
+### Example 1
+  
+  * Good
+    {% highlight js %}
+      function readPreferences(){
+        InputStream is = null;
+        try{
+          is = new FileInputStream(getPreferencesFile());
+          setPreferences(new Properties(getPreferences()));
+          getPreferences().load(is);
+        }
+        catch(e){
+          try{
+            if(is != null)
+              is.close();
+          }
+          catch(e){
+          }
+        }
+      } 
+    {% endhighlight %} 
+
+  * Good
+    {% highlight js %}
+      function countTestCases(){
+        int count = 0;
+        for(Test each : tests)
+          count += each.countTestCases();
+        return count;
+      }
+    {% endhighlight %} 
+
+  * Good
+    {% highlight js %}
+      for(XmlTest test : m_suite.getTests()){
+        TestRunner tr = m_runnerFactory.newTestRunner(this, test);
+        tr.addListener(m_textReporter);
+        m_testRunners.add(tr);
+
+        invoker = tr.getInvoker();
+
+        for(ITestNGMethod m : tr.getBeforeSuiteMethods()){
+          beforeSuiteMethods.put(m.getMethod(), m);
+        }
+
+        for(ITestNGMethod m : tr.getAfterSuiteMethods()){
+          afterSuiteMethods.put(m.getMethod(), m);
+        }
+      }
+    {% endhighlight %} 
+
+* Instance variables
+- Instance variables, on the other hand, should be declared at the top of the class.
+- The important thing is for the instance variables to be declared in one well-known place.
+
+### Example 1
+
+  * Bad
+    {% highlight js %}
+      class TestSuite implements Test{
+        function createTest(theClass, name){
+          ...
+        }
+
+        function getTestConstructor(theClass) throws NoSuchMethodException{
+          ...
+        }
+
+        function warning(message){
+          ...
+        }
+
+        function exceptionToString(t){
+          ...
+        }
+
+        var fName;
+
+        var fTests = new Vector<Test>(10);
+
+        function TestSuite(){
+          ...
+        }
+
+        function TestSuite(theClass){
+          ...
+        }
+
+        function TestStuite(theClass, name){
+          ...
+        }
+      }
+    {% endhighlight %}
+
+* Dependent Functions
+- If one function calls another, they should be vertically close, and the caller should be above the callee, if at all possible.
+- It was better to pass that constant down from the place where it makes sense know it to the place that actually uses it.
+
+### Example 1
+  
+  * Good
+    {% highlight js %}
+      class WikiPageResponder implements SecureResponder{
+        var page;
+        var pageData;
+        var pageTitle;
+        var request;
+        var crawler;
+
+        function makeResponse(context, request) throws Exception{
+          var pageName = getPageNameOrDefault(request, "FontPage");
+          loadPage(pageName, context);
+          if(page==null)
+            return notFoundResponse(context, request);
+          else
+            return makePageResponse(context);
+        }
+
+        function getPageNameOrDefault(request, defaultPageName){
+          var pageName = request.getResource();
+          if(StringUrill.isBlank(pageName))
+            pageName = defaultPageName;
+          
+          return pageName;
+        }
+
+        function loadPage(resource, context) throws Exception{
+          var path = PathParser.parse(resource);
+          crawler = context.root.getPageCrawler();
+          crawler.setDeadEndstrategy(new VirtualEnabledPageCrawler());
+          page = crawler.getPage(context.root, path);
+          if(page != null)
+            pageData = page.getData();
+        }
+
+        function notFoundResponse(context, request) throws Exception{
+          return new NotFoundResponder().makeResponse(context, request);
+        }
+
+        function makePageResponse(context) throws Exception{
+          pageTitle = PathParser.render(crawler.getFullPath(page));
+          var html = makeHtml(context);
+
+          var response = new SimpleResponse();
+          response.setMaxAge(0);
+          response.setContent(html);
+          return response;
+        }
+      }
+    {% endhighlight %} 
+
+* Conceptual Affinity
+- The stronger that affinity, the less vertical distance there shold be between them.
+- Affinity might be caused because a group of functions perform a similar operation.
+
+### Example 1
+  
+  * Good
+    {% highlight js %}
+      class Assert{
+        function(message, condition){
+          if(!condition)
+            fail(message);
+        }
+
+        function assertTrue(condition){
+          assertTrue(null, condition);
+        }
+
+        function assertFalse(message, condition){
+          assertTrue(message, !condition);
+        }
+
+        function assertFalse(condition){
+          assertFalse(null, condition);
+        }
+      }
+    {% endhighlight %} 
+
+## Vertical Ordering
+- In general we want function call dependencies to point in the downward direction. That is, a function that is called should be below a function that does the calling.
+- We expect the low-level details to come last. This allows us to skim source files, getting the gist from the first few functions, without having to immerse ourselves in the details.
+
+## Horizontal Formatting
+- This suggests that we should strive to keep our lines short.
+
+## Horizontal Openness and Density
+- We use horizontal white space to associate things that are strongly related and disassociate things that are more weakly related.
+- Assignment statements have two distinct and major elements: the left side and the right side.
+- I separate arguments within the function call parenthesis to accentuate the comma and show that the arguments are separte.
+- Another use for white space is to accentuate the precedence of operators.
+- The terms are separated by white space because addition and subtraction are lower precedence.
+
+### Example 1
+  
+  * Good
+    {% highlight js %}
+      function(line){
+        lineCount++;
+        var lineSize = line.length();
+        totalChars += lineSize;
+        lineWidthHistogram.addLine(lineSize, lineCount);
+        recordWidestLine(lineSize);
+      }
+    {% endhighlight %} 
+  
+  * Good
+    {% highlight js %}
+      class Quadratic{
+        function root1(a, b, c){
+          var determinant = determinant(a, b, c);
+          return (-b + Math.sqrt(determinant)) / (2*a);
+        }
+
+        function root2(a, b, c){
+          var determinant = determinant(a, b, c);
+          return (-b - Math.sqrt(determinant)) / (2*a);
+        }
+
+        function determinant(a, b, c){
+          return b*b - 4*a*c;
+        }
+      }
+    {% endhighlight %} 
+
+## Horizontal Alignment
+  - Nowadays I prefer unaligned declarations and assignments, because they point out an important deficiency.
+
+### Example 1
+  
+  * Bad
+    {% highlight js %}
+      function(s,
+               context) throws Exception
+      {
+        this.context =            context;
+        socket =                  s;
+        input =                   s.getInputStream();
+        output =                  s.getOutputStream();
+        requestParsingTimeLimit = 10000;
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      function(s, context) throws Exception
+      {
+        this.context = context;
+        socket = s;
+        input = s.getInputStream();
+        output = s.getOutputStream();
+        requestParsingTimeLimit = 10000;
+      }
+    {% endhighlight %}
+
+## Indentation
+  - There is information that pertains to the file as a whole, to the individual classes within the file, to the methods within the classes, to the blocks within the methods, and recursively to the blocks within the blocks.
+  - To make this hierarchy of scopes visible, we indent the lines of source code in proportion to their position in the hierarchy.
+  - Without indentation, programs would be virtually unreadable by humans.
+
+### Example 1
+  
+  * Bad
+    {% highlight js %}
+      function FitNesseServer implements SocketServer { FitNessContext context; constructor(context) { this.context = context; } function serve(s) { serve(s, 10000); } function serve(s, requestTimeout) { try { FitNesseExpediter sender = new FitNesseExpediter(s, context);
+      sender.setRequestParsingTimeLimit(requestTimeout); sender.start()}
+      catch(e) { e.printStackTrace(); } } }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      function FitNesseServer implements SocketServer { 
+        FitNessContext context; 
+        
+        constructor(context) { 
+          this.context = context; 
+        } 
+        
+        function serve(s) { 
+          serve(s, 10000); 
+        } 
+        
+        function serve(s, requestTimeout) { 
+          try { 
+            FitNesseExpediter sender = new FitNesseExpediter(s, context);
+            sender.setRequestParsingTimeLimit(requestTimeout); sender.start()
+          }
+          catch(e) { 
+            e.printStackTrace(); 
+          } 
+        } 
+      }
+    {% endhighlight %}
+  
+* Breaking Indentation
+  - It is sometimes tempting to break the indentation rule for short `if` statemtns, short `while` loops, or short functions.
+  - I avoid colapsing scopes down to one line.
+
+### Example 1
+  
+  * Bad
+    {% highlight js %}
+      class CommentWidget extends TextWidget {
+        REFEXP = "^#[^\r\n]*(?:(?:\r\n)|\n\r)?";
+
+        constructor(parent, text) { super(parent, text); }
+        function render() throws Exception { return ""; }
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      class CommentWidget extends TextWidget {
+        REFEXP = "^#[^\r\n]*(?:(?:\r\n)|\n\r)?";
+
+        constructor(parent, text) { 
+          super(parent, text); 
+          }
+
+        function render() throws Exception { 
+          return ""; 
+          }
+      }
+    {% endhighlight %}
+
+## Dummy Scopes
+  - I make sure that the dummy body is properly indented and surrounded by braces.
+  - Unless you make that semicolon visible by indenting it on it's own line, it's jut too hard to see.
+
+### Example 1
+  
+  * Good
+    {% highlight js %}
+      while (dis.read(buf, 0, readBufferSize) != -1 )
+        ;
+    {% endhighlight %}
+
+## Team Rules
+  - A team of developers should agree upon a single formatting style, and then every member of that team should use that style.
+  - Remember, a good software system is composed of a set of documents that read nicely.
