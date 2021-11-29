@@ -1575,3 +1575,182 @@ comments: false
 ## Team Rules
   - A team of developers should agree upon a single formatting style, and then every member of that team should use that style.
   - Remember, a good software system is composed of a set of documents that read nicely.
+
+# Chapter 6: Objects and Data Structures
+
+## Data Abstraction
+  - The methods enforce an access policy.
+  - Hiding implementation is about abstraction.
+  - It exposes abstract interfaces that allow its users to manipulate the essence of the data, without having to know its implementation.
+  - In the abstract case you have no clue at all about the form of the data.
+  - We do not want to expose the details of our data. Rather we want to express our data in abstract terms.
+
+### Example 1
+  
+  * Bad
+    {% highlight js %}
+      class Point{
+        var x;
+        var y;
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      interface Point{
+        getX(): double;
+        getY(): double;
+        setCartesian(x, y): void;
+        getR(): double;
+        getTheta(): double;
+        setPolar(r, theta): void;
+      }
+    {% endhighlight %}
+
+### Example 2
+  
+  * Bad
+    {% highlight js %}
+      interface Vehicle{
+        getFuelTankCapacityInGallons(): double;
+        getGallonsOfGasoline(): double;
+      }
+    {% endhighlight %}
+
+  * Good
+    {% highlight js %}
+      interface Vehicle{
+        getPercentFuelRemaining(): double;
+      }
+    {% endhighlight %}
+
+## Data/Object Anti-Symmetry
+  - Objects hide their data behind abstractions and expose functions that perate on that data.
+  - Data structure espose their data and have no meaningful functions.
+  - Procedural code makes it hard to add new data structures because all the functions must change.
+  - OO code makes it hard to add new functions because all the classes must change.
+
+### Example
+
+  * Procedural
+  {% highlight js %}
+      class Square{
+        Point topLeft;
+        double side;
+      }
+
+      class Rectangle{
+        Point topLeft;
+        double height;
+        double width;
+      }
+
+      class Circle{
+        Point center;
+        double radius;
+      }
+
+      class Geometry{
+        double PI = 3.141592653589793;
+
+        function double area(shape) throws NoSuchShapeException{
+          if(shape instanceof Square){
+            Square s = (Square) shape;
+            return s.sie * s.side;
+          }
+          else if(shape instanceof Rectangle){
+            Rectangle r = (Rectangle) shape;
+            return r.height * r.width;
+          }
+          else if(shape instanceof Circle){
+            Circle c = (Circle) shape;
+            return PI * c.radius * c.radius;
+          }
+          throw new NoSuchShapeException();
+        }
+      }
+    {% endhighlight %}
+  
+  * Polymorphic
+  {% highlight js %}
+      class Square implements Shape{
+        Point topLeft;
+        double side;
+
+        function double area(){
+          return side * side;
+        }
+      }
+
+      class Rectangle implements Shape{
+        Point topLeft;
+        double height;
+        double width;
+
+        double area(){
+          return height * width;
+        }
+      }
+
+      class Circle implements Shape{
+        Point center;
+        double radius;
+
+        function double area(){
+          return PI * radius * radius;
+        }
+      }
+    {% endhighlight %}
+
+## The Law of Demeter
+  - A method f of a class C should only call the methods these: 
+    - C
+    - An object created by f
+    - An Object passed as an argument to f
+    - An Object held in an instance variable of C
+
+### Example
+
+  * Bad
+  {% highlight js %}
+    string outputDir = ctxt.getOptions().getScratchDir().getAbsolutePath();
+  {% endhighlight %}
+
+## Train Wrecks
+  - It is usually best to split them up.
+  - This issue would be a lot less confusing if data structures simply had public variables and no functions, whereas objects had private variables and public functions.
+
+### Example
+
+  * Good
+  {% highlight js %}
+    Options opts = ctxt.getOptions();
+    File scratchDir = opts.getScratchDir();
+    string outputDir = scratchDir.getAbsolutePath();
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+    string outputDir = ctxt.options.scratchDir.absolutePath;
+  {% endhighlight %}
+
+## Hybrids
+  - They have functions that do significant things, and they also have either public variables or public accessors and mutators that, for all intents and purposes, make the private variables public, tempting other external functions to use those variables the way a procedural program would use a data structure.
+  - Such hybrids make it hard to add new functions but also make it hard to add new data structures.
+
+## Hiding Structure
+  - We should not be asking it about its internals.
+
+### Example
+
+  * Good
+  {% highlight js %}
+    BufferedOutputStream bos = ctxt.createScratchFileStream(classFileName);
+  {% endhighlight %}
+
+## Data Transfer Objects
+  - The quintessential form of a data structure is a class with public variables and no functions.
+  - DTOs are very useful structures, especially when communication with databases or parsing messages from sockets, and so on.
+
+## Active Record
+  - They are data structures with public variables; but they typically have navigational methods like `save` and `find`.
