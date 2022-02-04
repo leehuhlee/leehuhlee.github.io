@@ -3,7 +3,7 @@ layout: post
 title: "[JS] Christmas Island"
 date: 2022-02-03
 excerpt: "JS Games"
-tags: [HTML, CSS, JavaScript, Web]
+tags: [HTML, CSS, JavaScript, Web, blazor]
 comments: false
 ---
 
