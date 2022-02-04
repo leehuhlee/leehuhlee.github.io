@@ -246,7 +246,7 @@ function forest() {
 {% endhighlight %}
 
 * Javascript
-{% highlgiht js %}
+{% highlight js %}
 function road() {
     const cells = Array.from(document.querySelectorAll(".cell"));
     const carCells = cells.slice(0, 30);
