@@ -1754,3 +1754,162 @@ comments: false
 
 ## Active Record
   - They are data structures with public variables; but they typically have navigational methods like `save` and `find`.
+
+# Chapter 7: Error Handeling
+
+## Use Exceptions Rather Than Return Codes
+  - The caller must check for errors immediately after the call.
+  - For this reason it is better to throw an exception when you encounter an error.
+  - The code is better because two concerns that were tangled, the algorithm for device shutdown and error handling, are now separated.
+
+### Example
+  * Bad
+  {% highlight js %}
+  class DeviceController {
+    funtion sendShutDown(){
+      DeviceHandle handle = getHandle(DEV1);
+      if(handle != DeviceHandle.INVALID){
+        retrieveDeviceRecord(handle);
+        if(record.getStatus() != DEVICE_SUSPENDED){
+          pauseDevice(handle);
+          clearDeviceWorkQueue(handle);
+          closeDevice(handle);
+        }
+        else{
+          logger.log("Device suspended. Unable to shut down");
+        }
+      }
+      else{
+        logger.log("Invalid handle for: " + DEV1.toString());
+      }
+    }
+  }
+  {% endhighlight %}
+
+  * Good 
+  {% highlight js %}
+  class DeviceController{
+    function sendShutDown(){
+      try{
+        tryToShutDown();
+      }
+      catch(DeviceShutDownError e){
+        logger.log(e);
+      }
+    }
+  }
+  {% endhighlight %}
+
+## Write Your `Try-Catch-Finally` Statement First
+  - When you execute code in the `try` portion of a `try-catch-finally` statement, you are stating that execution can abort at any point and then resume at the `catch`.
+  - Your `catch` has to leave your program in a consistent state, no matter what happens in the `try`.
+
+## Use Unchecked Exceptions
+  - Given that the purpose of exceptions is to allow you to handle errors at a distance, it is a shame that checked exceptions break encapsulation in this way.
+
+## Provide Context with Exceptions
+  - Each exception that you throw should provide enough context to determine the source and location of an error.
+  - Create informative error messages and pass them along with your exceptions.
+
+## Define Exception Classes in Therms of a Caller's Needs
+  - When we define exception classes in an pplication, our most important concern should be how they are cought.
+  - Wrapping also makes it easier to mock out third-party calls when you are testing your own code.
+  - One final advantage of wrapping is that you aren't tied to a particular vendor's API design choices.
+
+### Examples
+  * Bad 
+  {% highlight js %}
+  ACMEPort port = new ACMEPort(12);
+
+  try{
+    port.open();
+  }
+  catch(DeviceResponseException e){
+    reportPortErroe(e);
+    logger.log("Device response exception", e);
+  }
+  catch(ATM1212UnlockedException e){
+    reportPortError(e);
+    logger.log("Unlock exception", e);
+  }
+  catch(GMXError e){
+    reportPortError(e);
+    logger.log("Device response exception");
+  }
+  finally{...}
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+  LocalPort port = new LocalPort(12);
+  try{
+    port.open();
+  }
+  catch(PortDeviceFailure e){
+    reportError(e);
+    logger.log(e.getMessage(), e);
+  }
+  finally {...}
+
+  class LocalPort(){
+    ACMEPort innerPort;
+
+    public LocalPort(int portNumber){
+      innerPort = new ACMEPort(portNumber);
+    }
+
+    function open(){
+      try{
+        innerport.open();
+      }
+      catch(DeviceResponseException e){
+        throw new PortDeviceFailure(e);
+      }
+      catch(ATM1212UnlockedException e){
+        throw new PortDeviceFrailure(e);
+      }
+      catch(GMXError e){
+        throw new PortDeviceFailure(e);
+      }
+    }
+  }
+  {% endhighlight %}
+
+## Define the Normal Flow
+  - You create a class or configure an object so that it handles a special case for you.
+  - When you do, the client code doesn't have to deal with exceptional behavior.
+  - That behavior is encapsulated in the special case object.
+
+  ### Example
+  * Bad
+  {% highlight js %}
+  try{
+    MealExpenses expenses = expenseReportDAO.getMeals(employee.getID());
+    m_total += expenses.getTotal();
+  }
+  catch(MealExpensesNotFound e){
+    m_total += getMealPerDiem();
+  }
+  {% endhighlight %}
+
+  * Good
+  {% highlight js %}
+  MealExpenses expenses = expenseReportDAO.getMeals(employee.getID());
+  m_total += expenses.getTotal();
+
+  class PerDiemMealExpenses implements MealExpenses{
+    function getTotal(){
+      // return the per diem default
+    }
+  }
+  {% endhighlight %}
+
+## Dont't Return Null
+  - If you are tempted to return null from a method, consider throwing an exception or returning a Special Case object instead.
+  - If you are calling a null-returning method from a third-party API, consider wrapping that method with a method that either throws an exception or returns a special case object.
+  - If you code this way, you will minimize the chance of `NullPointerExceptions` and your code will be cleaner.
+
+## Dont't Pass Null
+  - In most programming languages there is no good way to deal with a `null` that is passed by a caller accidentally.
+  - Because this is the case, the rational approach is to forbid passing `null` by default.
+  - When you do, you can code with the knowledge that a `null` in an argument list is an indication of a problem, and end up with far fewer careless mistaken.
