@@ -1913,3 +1913,31 @@ comments: false
   - In most programming languages there is no good way to deal with a `null` that is passed by a caller accidentally.
   - Because this is the case, the rational approach is to forbid passing `null` by default.
   - When you do, you can code with the knowledge that a `null` in an argument list is an indication of a problem, and end up with far fewer careless mistaken.
+
+# Chapter 8: Boundaries
+
+## Using Third-Party Code
+  - If you use a boundary interface, keep it inside the class, or close family of classes, where it is used.
+  - Avoid returning it from, or accepting it as an argument to, public APIs.
+
+## Exploring and Learning Boundaries
+  - We could write some tests to explore our understanding of the third-party code.
+  - Jim Newkirk calls such tests `learning tests`.
+
+## Learning Test Are Better Than Free
+  - The learning tests were precise experiments that helped increase our understanding.
+  - Not only are learning tests free, they have a positive return on investment.
+  - Learning tests verify that the third-party packages we are using work the way we expect them to.
+  - Whether you need the learning provided by the learning tests or not, a clean boundary should be supported by a set of outbound tests that exercise the interface the same way the production code does.
+
+## Using Code That Does Not Yet Exist
+  - There are often places in the code where our knowledge seems to drop off the edge.
+  - Sometimes what is on the other side of the boundary is unknowable.
+  - Sometimes we choose to look no farther than the boundary.
+
+## Clean Boundaries
+  - Good software designs accommodate change without huge investments and rework.
+  - When we use code that is out of our control, special care must be taken to protect our investment and make sure future change is not too costly.
+  - Code at the boundaries needs clear separation and tests that define expectations.
+  - We should avoid letting too much of our code know about the third-party particulars.
+  - Either way our code speaks to us better, promotes internally consistent usage across the boundary, and has fewer maintenance points when the third-party code changes.
