@@ -2209,3 +2209,375 @@ function testAddMonths(){
   - Repeatable : Test should be repeatable in any environment.
   - Self-Validating: The tests should have a boolean output.
   - Timely : The tests need to be written in a timely fashion.
+
+# Chapter 10: Classes
+
+## Class Organization
+  - public functions should follow the list of varialbes.
+  - We like to put the private utilities called by a public function right after the public function itself.
+  - This follows the stepdown rule and helps the program read like a newspaper article.
+
+## Encapsulation
+  - Loosening encapsulation is always a last resort.
+
+## Classes Should Be Samll!
+  - Smaller is the primary rule when it comes to designing classes.
+  - The name of a class should describe what responsibilities it fulfills.
+
+## The Single Responsibility Principle
+  - Classes should have one responsibility-onereason to change.
+  - Trying to identify responsibilities(reasons to change) often helps us recognize and create better abstractions in our code.
+  - SRP is one of the more important concept in OO design.
+  - A system with many small classes has no more moving parts than a system with a few large classes.
+  - Each small class encapsulates a single responsibility, has a single reason to change, and collaborates with a few others to achieve the desired system behaviors.
+
+### Example
+
+* Good
+{% highlight js %}
+public class Version{
+  function int getMajorVersionNumber();
+  function int getMinorVersionNumber();
+  function int getBuildNumber();
+}
+{% endhighlight %}
+
+## Cohesion
+  - In general the more variables a method manipulates the more cohesive that method is to its class.
+  - The strategy of keeping functions small and keeping parameter lists short can sometimes lead to a proliferation of instance variables that are used by a subset of methods.
+  - You should try to separate the variables and methods into two or more classes such that the new classes are more cohesive.
+
+### Example
+
+* Good
+{% highlight js %}
+public class Stack{
+  private int topOfStack = 0;
+  List<int> elements = new LinkedList<int>();
+
+  function int size(){
+    return topOfStack;
+  }
+
+  function push(element){
+    topOfStack++;
+    elements.add(element);
+  }
+
+  function int pop() throws PoppedWhenEmpty{
+    if(topOfStack == 0)
+      throw new PoppedWhenEmpty();
+    
+    int element = elements.get(--topOfStack);
+    elements.remove(topOfStack);
+    return element;
+  }
+}
+{% endhighlight %}
+
+## Maintaining Cohesion Results in Many Small Classes
+  - Breaking a large function into many smaller functions often gives us the opportunity to split several smaller classes out as well.
+  - This gives our program a much better organization and a more transparent structure.
+
+### Example
+
+* Bad
+{% highlight js %}
+package literatePrime;
+
+public class PrintPrimes{
+  public static main(args){
+    const int M = 1000;
+    const int RR = 50;
+    const int CC = 4;
+    const int WW = 10;
+    const int DRDMAX = 30;
+    int P[] = new int[M + 1];
+    int PAGENUMBER;
+    int PAGEOFFSET;
+    int ROWOFFSET;
+    int C;
+    int J;
+    int K;
+    bool JPRIME;
+    int ORD;
+    int SQUARE;
+    int N;
+    int MULT[] = new int[ORDMAX + 1];
+
+    J = 1;
+    K = 1;
+    P[1] = 2;
+    ORD = 2;
+    SQUARE = 9;
+
+    while(K < M){
+      do{
+        J = J + 2;
+        if(J == SQUARE){
+          ORD = ORD + 1;
+          SQUARE = P[ORD] * P[ORD];
+          MULT[ORD - 1] = J;
+        }
+        N = 2;
+        JPRIME = true;
+        while(N < ORD && JPRIME){
+          while(MULT[N] < J)
+            MULT[N] = MULT[N] + P[N] + P[N];
+          if(MULT[N] == J)
+            JPRIME = false;
+          N = N + 1;
+        }
+      } while(!JPRIME);
+      K = K + 1;
+      P[K] = J;
+    }
+    {
+      PAGENUMBER = 1;
+      PAGEOFFSET = 1;
+      while(PAGEOFFSET <= M){
+        System.out.println("The First " + M + " Prime Numbers --- Page " + PAGENUMBER);
+        System.out.println("");
+        for(ROWOFFSET = PAGEOFFSET; ROWOFFSET < PAGEOFSET + RR; ROWOFFSET++){
+          for(C = 0; c < CC; C++)
+            if(ROWOFFSET + C * RR <= M)
+              System.out.format("%10d", P[ROWOFFSET + C * RR]);
+            System.out.println("");
+        }
+        System.out.println("|f");
+        PAGENUMBER = PAGENUMBER + 1;
+        PAGEOFFSET = PAGEOFFSET + RR * CC;
+      }
+    }
+  }
+}
+{% endhighlight %}
+
+
+* Good
+{% highlight js %}
+package literatePrimes;
+
+public class PrimePrinter{
+  public static main(args){
+    const int NUMBER_OF_PRIMES = 1000;
+    int[] primes = PrimeGenerator.generate(NUMBER_OF_PRIMES);
+
+    const int ROWS_PER_PAGE = 50;
+    const int COLUMS_PER_PAGE = 4;
+    RowColumnPagePrinter tablePrinter = new RowColumnPagePrinter(ROW_PER_PAGE, COLUMNS_PER_PAGE, "The First " + NUMBER_OF_PRIMES + " Prime Numbers");
+    tablePrinter.print(primes);
+  }
+}
+{% endhighlight %}
+
+{% highlight js %}
+package literatePrimes;
+
+import PrintStream;
+
+public class RowColumnPagePrinter{
+  private int rowsPerPage;
+  private int columnsPerPage;
+  private int numbersPerPage;
+  private string pageHeader;
+  private PrintStream printStream;
+
+  public RowColumnPagePrinter(rowPerPage, columnsPerPage, pageHeader){
+    this.rowsPerPage = rowsPerPage;
+    this.columnsPerPage = columnsPerPage;
+    this.pageHeader = pageHeader;
+    numbersPerPage = rowsPerPage * columnsPerPage;
+    printStream = System.out;
+  }
+
+  function print(data[]){
+    int pageNumber = 1;
+    for(int firstIndexOnPage = 0; firstIndexOnPage < data.length; firstIndexOnPage += numberPerPage){
+      int lastIndexOnPage = MAth.min(firstIndexOnPage + numbersPerPage - 1, data.length - 1);
+      printPageHeader(pageHeader, pageNumber);
+      printPage(firstIndexOnPage, lastIndexOnPage, data);
+      printStream.println("|f");
+      pageNumber++;
+    }
+  }
+
+  function printPage(firstIndexOnPage, lastIndexOnPage, data){
+    int firstIndexOfLastRowOnPage = firstIndexOnPage + rowsPerPage - 1;
+    for(int firstIndexInRow = firstIndexOnPage; firstIndexInRow <= firstIndexOfLastRowOnPage; firstIndexInRow++){
+      printRow(firstIndexInRow, lastIndexOnPage, data);
+      printStream.println("");
+    }
+  }
+
+  function printRow(firstIndexInRow, lastIndexOnPage, data){
+    for(int column = 0; column < columnsPerPage; column++){
+      int index = firstIndexInRow + column * rowsPerPage;
+      if(index <= lastIndexOnPage)
+        printStream.format("%10d", data[index]);
+    }
+  }
+
+  function printPageHeader(pageHeader, pageNumber){
+    printStream.println(pageHeader + " --- Page " + pageNumber);
+    printStream.println("");
+  }
+
+  function setOutput(printStream){
+    this.printStream = printStream;
+  }
+}
+{% endhighlight %}
+
+{% highlight js %}
+package literatePrimes;
+
+import ArrayList;
+
+public class PrimeGenerator{
+  private static int[] primes;
+  private static ArrayList<int> multiplesOfPrimeFactors;
+
+  function generate(n){
+    primes = new int[n];
+    multiplesOfPrimeFactors = new ArrayList<int>();
+    set2AsFirstPrime();
+    checkOddNumbersForSubsequentPrimes();
+    return primes;
+  }
+
+  function set2AsFirstPrime(){
+    primes[0] = 2;
+    multiplesOfPrimeFactors.add(2);
+  }
+
+  function checkOddNumbersForSubsequentPrimes(){
+    int primeIndex = 1;
+    for(int candidate = 3; primeIndex < primes.length; candidate += 2){
+      if(isPrime(candicate))
+        primes[primeIndex++] = candidate;
+    }
+  }
+
+  function isPrime(candidate){
+    if(isLeastRelevantMultipleOfNextLargerPrimeFactor(candidate)){
+      return false;
+    }
+    return isNotMultipleOfAnyPreviousPrimeFactor(candidate);
+  }
+
+  function isLeastRelevantMultipleOfNextLargerPrimeFactor(candidate){
+    int nextLargerPrimeFactor = primes[multiplesOfPrimeFactors.size()];
+    int leastRelevantMultiple = nextLargerPrimeFactor * nextLargerPrimeFactor;
+    return candidate == leastRelevantMultiple;
+  }
+
+  function isNotMultipleOfAnyPreviousPrimeFactor(candidate){
+    for(int n = 1; n < multiplesOfPrimeFactors.size(); n++){
+      if(isMultipleOfNthPrimeFactor(candidate, n))
+        return false;
+    }
+    return true;
+  }
+
+  function isMultipleOfNthPrimeFactor(candidate, n){
+    return candidate == smallestOddNthMultipleNotLessThanCandidate(candidate, n);
+  }
+
+  function smallestOddNthMultipleNotLessThanCandidate(candidate, n){
+    int multiple = multiplesOfPrimeFactors.get(n);
+    while(multiple < candidate)
+      multiple += 2 * primes[n];
+    multiplesOfPrimeFactors.set(n, multiple);
+    return multiple;
+  }
+}
+{% endhighlight %}
+
+## Organizing for Change
+  - In a clean system we organize our classes so as to reduce the risk of change.
+  - Classes should be open for extension but closed for modification.
+
+### Example
+
+* Bad
+{% highlight js %}
+public class Sql{
+  public Sql(table, columns);
+  public string create();
+  public string insert(fields);
+  public string selectAll();
+  public string findByKey(keyColumn, keyValue);
+  public string select(column, pattern);
+  public string select(criteria);
+  public string preparedInsert();
+  public string columnList(columns);
+  public string valueList(fields, columns);
+  public string selectWithCriteria(criteria);
+  public string placeholderList(columns);
+}
+{% endhighlight %}
+
+* Good
+{% highlight js %}
+abstract public class Sql{
+  public Sql(table, columns);
+  abstract public string generate();
+}
+
+public class CreateSql extends Sql{
+  public CreateSql(table, columns);
+  public override string generate();
+}
+
+public class SelectSql extends Sql{
+  public SelectSql(table, columns)
+  public override string generate();
+}
+
+public class InsertSql extends Sql{
+  public InsertSql(table, columns, fields);
+  public override string generate()
+  private string valuesList(fields, columns);
+}
+
+public class SelectWithCriteriaSql extends Sql{
+  public SelectWithCriteriaSql(table, columns, criteria)
+  public override string generate();
+}
+
+public class SelectWithMatchSql extends Sql{
+  public SelectWithMatchSql(table, columns, column, pattern);
+  public override string generate();
+}
+
+public class FindByKeySql extends Sql{
+  public FindByKeySql(table, columns, keyColumn, keyValue);
+  public override string generae();
+}
+
+public class PreparedInsertSql extends Sql{
+  public PreparedInsertSql(table, columns);
+  public override string generate(){
+    private string placeholderList(columns);
+  }
+}
+
+public class Where{
+  public Where(criteria)
+  public string generate();
+}
+
+public class ColumnList{
+  public ColumnList(columns);
+  public string generate();
+}
+{% endhighlight %}
+
+## Isolating from Change
+  - A client class depending upon concrete details is at risk when those details change.
+  - The lack of coupling means that the elements of our system are better isolated from each other and from change.
+  - This isolation makes it easier to understand each element of the system.
+  - By minimizing coupling in this way, our classes adhere to another class design principle known as the Dependency Inversion Principle(DIP).
+  - In essence, the DIP says that our classes should depend upon abstractions, not on concrete details.
+  - This abstraction isolates all of the specific details of obtaining such a price, including from where that price is obtained.
