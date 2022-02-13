@@ -1941,3 +1941,271 @@ comments: false
   - Code at the boundaries needs clear separation and tests that define expectations.
   - We should avoid letting too much of our code know about the third-party particulars.
   - Either way our code speaks to us better, promotes internally consistent usage across the boundary, and has fewer maintenance points when the third-party code changes.
+
+# Chapter 9 : Unit Tests
+  - The Agile and TDD(Test Driven Development) movements have encouraged many programmers to write automated unit tests, and more are joining their tanks every day.
+
+## The Three Laws of TDD
+  - You may not write production code until you have written a failing unit test.
+  - You may not write more of a unit test than is sufficient to fail, and not compiling is failing.
+  - You may not write more production code than is sufficient to pass the currently failing test.
+
+## Keeping Test Clean
+  - The dirtier the tests, the harder they are to change.
+  - Test code is just as important as production code.
+  - It must be kept as clean as production code.
+
+## Tests Enable the -ilities
+  - It is `unit tests` that keep our code flexible, maintainable and reusable.
+  - Having an automated suite of unit tests that cover the production code is the key to keeping your design and architecture as clean as possible.
+  - Tests enable all the -ilities, because tests enable <b>change</b>.
+
+## Clean Tests
+  - Readability is perhaps even more important in unit tests than it is in production code.
+  - The same thing that makes all code readable: clarity, simplicity, and density of expression.
+  - Notice that the vast majority of annoying detail has been eliminated.
+  - The tests get right to the point and use only the data types and functions that they truly need.
+
+### Example
+
+* Bad
+{% highlight js %}
+function testGetPageHieratchyAsXml() throws Exception{
+  crawler.addPage(root, PathParser.parse("PageOne"));
+  crawler.addPage(root, PathParser.parse("PageOne.ChildOne"));
+  crawler.addPage(root, PathParser.parse("PageTwo"));
+
+  request.setResource("root");
+  request.addInput("type", "pages");
+  Responder responder = new SerializedPageResponder();
+  SimpleResponse response = 
+    (SimpleResponse) responder.makeResponse(
+      new FitNesseContext(root), request);
+  string Xml = response.getContent();
+
+  assertEquals("test/xml", response.getContentType());
+  assertSubString("<name>PageOne</name>", xml);
+  assertSubString("<name>PageTwo</name>", xml);
+  assertSubString("<name>ChildOne</name>", xml);
+}
+
+function testGetPageHieratchyAsXmlDoesntContainSymbolicLinks() throw Exception{
+  WikiPage pageOne = crawler.addPage(root, PathParser.parse("PageOne"));
+  crawler.addPage(root, PathParser.parse("PageOne.ChildOne"));
+  crawler.addPage(root, PathParser.parse("PageTwo"));
+
+  PageData data = pageOne.getData();
+  WikiPageProperties properties = data.getProperties();
+  WikiPageProperty symLinks = properties.set(SymbolicPage.PROPERTY_NAME);
+  symLinks.set("SymPage", "PageTwo");
+  pageOne.commit(data);
+
+  request.setResource("root");
+  request.addInput("type", "pages");
+  
+  Responder responder = new SerializedPageResponder();
+  SimpleResponse response = 
+    (SimpleResponse) responder.makeResponse(
+      new FitNesseContext(root), request);
+  string xml = response.getContext();
+
+  assertEquals("text/xml", response.getContentType());
+  assertSubString("<name>PageOne</name>", xml);
+  assertSubString("<name>PageTwo</name>", xml);
+  assertSubString("<name>ChildOne</name>", xml);
+  assertNotSubString("SymPage", xml);
+}
+
+function testGetDataAsHtml() throws Exception{
+  crawler.addPage(root, PathParser.parse("TestPageOne"), "test page");
+
+  request.setResource("TestPageOne");
+  request.addInput("type", "data");
+
+  Responder responder = new SerializedPageResponder();
+  SimpleResponse response = 
+    (SimpleResponse) responder.makeResponse(
+      new FitNesseContext(root), request);
+  string xml = response.getContent();
+
+  assertEquals("text/xml", response.getContentType());
+  assertSubString("test page", xml);
+  assertSubString("<Test>", xml);
+}
+{% endhighlight %}
+
+* Good
+{% highlight js %}
+function testGetPageHierarchyAsXml() throws Exception{
+  makePages("PageOne", "PageOne.ChildOne", "PageTwo");
+
+  submitRequest("root", "type:pages");
+
+  assertResponseIsXML();
+  assertResponseContains(
+    "<name>PageOne</name>", "<name>PageTwo</name>", "<name>ChildOne</name>"
+    );
+}
+
+function testSymbolicLinksAreNotInXmlPageHierarchy() throws Exception{
+  WikiPage page = makePage("PageOne");
+  makePage("PageOne.ChildOne", "PageTwo");
+
+  addLinkTo(page, "PageTwo", "SymPage");
+
+  submitRequest("root", "type:pages");
+
+  assertResponseIsXML();
+  assertResponseContains(
+    "<name>PageOne</name>", "<name>PageTwo</name>", "<name>ChildOne</name>"
+  );
+
+  assertResponseDoesNotContain("SymPage");
+}
+
+function testGetDataAsXml() throw Exception{
+  makePageWithContent("TestPageOne", "test page");
+
+  submitRequest("TestPageOne", "type:data");
+
+  assertResponseIsXML();
+  assertResponseContains("test page", "<Test>");
+}
+{% endhighlight %}
+
+## Domain-Specific Testing Language
+  - They are a testing language that programmers use to help themselves to write their tests and to help those who must read those tests later on.
+  - This testing API is not designed up front; rather it evolves from the continued refactoring of test code that has gotten too tainted by obfuscating detail.
+
+## A Dual Standard
+  - After all, it runs in a test environment, not a production environment, and those two environment have very different needs.
+  - There are things that you might never do in a production environment that are perfectly fine in a test environment.
+
+### Example 1
+
+* Bad
+{% highlight js %}
+@Test
+function turnOnLoTempAlarmAtThreashold() throws Exception(){
+  hw.setTemp(WAY_TOO_COLD);
+  controller.tic();
+  assertTrue(hw.heaterState());
+  assertTrue(hw.blowerState());
+  assertFalse(hw.coolerState());
+  assertFalse(hw.hiTempAlarm()));
+  assertTrue(hw.lowTempAlarm()));
+}
+{% endhighlight %}
+
+* Good
+{% highlight js %}
+@Test
+function turnOnLoTempAlarmAtThreshold() throws Exception{
+  wayTooCold();
+  assertEquals("HBchL", hw.getState());
+}
+{% endhighlight %}
+
+### Example 2
+
+* Bad
+{% highlight js %}
+@Test
+function turnOnCoolerAndBlowerIfTooHot() throws Exception{
+  tooHot();
+  assertEquals("hBChl", hw.getState());
+}
+
+@Test
+function turnOnHeaterAndBlowerIfTooCold() throws Exception{
+  tooHot();
+  assertEquals("HBchl", hw.getState());
+}
+
+@Test
+function turnOnHiTempAlarmAtThreshold() throws Exception{
+  tooHot();
+  assertEquals("hBCHl", hw.getState());
+}
+
+@Test
+function turnOnLoTempAlarmAtThreshold() throws Exception{
+  tooHot();
+  assertEquals("HBchL", hw.getState());
+}
+{% endhighlight %}
+
+* Good
+{% highlight js %}
+function getState(){
+  string state = "";
+  state += heater ? "H" : "h";
+  state += blower ? "B" : "b";
+  state += cooler ? "C" : "c";
+  state += hiTempAlarm ? "H" : "h";
+  state += loTempAlarm ? "L" : "l";
+  return state;
+}
+{% endhighlight %}
+
+## One Assert per Test
+  - `given-when-then` makes the tests even easier to read.
+  - We can eliminate the duplication by using the template method pattern and putting the `given/when` parts in the base class, and the `then` parts in different derivatives.
+  - Or we could create a completely separate test class and put the `given` and `when` parts in the `@Before` function, and the `when` parts in each `@Test` function. 
+
+### Example
+
+* Good
+{% highlight js %}
+function testGetPageHierarchyAsXml() throws Exception{
+  givenPages("PageOne", "PageOne.ChildOne", "PageTwo");
+
+  whenRequestIsIssued("root", "type:pages");
+
+  thenResponseSchouldBeXML();
+}
+
+function testGetPageHierarchyHasRightTags() throws Exception{
+  givenPages("PageOne", "PageOne.ChildOne", "PageTwo");
+
+  whenRequestIsIssued("root", "type:pages");
+
+  thenResponseShouldContain(
+    "<name>PageOne</name>", "<name>PageTwo</name>", "<name>ChildOne</name>"
+  );
+}
+{% endhighlight %}
+
+## Single Concept per Test
+  - Merging them all together into the same function forces the reader to figure out why each each section is there and what is being tested by that section.
+  - So probably the best rule is that you should minimize the number of asserts per concept and test just one concept per test function.
+
+## Example
+
+{% highlight js %}
+function testAddMonths(){
+  SerialDate d1 = SerialDate.createInstance(31, 5, 2004);
+
+  SerialDate d2 = SerialDate.addMonths(1, d1);
+  assertEquals(30, d2.getDayOfMonth());
+  assertEquals(6, d2.getMonth());
+  assertEquals(2004, d2.getYYYY());
+
+  SerialDate d3 = SerialDate.addMonths(2, d1);
+  assertEquals(31, d3.getDayOfMonth());
+  assertEquals(7, d3.getMonth());
+  assertEquals(2004, d3.getYYYY());
+
+  SerialDate d4 = SerialDate.addMonths(1, SerialDate.addMonths(1, d1));
+  assertEquals(30, d4.getDayOfMonth());
+  assertEquals(7, d4.getMonth());
+  assertEquals(2004, d4.getYYYY());
+}
+{% endhighlight %}
+
+## F.I.R.S.T
+  - First : Tests should be fast.
+  - Independent : Test should not depend on each other.
+  - Repeatable : Test should be repeatable in any environment.
+  - Self-Validating: The tests should have a boolean output.
+  - Timely : The tests need to be written in a timely fashion.
