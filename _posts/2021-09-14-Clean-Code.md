@@ -2625,3 +2625,115 @@ public class ColumnList{
   - In software, there has been renewed interest recently in creating `Domain-Specific Languages(DSLs)`, which are separate, small scripting languages or APIs in standard languages that permit code to be written so that it reads like a structured form of prose that a domin expert might write.
   - A good DSL minimizes the "communication gap" between a domain concept and the code that implements it, just as agile practices optimize the communications within a team and with the project's stakeholders.
   - DSLs, when used effectively, raise the abstraction level above code idioms and design patterns.
+
+# Chapter 12: Emergence
+
+## Getting Clean via Emergent Design
+  * According to Kent Beck, a design is simple if it follows these rules:
+    - Runs all the tests
+    - Contains no duplication
+    - Expresses the intent of the programmer
+    - Minimizes the number of classes and methods
+  
+## Simple Design Rule 1: Funs All the Tests
+  - A system that is comprehensively tested and passes all of its tests all of the time is a testable system.
+  - Fourtunately, making our systems testable pushes us toward a design where our classes are small and single purpose.
+  - Remarkably, following a simple and obvious rule that says we need to have tests and run them continuously impacts our system's adherence to the primary OO goals of low coupling and high cohesion.
+
+## Simple Design Rules 2-4: Refactoring
+  - During this refactoring step, we can apply anything from the entire body of knowledge about good software design.
+  - This is also where we apply th final three rules of simple design.
+
+## No Duplication
+  - It represents additional work, additional risk, and additional unnecessary complexity.
+  - Creating a clean system requires the will to eliminate duplication, even in just a few lines of code.
+  - This "reuse in the small" can cause system complexity to shrink dramatically.
+  - Understanding how to achieve reuse in the small is essential to achieving reuse in the large.
+
+### Example 1
+
+* Bad
+{% highlight js %}
+function scaleToOneDimension(desiredDimension, imageDimension)
+{
+  if(Math.abs(desiredDimension - imageDimension) < errorThreshold)
+    return;
+  float scalingFactor = desiredDimension / imageDimension;
+  scalingFactor = (float) (Math.floor(scalingFactor * 100) * 0.01f);
+
+  RenderdOp newImage = ImageUtilities.getScaledImage(image, scalingFactor, scalingFactor);
+  image.dispose();
+  System.gc();
+  image = newImage;
+}
+
+function rotate(degrees){
+  return (() => (
+    RenderdOp newImage = ImageUtilities.getRotatedImage(image, degrees);
+    image.dispose();
+    System.gc();
+    image = newImage;
+  ));
+}
+{% endhighlight %}
+
+* Good
+{% highlight js %}
+function scaleToOneDimension(desiredDimension, imageDimension)
+{
+  if(Math.abs(desiredDimension - imageDimension) < errorThreshold)
+    return;
+  float scalingFactor = desiredDimension / imageDimension;
+  scalingFactor = (float) (Math.floor(scalingFactor * 100) * 0.01f);
+
+  replaceImage(ImageUtilities.getScaledImage(image, scalingFactor, scalingFactor));
+}
+
+function roatete(degrees){
+  return (() => (
+    replaceImage(ImageUtilities.getRotatedImage(image, degrees));
+  ))
+}
+
+function replaceImage(newImage){
+  image.dispose();
+  system.gc();
+  image = new Image;
+}
+{% endhighlight %}
+
+## Example 2
+
+* Bad
+{% highlight js %}
+public class VacationPolicy{
+  function accrueUSDivisionVacation(){
+    // code to calculate vacation based on hours worked to date
+    // ...
+    // code to ensure vacation meets US minimums
+    // ...
+    // code to apply vacation to payroll record
+    // ...
+  }
+
+  function accrueEUDivisionVacation(){
+    // code to calculate vacation based on hours worked to date
+    // ...
+    // code to ensure vacation meets EU minimums
+    // ...
+    // code to apply vacation to payroll record
+    // ...
+  }
+}
+{% endhighlight %}
+
+## Expressive
+  - The majority of the cost of a software project is in long-term maintenance.
+  - The clearer the author can make the code. the less time others will have to spend understanding it.
+  - This will reduce defects and shrink the cost of maintenance.
+  - Choose better names, split large functions into smaller functions, and generally just take care of what you've created.
+
+## Minimal classes and Methods
+  - High class and method counts are sometimes the result of pointless dogmatism.
+  - Such dogma should be resisted and a more pragmatic aproach adopted.
+  - Our goal is to keep our overall system small while we are also keeping our functions and classes small.
