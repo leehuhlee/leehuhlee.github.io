@@ -2581,3 +2581,47 @@ public class ColumnList{
   - By minimizing coupling in this way, our classes adhere to another class design principle known as the Dependency Inversion Principle(DIP).
   - In essence, the DIP says that our classes should depend upon abstractions, not on concrete details.
   - This abstraction isolates all of the specific details of obtaining such a price, including from where that price is obtained.
+
+# Chapter 11: Systems
+
+## Separate Constructing a System from Using it
+  - We can't compile without resolving these dependencies, even if we never actually use an object of this type at runtime!
+  - We should modularize this process separately from the normal runtime logic and we should make sure that we have a global, consistent strategy for resolving our major dependencies.
+
+## Separation of Main
+  - One way to separate construction from use is simply to move all aspects of construction to `main`, or modules called by `main` and to design the rest of the system assuming that all objects have been constructed and wired up appropriately.
+  - Notice the direction of the dependency arrows crossing the barrier between `main` and the application.
+
+## Factories
+  - Sometimes, of course, we need to make the application responsible for when an object gets created.
+
+## Dependency Injection
+  - A powerful mechanism for separating construction from use is `Dependency Injection(DI)`, the application of `Inversion of Control(Ioc)` to dependency management.
+  - Inversion of Control moves secondary responsibilities from an object to other objects that are dedicated to the purpose, thereby supporting the `Single Responsibility Principle`.
+  - The class takes no direct steps to resolve its dependencies; it is completely passive. Instead, it provides setter methods or constructor arguments(or both) that are used to `inject` the dependencies.
+
+## Scling Up
+  - We should implement only today's stories, then refactor and expand the system to implement new stories tomorrow.
+  - Software systems are unique compared to physical system. Their architectures can grow incrementally, if we maintain the proper separation of concerns.
+
+## Cross-Cutting Concerns
+  - Note that concerns like persistence tend to cut across the natural object boundaries of a domain.
+  - In AOP(aspect-oriented programming), modular constructs called aspects specify which points in the system should have their behavior modified in some consistent way to support a particular concern.
+
+## Test Drive the System Architecture
+  - If you can write your application's domain logic, then it is possible to truly test drive your architecture.
+  - It is not necessary to do a `Bid Design Up Front(BDUF)`.
+  - Although software has its own physics, it is economically feasible to make radical change, if the structure of the software separates its concerns effectively.
+  - A good API should largely disappear from view most of the time, so the team expends the majority of its creative efforts focused on the user stories being implemented.
+
+
+## Optimize Decision Making
+  - We will have that much less customer feedback, mental reflection on the project, and experience with our implementation choices, if we decide too soon.
+
+## Use Standards Wisely, When They Add Demenstrable Value
+  - Standards make it easier to reuse ideas and components, recruit people with relevant experience, encapsulate good ideas, and wire components together. However, the process of creating standards can sometimes take too long for industry to wait, and some standards lose touch with the real needs of the adopters they are intended to serve.
+
+## Systems Need Domain-Specific Language
+  - In software, there has been renewed interest recently in creating `Domain-Specific Languages(DSLs)`, which are separate, small scripting languages or APIs in standard languages that permit code to be written so that it reads like a structured form of prose that a domin expert might write.
+  - A good DSL minimizes the "communication gap" between a domain concept and the code that implements it, just as agile practices optimize the communications within a team and with the project's stakeholders.
+  - DSLs, when used effectively, raise the abstraction level above code idioms and design patterns.
