@@ -20,6 +20,7 @@ comments: false
   - Windows Presentation Foundation (WPF) is a free and open-source graphical subsystem (similar to WinForms) originally developed by Microsoft for rendering user interfaces in Windows-based applications.
 
 * WPF vs WinForms
+
 | WPF | WinForms | 
 |---|---|
 | It is based on DirectX with XAML support. | It provides access to the native windows library of common controls. |
