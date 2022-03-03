@@ -21,21 +21,20 @@ comments: false
 
 * WPF vs WinForms
 | WPF | WinForms | 
-|:--------|--------:|
-| It is based on DirectX with XAML support.     | 	It provides access to the native windows library of common controls.    |
-| It uses markup language for designing UI allowing the design of complex user interfaces.     | It does not use a markup language for design. In fact, it uses event-driven controls for the design.    |
-| It can render fast as compared to WinForms, complexity, and support.     | It renders slow as compared to WPF.     |
-| It can be used to develop and design both windows applications and web applications.     | It can only be used to develop and design windows applications.     |
-| It has unlimited UI customization and controls can be customized easily as it is totally written from scratch.    | In this, controls are limited and difficult to customize.  |
-| It is easier to separate UO from back-end logic.     | 	It is tough to separate UI from back-end logic.  |
-| It allows you to handle large data sets because of its in-built feature “user interface virtualization”.   | It does not have a “user interface virtualization” feature.   |
-| It takes up more RAM than WinForms.     | 	It takes a smaller memory footprint.  |
-| It is considered good when the application requires many media types, create a skinned UI, bind to XML, develop a desktop application having a web-like navigation style.     | It is considered good if you want to develop an application without much added modern functionality, more online resources.   |
-| It offers effective and fully supported data binding as compared to WinForms.     | It offers data binding but in a limited way. Therefore, it’s less effective as compared to WPF.  |
-| It also offers rich, interactive, animated, hardware accelerated, vector 2D and 3D capabilities for developing applications.     | It does not offer any rich, Interactive, animated, hardware accelerated, vector 2D and 3D capabilities as compared to WPF.   |
-| It is a little bit tough, time-consuming, and complex to use WPF as compared to WinForms.     | 	It is simple to use WinForms as controls can be used easily, it’s less time-consuming and less tricky as compared to WPF.   |
-| It has an inbuilt story boarding feature and animation model, it has the ability to use business objects in UI declaratively.     | It does not provide such features.  |
-{: rules="groups"}
+|---|---|
+| It is based on DirectX with XAML support. | It provides access to the native windows library of common controls. |
+| It uses markup language for designing UI allowing the design of complex user interfaces. | It does not use a markup language for design. In fact, it uses event-driven controls for the design. |
+| It can render fast as compared to WinForms, complexity, and support. | It renders slow as compared to WPF. |
+| It can be used to develop and design both windows applications and web applications. | It can only be used to develop and design windows applications. |
+| It has unlimited UI customization and controls can be customized easily as it is totally written from scratch. | In this, controls are limited and difficult to customize. |
+| It is easier to separate UO from back-end logic. | It is tough to separate UI from back-end logic. |
+| It allows you to handle large data sets because of its in-built feature “user interface virtualization”. | It does not have a “user interface virtualization” feature. |
+| It takes up more RAM than WinForms. | It takes a smaller memory footprint. |
+| It is considered good when the application requires many media types, create a skinned UI, bind to XML, develop a desktop application having a web-like navigation style. | It is considered good if you want to develop an application without much added modern functionality, more online resources. |
+| It offers effective and fully supported data binding as compared to WinForms. | It offers data binding but in a limited way. Therefore, it’s less effective as compared to WPF. |
+| It also offers rich, interactive, animated, hardware accelerated, vector 2D and 3D capabilities for developing applications. | It does not offer any rich, Interactive, animated, hardware accelerated, vector 2D and 3D capabilities as compared to WPF. |
+| It is a little bit tough, time-consuming, and complex to use WPF as compared to WinForms. | It is simple to use WinForms as controls can be used easily, it’s less time-consuming and less tricky as compared to WPF. |
+| It has an inbuilt story boarding feature and animation model, it has the ability to use business objects in UI declaratively. | It does not provide such features. |
 
 # Window
   - `xmlns` means xml name pace.
