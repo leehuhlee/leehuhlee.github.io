@@ -39,10 +39,10 @@ comments: false
 
 # Window
   - `xmlns` means xml name pace.
-  - `Loaded` invoke event when WPF window machine is loaded.
-  - When you add event like `Loaded`, function is automatically added in MainWindow.xaml.cs
+  - `Window_Loaded` invoke event when WPF window machine is loaded.
+  - When you add event like `Window_Loaded`, function is automatically added in MainWindow.xaml.cs
 
-# Outline
+# Layout
 
 ## Border
   - Draws a border, background, or both around another element.
