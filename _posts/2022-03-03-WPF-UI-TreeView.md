@@ -135,7 +135,7 @@ public partial class MainWindow : Window
         this.DataContext = new DirectoryStructureViewModel();
     }
 }
-{% endhighlihgt %}
+{% endhighlight %}
 
 ## ViewModel
 * DirectoryStructureViewModel.cs
