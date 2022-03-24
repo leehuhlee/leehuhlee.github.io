@@ -2737,3 +2737,5 @@ public class VacationPolicy{
   - High class and method counts are sometimes the result of pointless dogmatism.
   - Such dogma should be resisted and a more pragmatic aproach adopted.
   - Our goal is to keep our overall system small while we are also keeping our functions and classes small.
+
+# Chapter 13: Concurrency
