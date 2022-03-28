@@ -61,8 +61,7 @@ checkMood("sad", sing, dance)
 {% endhighlight %}
 
 ## Function Presentation
-
--   You can create function like a variable.
+  - You can create function like a variable.
 
 {% highlight js %}
 let hello = function() {
@@ -425,7 +424,7 @@ module.exports = {
   add: add,
   sub: sub,
 };
-{% endhighlihgt %}
+{% endhighlight %}
 
 * index.js
 {% highlight js %}
