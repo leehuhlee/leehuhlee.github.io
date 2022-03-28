@@ -726,4 +726,6 @@ export default Counter;
 
 <iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Props.mp4" frameborder="0"> </iframe>
 
+
+
 [Download](https://github.com/leehuhlee/Python){: .btn}

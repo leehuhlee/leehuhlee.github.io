@@ -93,7 +93,6 @@ function calculateMass(freightItems){
 
     return totalMass;
 }
-{% endhighlight %}
 
 const mass = calculateMass(['dog', 'donkey', 'cat']);
 console.log('Total mass of items is ' + mass);
