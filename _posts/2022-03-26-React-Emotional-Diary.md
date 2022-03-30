@@ -725,6 +725,474 @@ export default Counter;
 
 <iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Props.mp4" frameborder="0"> </iframe>
 
+# Simple Diary
 
+## CRUD
 
-[Download](https://github.com/leehuhlee/Python){: .btn}
+### useRef
+  - You can set a html element as a variable or create a dynamic variable in javascript with `useRef`.
+  - With the value in `()`, you can initialize the reference variable.
+
+### focus
+  - If you have a reference of the element, you can set mouse focusing to the element with `current.focus()`.
+
+### Date
+  - `new Date()` create Date object and `getTime()` create the time to milisecond.
+  - `toLocaleString()` change the milisecond to local time.
+
+### e.target
+  - You can get element value and name with `e.target.value` and `e.target.name`.
+
+### onChange
+  - `onChange` set the function to change value of the html element.
+
+### Key
+  - When you want to pass an array to the component, you should set `Key` to specific array items.
+  - In Normal, just use index of array items.
+
+## Optimization
+
+### React.createContext
+  - In a html, context is child elements of a parent element.
+  - `React.createContext` create context as a variable.
+  - `Provider` can envelop elements in html.
+  - With `useContext`, you can use Prop value in other js files.
+
+### useReducer
+  - `useReducer` can replace `useState` and with reduce code lines with switch-case statement.
+  - In left, it is always array. First value is a variable and second value is a function to change value state.
+  - In right, there is always `useReducer` function. In function parameters, first parameter is a function with switch-case statement to return the changed variable and second parameter is a initial value of the variable.
+
+### useEffect
+  - In React, there is 3 part of life cycle: Mount, Update, Unmount. 
+  - `useEffect` set life cycle of the function.
+  - To use mount time, you should add empty array for second argument.
+  - To use update time, you should not use second argument.
+  - To use unmount time, you should return destructing function on mount.
+  
+### useCallback
+  - `useCallback` return memoized component to reuse.
+  - You can set life time like an `useEffect`.
+
+### React.memo
+  - `React.memo` return the memoized variable.
+  - This is for skip rerendering when inner elements is not updated.
+
+### useMemo
+  - `useMemo` skips to render when components has same value with previous render.
+  - You can set life time like an `useEffect`.
+
+## Code
+
+* App.js
+{% highlight js %}
+import React, { useMemo, useEffect, useRef, useCallback, useReducer } from 'react';
+import './App.css';
+import DiaryEditor from './DiaryEditor';
+import DiaryList from './DiaryList';
+import LifeCycle from './LifeCycle';
+
+const reducer = (state, action) => {
+  switch(action.type){
+    case "INIT": {
+      return action.data;
+    }
+    case "CREATE": {
+      const created_date = new Date().getTime();
+      const newItem = {
+        ...action.data,
+        created_date
+      };
+      return [newItem, ...state];
+    }
+    case "DELETE": {
+      return state.filter((it) => it.id !== action.targetId);
+    }
+    case "UPDATE": {
+      return state.map((it) => 
+        it.id === action.targetId ? 
+        {...it, content: action.newContent} : it);
+    }
+    default: 
+      return state;
+  }
+}
+
+export const DiaryStateContext = React.createContext();
+export const DiaryDispatchContext = React.createContext();
+
+const App = () => {
+  const [data, dispatch] = useReducer(reducer, []);
+
+  const dataId = useRef(0);
+
+  const getData = async() => {
+    const res = await fetch(
+      'https://jsonplaceholder.typicode.com/comments'
+      ).then((res) => res.json());
+      
+      const initData = res.slice(0, 20).map((it) => {
+        return {
+          author: it.email,
+          content : it.body,
+          emotion : Math.floor(Math.random() * 5 ) + 1,
+          created_date : new Date().getTime(),
+          id : dataId.current++
+        };
+      });
+
+      dispatch({type: "INIT", data: initData});
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const onCreate = useCallback((
+    author, content, emotion) => {
+      dispatch({type: "CREATE", data: {author, content, emotion, id:dataId.current++}});
+    }, []);
+
+  const onDelete = useCallback((targetId) => {
+    dispatch({type: "DELETE", targetId})
+  }, []);
+
+  const onUpdate = useCallback((targetId, newContent) => {
+    dispatch({type: "UPDATE", targetId, newContent});
+  }, []);
+
+  const memoizedDispatches = useMemo(() => {
+    return {onCreate, onDelete, onUpdate};
+  }, []);
+
+  const getDiaryAnalysis = useMemo(
+    () => {
+      const goodCount = data.filter((it) => it.emotion >= 3).length;
+      const badCount = data.length - goodCount;
+      const goodRatio = (goodCount / data.length) * 100;
+      return {goodCount, badCount, goodRatio};
+    }, [data.length]
+  );
+
+  const {goodCount, badCount, goodRatio} = getDiaryAnalysis;
+
+  return (
+    <DiaryStateContext.Provider value={data}>
+      <DiaryDispatchContext.Provider value={memoizedDispatches}>
+        <div className="App">
+          <LifeCycle/>
+          <DiaryEditor/>
+          <div>Total Diary : {data.length}</div>
+          <div>Good Emotion Diary Count : {goodCount}</div>
+          <div>Bad Emotion Diary Count : {badCount}</div>
+          <div>Good Emotion Diary Ratio : {goodRatio}</div>
+          <DiaryList/>
+        </div>
+      </DiaryDispatchContext.Provider>
+    </DiaryStateContext.Provider>
+  );
+}
+
+export default App;
+{% endhighlight %}
+
+* DiaryEditor.js
+{% highlight js %}
+import React, { useContext, useRef, useState} from "react";
+import { DiaryDispatchContext } from "./App";
+
+const DiaryEditor = () => {
+    const {onCreate} = useContext(DiaryDispatchContext);
+    const authorInput = useRef();
+    const contentInput = useRef();
+
+    const [state, setState] = useState({
+        author: "",
+        content: "",
+        emotion: 1
+    });
+
+    const handleChangeState = (e) => {
+        setState({
+            ...state,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const handleSubmit = () => {
+        if(state.author.length < 1){
+            authorInput.current.focus();
+            return;
+        }
+
+        if(state.content.length < 5){
+            contentInput.current.focus();
+            return;
+        }
+
+        onCreate(state.author, state.content, state.emotion);
+        setState({
+            author: "",
+            content: "",
+            emotion: 1
+        })
+    };
+
+    return(
+     <div className="DiaryEditor">
+         <h2>Today's Diary</h2>
+         <div>
+             <input 
+             ref={authorInput}
+             name="author"
+             value={state.author} 
+             onChange={handleChangeState}/>
+         </div>
+         <div>
+             <textarea 
+             ref={contentInput}
+             name="content"
+             value={state.content} 
+             onChange={handleChangeState}/>
+         </div>
+        <div>
+            <span>Today's emotion point : </span>
+            <select 
+            name="emotion" 
+            value={state.emotion} 
+            onChange={handleChangeState}>
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+            </select>
+        </div>
+        <div>
+            <button onClick={handleSubmit}>Save</button>
+        </div>
+     </div>
+    );
+};
+
+export default React.memo(DiaryEditor);
+{% endhighlight %}
+
+* DiaryList.js
+{% highlight js %}
+import { useContext } from "react";
+import { DiaryStateContext } from "./App.js";
+import DiaryItem from "./DiaryItem.js";
+
+const DiaryList = () => {
+    const diaryList = useContext(DiaryStateContext);
+
+    return (
+    <div className="DiaryList">
+        <h2>Diary List</h2>
+        <h4>There are {diaryList.length} diaries.</h4>
+        <div>
+            {diaryList.map((it) => (
+                <DiaryItem key={it.id} {...it}/>
+            ))}
+        </div>
+    </div>
+    );
+};
+
+DiaryList.defaultProps={
+    diaryList:[],
+};
+
+export default DiaryList;
+{% endhighlight %}
+
+* DiaryItem.js
+{% highlight js %}
+import React, { useContext, useRef, useState } from "react";
+import { DiaryDispatchContext } from "./App";
+
+const DiaryItem = ({
+    id, 
+    author, 
+    content, 
+    emotion, 
+    created_date
+}) => {
+    const {onDelete, onUpdate} = useContext(DiaryDispatchContext);
+
+    const [isEdit, SetIsEdit] = useState(false);
+    const toggleIsEdit = () => SetIsEdit(!isEdit);
+
+    const [localContent, setLocalContent] = useState(content);
+    const localContentInput = useRef();
+
+    const handleRemove = () => {
+        if(window.confirm(`Do you want to delete ${id}th diary?`)){
+            onDelete(id);
+        };
+    };
+
+    const handleCancel = () =>{
+        SetIsEdit(false);
+        setLocalContent(content);
+    }
+
+    const handleUpdate = () => {
+        if(localContent.length < 5){
+            localContentInput.current.focus();
+            return;
+        }
+
+        if(window.confirm(`Do you want to update ${id}th diary?`)){
+            onUpdate(id, localContent);
+            toggleIsEdit();
+        }
+    };
+
+    return (
+    <div className="DiaryItem">
+        <div className="info">
+            <span>
+                Author : {author} | Emotion Point : {emotion}
+            </span>
+            <br />
+            <span className="date">{new Date(created_date).toLocaleString()}</span>
+        </div>
+        <div className="content">
+            {isEdit ? (
+            <>
+                <textarea 
+                ref={localContentInput}
+                value={localContent} 
+                onChange={(e) => setLocalContent(e.target.value)}
+                />
+            </>
+            ) : (
+            <>{content}</>
+            )}
+        </div>
+
+        {isEdit ? (
+        <>
+            <button onClick={handleCancel}>Cancel</button>
+            <button onClick={handleUpdate}>Save</button>
+        </>
+        ) : (
+        <>
+            <button onClick={handleRemove}>Delete</button>
+            <button onClick={toggleIsEdit}>Update</button>
+        </>
+        )}
+    </div>
+    );
+};
+
+export default React.memo(DiaryItem);
+{% endhighlight %}
+
+* LifeCycle.js
+{% highlight js %}
+import React, {useEffect, useState} from 'react';
+
+const UnmountTest = () => {
+    useEffect(() => {
+        console.log("Mount!");
+
+        return () => {
+            console.log("Unmount!");
+        }
+    }, []);
+
+    return (
+        <div>
+            Unmount Testing Component
+        </div>
+    );
+};
+
+const LifeCycle = () => {
+    const [isVisible, setVisible] = useState(false);
+    const toggle = () => setVisible(!isVisible);
+
+    return (
+        <div style={{ padding: 20}}>
+            <button onClick={toggle}>ON/OFF</button>
+            {isVisible && <UnmountTest/>}
+        </div>
+    );
+};
+
+export default LifeCycle;
+{% endhighlight %}
+
+* App.css
+{% highlight css %}
+.DiaryEditor{
+  border: 1px solid gray;
+  text-align: center;
+  padding: 20px;
+}
+
+.DiaryEditor input, textarea{
+  margin-bottom: 20px;
+  width: 500px;
+  padding: 10px;
+}
+
+.DiaryEditor textarea{
+  height: 150px;
+}
+
+.DiaryEditor select{
+  width: 300px;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.DiaryEditor button{
+  width: 500px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+/* List */
+
+.DiaryList{
+  border: 1px solid gray;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.DiaryList h2{
+  text-align: center;
+}
+
+/* Item */
+
+.DiaryItem {
+  background-color: rgb(240, 240, 240);
+  margin-bottom: 10px;
+  padding: 20px;
+}
+
+.DiaryItem .info{
+  border-bottom: 1px solid gray;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.DiaryItem .date{
+  color: gray;
+}
+
+.DiaryItem .content{
+  font-weight: bold;
+  margin-bottom: 30px;
+  margin-top: 30px;
+}
+{% endhighlight %}
+
+<iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Simple-Diary.mp4" frameborder="0"> </iframe>
+
+[Download](https://github.com/leehuhlee/InteractiveWeb){: .btn}
