@@ -725,6 +725,15 @@ export default Counter;
 
 <iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Props.mp4" frameborder="0"> </iframe>
 
+## React Developer tools
+  - Eneter Chrome tools and install React Developer tools in your chrome.
+  - In react pages, you can see component process, context and etc.
+
+<figure>
+  <a href="/assets/img/posts/react_emotional_diary/20.jpg"><img src="/assets/img/posts/react_emotional_diary/20.jpg"></a>
+  <figcaption>Javascript React</figcaption>
+</figure>
+
 # Simple Diary
 
 ## CRUD
