@@ -8,7 +8,7 @@ comments: false
 ---
 
 # Demo
-  - https://leehuhlee-emotional-diary.web.app/
+  - <a href="https://leehuhlee-emotional-diary.web.app/">Emotion Diary</a>
   - with Javascript, React and VS Code.
 
 <iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Emotion-Diary.mp4" frameborder="0"> </iframe>
@@ -2464,4 +2464,4 @@ header button{
 
 <iframe width="560" height="315" src="/assets/video/posts/react_emotional_diary/React-Emotion-Diary.mp4" frameborder="0"> </iframe>
 
-[Download](https://github.com/leehuhlee/InteractiveWeb){: .btn}
+[Download](https://github.com/leehuhlee/EmotionDiary){: .btn}
