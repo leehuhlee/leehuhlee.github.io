@@ -2848,3 +2848,22 @@ public class VacationPolicy{
   - Though a bit simplistic, this could be a resonable option in lieu of a more sophisticated tool.
   - The combination of well-written tests and jiggling can dramatically increase the chance finding errors.
   - <b>Use jiggling strategies to ferret out errors.</b>
+
+# Chapter 14: Successive Refinement
+  - `Try-Catch` is very important.
+
+## Args Implementation
+  - Create function only for error message.
+  - Create Enum only for error code.
+  - The more errors are created, the more codes you should write.
+
+### Args: Thr Rough Draft
+  - It's works. And it's messy.
+
+### So I stopped
+  - Each argument type required some way to parse its schema element in order to select the `HaspMap` for that type.
+  - Each argument type needed to be parsed in the command-line strings and converted to its true type.
+  - each argument type needed a `getXXX` method so that it could be returned to the caller as its true type.
+
+### On Incrementalism
+  - 
