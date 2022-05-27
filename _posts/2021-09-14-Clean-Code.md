@@ -2866,4 +2866,13 @@ public class VacationPolicy{
   - each argument type needed a `getXXX` method so that it could be returned to the caller as its true type.
 
 ### On Incrementalism
-  - 
+  - One of the best ways to ruin a program is to make massive changes to its structure in the name of improvement.
+  - To avoid this, I use the discipline of Test-Driven-Development(TDD).
+  - Every change I make must keep the system working as it worked before.
+  - I could run these tests any time I wanted, and if they passed, I was confident that the system was working as I specified.
+
+## String Arguments
+  - Again, these changes were made one at a time and in such a way that the tests kept running, if not passing.
+  - When a test broke, I made sure to get it passing again before continuing with the next change.
+  - I deployed both `set` and `get`, deleted the unused functions, and moved the variables.
+  
