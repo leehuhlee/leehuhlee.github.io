@@ -2875,4 +2875,10 @@ public class VacationPolicy{
   - Again, these changes were made one at a time and in such a way that the tests kept running, if not passing.
   - When a test broke, I made sure to get it passing again before continuing with the next change.
   - I deployed both `set` and `get`, deleted the unused functions, and moved the variables.
-  
+
+# Chapter 15: JUnit Internals
+  - We should make the names unambiguous.
+  - Ofen one refactorng leads to another that leads to the undoing of the first.
+  - Refactoring is an iterative process full of trial and error, inevitably converging on something that we feel is worthy of a professional.
+
+# Chapter 16: Refactoring SerialDate
