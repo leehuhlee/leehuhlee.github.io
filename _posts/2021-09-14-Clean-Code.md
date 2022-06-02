@@ -2861,7 +2861,7 @@ public class VacationPolicy{
   - It's works. And it's messy.
 
 ### So I stopped
-  - Each argument type required some way to parse its schema element in order to select the `HaspMap` for that type.
+  - Each argument type required some way to parse its schema element in order to select the `HashMap` for that type.
   - Each argument type needed to be parsed in the command-line strings and converted to its true type.
   - each argument type needed a `getXXX` method so that it could be returned to the caller as its true type.
 
