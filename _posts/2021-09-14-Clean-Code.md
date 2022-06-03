@@ -2882,3 +2882,9 @@ public class VacationPolicy{
   - Refactoring is an iterative process full of trial and error, inevitably converging on something that we feel is worthy of a professional.
 
 # Chapter 16: Refactoring SerialDate
+  - It's generally a bad idea for base classes to know about their derivatives.
+  - To fix this, we should use the `Abstract Factory` pattern.
+  - If something logical depends on the implementation, then something physical should too.
+
+# Chapter 17: Smells and Heuristics
+  - 
