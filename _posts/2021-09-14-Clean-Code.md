@@ -2887,4 +2887,201 @@ public class VacationPolicy{
   - If something logical depends on the implementation, then something physical should too.
 
 # Chapter 17: Smells and Heuristics
-  - 
+
+## Comments
+
+### C1: Inappropriate Information
+  - Comments should be reserved for technical notes about the code and design.
+
+### C2: Obsolete Comment
+  - If you find an obsolete comment, it is best to update it or get rid of it as quickly as possible.
+
+### C3: Redundant Comment
+  - Comments should say things that the code cannot say for itself.
+
+### C4: Poorly Written Comment
+  - A comment worth writing is worth writing well.
+
+### C5: Commented-Out Code
+  - It pollutes the modules that contain it and distracts the people who try to read it.
+
+## Environment
+
+### E1: Build Requires More than One Step
+  - Building a project should be a single trivial operation.
+
+### E2: Tests Requires More Than One Step
+  - Being able to run all the tests is so fundamental and so important that it should be quick, easy, and obvious to do.
+
+## Functions
+
+### F1: Too Many Arguments
+  - Functions should have a small number of arguments.
+
+### F2: Output Arguments
+  - Output arguments are counterintuitive.
+
+### F3: Flag Arguments
+  - They are confusing and should be eliminated.
+
+### F4: Dead Function
+  - Methods that are never called should be discarded.
+
+## General
+
+### G1: Multiple Languages in One Source File
+  - We should take pains to minimize both the number and extent of extra languages in our source files.
+
+### G2: Obvious Behavior Is Unimplemented
+  - When an obvious behavior is not implemented, readers and users of the code can no longer depend on their intuition about function names.
+
+### G3: Incorrect Behavior at the Boundaries
+  - Don't rely on your intuition.
+  - Look for every boundary condition and write a test for it.
+
+### G4: Overridden Safeties
+  - Turning off failing tests and telling yourself you'll get them to pass later is as bad as pretending your credit cards are free money.
+
+### G5: Duplication
+  - Find and eliminate duplication wherever you can.
+
+### G6: Code at Wrong Level of Abstraction
+  - Isolating abstractions is one of the hardest things that software developers do, and there is no quick fix when you get it wrong.
+
+### G7: Base Classes Depending on Their Derivatives
+  - When such components are modified, they can be redeployed without having to redeploy the base components. This means that the impact of a change is greatly lessened, and maintaining systems in the field is made much simpler.
+
+### G8: Too Much Information
+  - The fewer methods a class has, the better.
+  - The fewer variables a function knows about, the better.
+  - The fewer instance variables a class has, the better.
+
+### G9: Dead Code
+  - Give it a decent burial.
+
+### G10: Vertical Separation
+  - Local variables should be declared just above their first usage and should have a small vertical scope.
+  - Private functions should be defined just below their first usage.
+
+### G11: Inconsistency
+  - If you do simething a certain way, do all similar things in the same way.
+  - Simple consistency like this, when reliably applied, can make code much easier to read modify.
+
+### G12: Cluter
+  - Keep your source files clean, well organized, and free of clutter.
+
+### G13: Artifical Coupling
+  - In general an artificial coupling is a coupling between two modules that serves no direct purpose.
+  - It is a result of putting a variable, constant, or function in a temporarily convenient, though inappropriate, location.
+
+### G14: Feature Envy
+  - The methods of a class should be interested in the variables and functions of the class they belong to, and not the variables and functions of other classes.
+
+### G15: Selector Arguments
+  - Not only is the purpose of a selector argument difficult to remember, each selctor argument combines many functions into one.
+
+### G16: Obscured Intent
+  - It is worth taking the time to make the intent of our code visible to our reader.
+
+### G17: Misplaced Responsibility
+  - Code should be placed where a reader would naturally expect it to be.
+
+### G18: Inappropriate Static
+  - When in doubt, make the function nonstatic.
+  - If you really want a function to be static, make sure that there is no chance that you'll want it to behave polymorphically.
+
+### G19: Use Explanatory Variables
+  - One of the more powerful ways to make a program readable is to break the calculations up into intermediate values that are held in variablles with meaningful names.
+
+### G20: Function Names Should Say What They Do
+  - If you have to look at the implementatio (or documentation) of the function to know what it does, then you should work to find a better name or rearrange the functionality so that it can be placed in functions with better names.
+
+### G21: Understand the Algorithm
+  - Programming is often an exploration.
+  - Befoore you consider yourself to be done with a function, make sure you understand how it works.
+
+### G22: Make Logical Dependencies Physical
+
+### G23: Prefer Polymorphism to If/Else or Switch/Case
+
+### G24: Follow Standard Conventions
+
+### G25: Replace Magic Numbers with Named Constants
+
+### G26: Be Precise
+  - Ambiguities and imprecision in code are either a result of disagreements or laziness.
+
+### G27: Structure over Convention
+
+### G28: Encapsulate Conditionals
+
+### G29: Avoid Negative Conditionals
+  - Negatives are just a bit harder to understand than positives.
+
+### G30: Functions Should Do One Thing
+
+### G31: Hidden Temporal Couplings
+
+### G32: Don't Be Arbirary
+
+### G33: Encapsulate Boundary Conditions
+
+### G34: Functions Should Descend Only One Level of Abstraction
+
+### G35: Keep Configurable Data at High Levels
+
+### G36: Avoid Transitive Navigation
+
+## Java
+
+### J1: Avoid Long Import Lists by Using Wildcards
+
+### J2: Don't Inherit Constants
+
+### J3: Constants versus Enums
+
+## Name
+
+### N1: Choose Descriptive Names
+  - Make sure the name is descriptive.
+  - You need to take the time to choose them wisely and keep them relevant.
+
+### N2: Choose Names at the Appropriate Level of Abstraction
+  - Don't pick names that communicate implementation: choose names the reflect the level of abstraction of the clalss or function you are working in.
+
+### N3: Use Standard Nomenclature Where Possible
+  - The more you can use names that are overloaded with special meanings that are relevant to your project, the easier it will be for readers to know what your code is talking about.
+
+### N4: Unambiguous Names
+
+### N5: Use Long Names for Long Scopes
+  - You can use very short variable names for tiny scopes, but for big scopes you should use longer names.
+
+### N6: Avoid Encodings
+  - Keep your names free of Hungarian pollution.
+
+### N7: Names Should Describe Side-Effects
+  - Don't hide side eggects with a name.
+
+## Test
+
+### T1: Insufficient Tests
+  - A test suite should test everything that could possibly break.
+
+### T2: Use a Coverage Tool!
+  - Coverage tools reports gaps in your testing strategy.
+
+### T3: Don't Skip Trivial Tests
+
+### T4: An Ignored Test Is a Question about an Ambiguity
+  - Which you choose depends upon whether the ambiguity is about something that would compile or not.
+
+### T5: Test Boundary Conditions 
+
+### T6: Exhaustively Test Near Bugs
+
+### T7: Patterns of Failure Are Revealing
+
+### T8: Test Coverage Patterns Can Be Revealing
+
+### T9: Tests Should Be Fast
