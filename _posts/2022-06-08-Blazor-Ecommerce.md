@@ -651,6 +651,9 @@ public class DataContext : DbContext
 }
 {% endhighlight %}
 
+### Datebase
+  - Enter `dotnet ef migrations add Products` and `dotnet ef update database` in CLI.
+
 ### Service Responce with Generics
 
 * BlazorEcommerce.Shared/ServiceResponse.cs
@@ -739,10 +742,12 @@ public class ProductService : IProductService
         return response;
     }
 
-    public async Task<ServiceResponse<ProductSearchResult>> SearchProducts(string searchText, int page)
+    public async Task<ServiceResponse<ProductSearchResult>> SearchProducts
+            (string searchText, int page)
     {
         var pageResults = 2f;
-        var pageCount = Math.Ceiling((await FindProductsBySearchText(searchText)).Count / pageResults);
+        var pageCount 
+                = Math.Ceiling((await FindProductsBySearchText(searchText)).Count / pageResults);
         var products = await _context.Products
                             .Where(p => p.Title.ToLower().Equals(searchText.ToLower())
                             || p.Description.ToLower().Contains(searchText.ToLower()))
@@ -792,7 +797,8 @@ public class ProductService : IProductService
 
                 foreach(var word in words)
                 {
-                    if(word.Contains(searchText, StringComparison.OrdinalIgnoreCase) && !result.Contains(word))
+                    if(word.Contains(searchText, StringComparison.OrdinalIgnoreCase) 
+                            && !result.Contains(word))
                         result.Add(word);
                 }
             }
@@ -852,21 +858,24 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("category/{categoryUrl}")]
-    public async Task<ActionResult<ServiceResponse<List<Product>>>> GetProductsByCategory(string categoryUrl)
+    public async Task<ActionResult<ServiceResponse<List<Product>>>> GetProductsByCategory
+            (string categoryUrl)
     {
         var result = await _productService.GetProductsByCategory(categoryUrl);
         return Ok(result);
     }
 
     [HttpGet("search/{searchText}/{page}")]
-    public async Task<ActionResult<ServiceResponse<ProductSearchResult>>> SearchProducts(string searchText, int page = 1)
+    public async Task<ActionResult<ServiceResponse<ProductSearchResult>>> SearchProducts
+            (string searchText, int page = 1)
     {
         var result = await _productService.SearchProducts(searchText, page);
         return Ok(result);
     }
 
     [HttpGet("searchsuggestions/{searchText}")]
-    public async Task<ActionResult<ServiceResponse<List<string>>>> GetProductSearchSuggestions(string searchText)
+    public async Task<ActionResult<ServiceResponse<List<string>>>> GetProductSearchSuggestions
+            (string searchText)
     {
         var result = await _productService.GetProductSearchSuggestions(searchText);
         return Ok(result);
@@ -1175,7 +1184,8 @@ public class CartService : ICartService
         _context = context;
     }
 
-    public async Task<ServiceResponse<List<CartProductResponse>>> GetCartProducts(List<CartItem> cartItems)
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetCartProducts
+            (List<CartItem> cartItems)
     {
         var result = new ServiceResponse<List<CartProductResponse>>()
         {
@@ -1899,7 +1909,10 @@ else
     {
         for(var i = 1; i <= ProductService.PageCount; i++)
         {
-            <a class="btn @(i == ProductService.CurrentPage ? "btn-info" : "btn-outline-info") page-selection" href="/search/@ProductService.LastSearchText/@i">@i</a>
+            <a class="btn 
+                      @(i == ProductService.CurrentPage ? "btn-info" : "btn-outline-info") 
+                      page-selection" 
+               href="/search/@ProductService.LastSearchText/@i">@i</a>
         }
     }
 }
@@ -2130,14 +2143,21 @@ else
                 <div class="name">
                     <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
                     <span>@product.ProductType</span><br/>
-                    <input type="number" value="@product.Quantity" @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" class="form-control input-quantity" min="1"/>
-                    <button class="btn-delete" @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">Delete</button>
+                    <input type="number" 
+                           value="@product.Quantity" 
+                           @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" 
+                           class="form-control input-quantity" 
+                           min="1"/>
+                    <button class="btn-delete" 
+                            @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            Delete</button>
                 </div>
                 <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
             </div>
         }
         <div class="cart-product-price">
-            Total (@cartProducts.Count): $@cartProducts.Sum(product => @product.Price * product.Quantity)
+            Total (@cartProducts.Count): $@cartProducts.Sum(product => 
+                @product.Price * product.Quantity)
         </div>
     </div>
 }
@@ -2245,6 +2265,813 @@ public partial class Cart
   <a href="/assets/img/posts/blazor_ecommerce/15.jpg"><img src="/assets/img/posts/blazor_ecommerce/15.jpg"></a>
   <figcaption>Package in Client</figcaption>
 </figure>
+
+# Auth
+
+## Models
+
+* BlazorEcommerce.Shared/User.cs
+{% highlight cs %}
+public class User
+{
+    public int Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public byte[] PasswordHash { get; set; }
+    public byte[] PasswordSalt { get; set; }
+    public DateTime DateCreated { get; set; } = DateTime.Now;
+}
+{% endhighlight %}
+
+  - `PasswordSalt` is added characters in your original password. 
+  - For example, your original password is yellow. But, you know, others also can use yellow for password. To avoid same passwords, we add salt like yellow#1Gn% or yellow9j?L.
+  - So hashed `PasswordSalt` is powerful than normal securities.
+
+* BlazorEcommerce.Shared/UserRegister.cs
+{% highlight cs %}
+public class UserRegister
+{
+    [Required, EmailAddress]
+    public string Email { get; set; } = string.Empty;
+    [Required, StringLength(100, MinimumLength = 6)]
+    public string Password { get; set; } = string.Empty;
+    [Compare("Password", ErrorMessage = "The passwords do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/UserLogin.cs
+{% highlight cs %}
+public class UserLogin
+{
+    [Required]
+    public string Email { get; set; } = string.Empty;
+    [Required]
+    public string Password { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/UserLogin.cs
+{% highlight cs %}
+public class UserChangePassword
+{
+    [Required, StringLength(100, MinimumLength = 6)]
+    public string Password { get; set; } = string.Empty;
+    [Compare("Password", ErrorMessage = "The password do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+...
+public DbSet<User> Users { get; set; }
+{% endhighlight %}
+
+### Datebase
+  - Enter `dotnet ef migrations add Users` and `dotnet ef update database` in CLI.
+
+## Auth Service in Server
+
+### Package in Server
+  - Download `Microsoft.AspNetCore.Authentication.JwtBearer`.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/16.jpg"><img src="/assets/img/posts/blazor_ecommerce/16.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+### Interface 
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    Task<ServiceResponse<int>> Register(User user, string password);
+    Task<bool> UserExists(string email);
+    Task<ServiceResponse<string>> Login(string email, string password);
+    Task<ServiceResponse<bool>> ChangePassword(int userId, string newPassword);
+}
+{% endhighlight %}
+
+### Implement 
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly DataContext _context;
+    private readonly IConfiguration _configuration;
+
+    public AuthService(DataContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _configuration = configuration;
+    }
+    
+    public async Task<ServiceResponse<int>> Register(User user, string password)
+    {
+        if(await UserExists(user.Email))
+            return new ServiceResponse<int> 
+            { 
+                Success = false, 
+                Message = "User already exists." 
+            };
+
+        CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
+
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<int> { Data = user.Id, Message = "Registration successful!" };
+    }
+
+    public async Task<ServiceResponse<string>> Login(string email, string password)
+    {
+        var response = new ServiceResponse<string>();
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email.ToLower().Equals(email.ToLower()));
+        if(user == null)
+        {
+            response.Success = false;
+            response.Message = "User not found.";
+        }
+        else if(!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+        {
+            response.Success = false;
+            response.Message = "Wrong password.";
+        }
+        else
+            response.Data = CreateToken(user);
+
+        return response;
+    }
+
+    public async Task<bool> UserExists(string email)
+    {
+        if (await _context.Users.AnyAsync(user => user.Email.ToLower()
+                .Equals(email.ToLower())))
+            return true;
+        return false;
+    }
+
+    private void CreatePasswordHash
+        (string password, out byte[] passwordHash, out byte[] passwordSalt)
+    {
+        using(var hmac = new HMACSHA512())
+        {
+            passwordSalt = hmac.Key;
+            passwordHash = hmac
+                .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+        }
+    }
+
+    private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+    {
+        using (var hmac = new HMACSHA512(passwordSalt))
+        {
+            var computedHash = 
+                hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+
+            return computedHash.SequenceEqual(passwordHash);
+        }
+    }
+
+    private string CreateToken(User user)
+    {
+        List<Claim> claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Email)
+        };
+
+        var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8
+            .GetBytes(_configuration.GetSection("AppSettings:Token").Value));
+
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: creds);
+
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return jwt;
+    }
+
+    public async Task<ServiceResponse<bool>> ChangePassword(int userId, string newPassword)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "User not found."
+            };
+
+        CreatePasswordHash(newPassword, out byte[] passwordHash, out byte[] passwordSalt);
+
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> 
+        { 
+            Data = true, 
+            Message = "Password has been changed." 
+        };
+    }
+}
+{% endhighlight %}
+
+  - `IConfiguration` reads appsettings.json.
+  - `out` reference object address but the variable should be setted.
+  - `ref` reference object address also, but the variable should have value before.
+  - `out` and `ref` are useful when you have more than two return values.
+  - `HMACSHA512` is a type of keyed hash algorithm that is constructed from the SHA-512 hash function and used as a Hash-based Message Authentication Code (HMAC).
+  - `Claim` is a base of the common authorization approache and provides a way of sharing user information throughout the application in a consistent way.
+  - `SymmetricSecurityKey` generates security key.
+  - `SigningCredentials` specifies the signing key, signing key identifier, and security algorithms that are used by .NET to generate the digital signature for a SamlAssertion.
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/AuthController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
+{
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
+    {
+        _authService = authService;
+    }
+
+    [HttpPost("register")]
+    public async Task<ActionResult<ServiceResponse<int>>> Register(UserRegister request)
+    {
+        var response = await _authService.Register(new User
+        {
+            Email = request.Email
+        }, 
+        request.Password);
+
+        if (!response.Success)
+            return BadRequest(response);
+        
+        return Ok(response);
+    } 
+
+    [HttpPost("login")]
+    public async Task<ActionResult<ServiceResponse<string>>> Login(UserLogin request)
+    {
+        var response = await _authService.Login(request.Email, request.Password);
+        if (!response.Success)
+            return BadRequest(response);
+        return Ok(response);
+    }
+
+    [HttpPost("change-password"), Authorize]
+    public async Task<ActionResult<ServiceResponse<bool>>> ChangePassword([FromBody] string newPassword)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var response = await _authService.ChangePassword(int.Parse(userId), newPassword);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+}
+{% endhighlight %}
+
+### Dependency Injection
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8
+                .GetBytes(builder.Configuration.GetSection("AppSettings:Token").Value)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+...
+app.UseAuthentication();
+app.UseAuthorization();
+...
+{% endhighlight %}
+
+### Set 
+
+* BlazorEcommerce.Server/appsettings.json
+{% highlight json %}
+...
+  "AppSettings": {
+    "Token":  "my top secret key"
+  },
+...
+{% endhighlight %}
+
+## Auth Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    Task<ServiceResponse<int>> Register(UserRegister request);
+    Task<ServiceResponse<string>> Login(UserLogin request);
+    Task<ServiceResponse<bool>> ChangePassword(UserChangePassword request);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly HttpClient _http;
+
+    public AuthService(HttpClient http)
+    {
+        _http = http;
+    }
+
+    public async Task<ServiceResponse<int>> Register(UserRegister request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/register", request);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<int>>();
+    }
+
+    public async Task<ServiceResponse<string>> Login(UserLogin request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/login", request);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<string>>();
+    }
+
+    public async Task<ServiceResponse<bool>> ChangePassword(UserChangePassword request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/change-password", request.Password);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+    }
+}
+{% endhighlight %}
+
+### Dependency Injection
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAuthService, AuthService>();
+...
+{% endhighlight %}
+
+## Authorization
+  - For authorization, I will use Claim, JSON Web Token and Local Storage.
+
+### Package for Authorization
+  - Download `Microsoft.AspNetCore.Components.Authorization` and `Microsoft.AspNetCore.WebUtilities` in Client.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/17.jpg"><img src="/assets/img/posts/blazor_ecommerce/17.jpg"></a>
+  <figcaption>Authorization</figcaption>
+</figure>
+
+### Auth State Provider
+
+* BlazorEcommerce.Client/CustomAuthStateProvider.cs
+{% highlight cs %}
+public class CustomAuthStateProvider : AuthenticationStateProvider
+{
+    private readonly ILocalStorageService _localStorageService;
+    private readonly HttpClient _http;
+
+    public CustomAuthStateProvider(ILocalStorageService localStorageService, HttpClient http)
+    {
+        _localStorageService = localStorageService;
+        _http = http;
+    }
+
+    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    {
+        string authToken = await _localStorageService.GetItemAsStringAsync("authToken");
+        
+        var identity = new ClaimsIdentity();
+        _http.DefaultRequestHeaders.Authorization = null;
+
+        if (!string.IsNullOrEmpty(authToken)) 
+        {
+            try 
+            {
+                identity = new ClaimsIdentity(ParseClaimsFromJwt(authToken), "jwt");
+                _http.DefaultRequestHeaders.Authorization
+                    = new AuthenticationHeaderValue("Bearer", authToken.Replace("\"", ""));
+            } 
+            catch 
+            {
+                await _localStorageService.RemoveItemAsync("authToken");
+                identity = new ClaimsIdentity();
+            }
+        }
+
+        var user = new ClaimsPrincipal(identity);
+        var state = new AuthenticationState(user);
+
+        NotifyAuthenticationStateChanged(Task.FromResult(state));
+
+        return state;
+    }
+
+    private byte[] ParseBase64WithoutPadding(string base64)
+    {
+        switch(base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
+
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+    {
+        var payload = jwt.Split('.')[1];
+        var jsonBytes = ParseBase64WithoutPadding(payload);
+        var keyValuePairs = JsonSerializer
+            .Deserialize<Dictionary<string, object>>(jsonBytes);
+
+        var claims = keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString())); 
+
+        return claims;
+    }
+}
+{% endhighlight %}
+
+  - `AuthenticationStateProvider` class provides information about the authentication state of the current user.
+  - We have to split jwt because of `HMACSHA512(base64UrlEncode(header) + "." + base64UrlEncode(payload))`.
+  - Bearer authentication (also called token authentication) is an HTTP authentication scheme that involves security tokens called bearer tokens. The name “Bearer authentication” can be understood as “give access to the bearer of this token.” The bearer token is a cryptic string, usually generated by the server in response to a login request. The client must send this token in the Authorization header when making requests to protected resources
+  - `ClaimsPrincipal` means user and `ClaimsIdentity` means user information. So, we get user information from JWT first, and then create user with this user information.
+  - And we will use `AuthorizeView` in our project, so `AuthenticationState` and `NotifyAuthenticationStateChanged` are for change authentication state.
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddOptions();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/_imports.cs
+{% highlight razor %}
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+{% endhighlight %}
+## View
+
+### Register
+
+* BlazorEcommerce.Client/Pages/Register.razor
+{% highlight razor %}
+@page "/register"
+
+<EditForm Model="user" OnValidSubmit="HandleRegistration">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="user.Email" class="form-control" />
+        <ValidationMessage For="@(() => user.Email)"/>
+    </div>
+    <div class="mb-3">
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="user.Password" class="form-control" type="password" />
+        <ValidationMessage For="@(() => user.Password)"/>
+    </div>
+    <div class="mb-3">
+        <label for="confirmPassword">Confirm Password</label>
+        <InputText id="confirmPassword" @bind-Value="user.ConfirmPassword" class="form-control" type="password" />
+        <ValidationMessage For="@(() => user.ConfirmPassword)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+    <div class="@messageCssClass">
+        <span>@message</span>
+    </div>
+</EditForm>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Register.razor.cs
+{% highlight cs %}
+public partial class Register
+{
+    [Inject]
+    public IAuthService AuthService { get; set; }
+
+    UserRegister user = new UserRegister();
+
+    string message = string.Empty;
+    string messageCssClass = string.Empty;
+
+    async Task HandleRegistration()
+    {
+        var result = await AuthService.Register(user);
+        message = result.Message;
+        if(result.Success)
+            messageCssClass = "text-success";
+        else
+            messageCssClass = "text-danger";
+    }
+}
+{% endhighlight %}
+
+### Login
+
+* BlazorEcommerce.Client/Pages/Login.razor
+{% highlight razor %}
+@page "/login"
+
+<EditForm Model="user" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="user.Email" class="form-control" />
+        <ValidationMessage For="@(() => user.Email)"/>
+    </div>
+    <div class="mb-3">
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="user.Password" class="form-control" type="password" />
+        <ValidationMessage For="@(() => user.Password)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+<div class="text-danger">
+    <span>@errorMessage</span>
+</div>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Login.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    [Inject]
+    public IAuthService AuthService { get; set; }
+    [Inject]
+    public ILocalStorageService LocalStorage { get; set; }
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+    [Inject]
+    public AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+
+    private UserLogin user = new UserLogin();
+
+    private string errorMessage = string.Empty;
+
+    private string returnUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if(QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var url))
+            returnUrl = url;
+    }
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.Login(user);
+        if(result.Success)
+        {
+            errorMessage = string.Empty;
+
+            await LocalStorage.SetItemAsync("authToken", result.Data);
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            NavigationManager.NavigateTo(returnUrl);
+        }
+        else
+            errorMessage = result.Message;
+    }
+}
+{% endhighlight %}
+
+  - When you success the login, then you will return to `returnUrl`. QueryHelter is for this process.
+
+### Profile
+
+* BlazorEcommerce.Client/Pages/Profile.razor
+{% highlight razor %}
+@page "/profile"
+
+<AuthorizeView>
+    <h3>Hi! You're logged in with <i>@context.User.Identity.Name</i>.</h3>
+</AuthorizeView>
+
+<h5>Change Password</h5>
+
+<EditForm Model="request" OnValidSubmit="ChangePassword">
+    <DataAnnotationsValidator/>
+    <div class="mb-3">
+        <label for="password">New Password</label>
+        <InputText id="password" @bind-Value="request.Password" class="form-control" 
+            type="password"/>
+        <ValidationMessage For="@(() => request.Password)"/>
+    </div>
+    <div class="mb-3">
+        <label for="confirmPassword">Confirm New Password</label>
+        <InputText id="confirmPassword" @bind-Value="request.ConfirmPassword" 
+            class="form-control" type="password"/>
+        <ValidationMessage For="@(() => request.ConfirmPassword)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Apply</button>
+</EditForm>
+@message
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Profile.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    [Authorize]
+    public partial class Profile
+    {
+        [Inject]
+        public IAuthService AuthService { get; set; }
+
+        UserChangePassword request = new UserChangePassword();
+        string message = string.Empty;
+
+        private async Task ChangePassword()
+        {
+            var result = await AuthService.ChangePassword(request);
+            message = result.Message;
+        }
+    }
+}
+{% endhighlight %}
+
+  - `[Authorize]` means this page is for authorized user.
+
+### User Button
+
+* BlazorEcommerce.Client/Shared/UserButton.razor
+{% highlight razor %}
+<div class="dropdown">
+    <button @onclick="ToggleUserMenu"
+            @onfocusout="HideUserMenu"
+            class="btn btn-secondary dropdown-toggle user-button">
+            <i class="oi oi-person"></i>
+        </button>
+    <div class="dropdown-menu dropdown-menu-right @UserMenuCssClass">
+        <AuthorizeView>
+            <Authorized>
+                <a href="profile" class="dropdown-item">Profile</a>
+                <hr/>
+                <button class="dropdown-item" @onclick="Logout">Logout</button>
+            </Authorized>
+            <NotAuthorized>
+                <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" class="dropdown-item">Login</a>
+                <a href="register" class="dropdown-item">Register</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+{% endhighlight %}
+
+  - `login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)` means save current url to returnUrl variable in hyperlink url but go to login.
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.cs
+{% highlight cs %}
+ppublic partial class UserButton
+{
+    [Inject]
+    public ILocalStorageService LocalStorage { get; set; }
+    [Inject]
+    public AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    private bool showUserMenu = false;
+
+    private string UserMenuCssClass => showUserMenu ? "show-menu" : null;
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    private async Task HideUserMenu()
+    {
+        await Task.Delay(200);
+        showUserMenu = false;
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        NavigationManager.NavigateTo("");
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.css
+{% highlight css %}
+.show-menu {
+    display: block;
+}
+
+.user-button {
+    margin-left: .5em;
+}
+
+.top-row a {
+    margin-left: 0;
+}
+
+.dropdown-item:hover {
+    background-color: white;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/App.razor
+{% highlight razor %}
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(ShopLayout)">
+            <NotAuthorized>
+                <h3>Whoops! You're not allowed to see this page.</h3>
+                <h5>Please <a href="login">login</a> or <a href="register">register</a> for a new account.</h5>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(ShopLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+</CascadingAuthenticationState>
+{% endhighlight %}
+
+## Run
+
+### User Button
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/18.jpg"><img src="/assets/img/posts/blazor_ecommerce/18.jpg"></a>
+  <figcaption>User Button</figcaption>
+</figure>
+
+### Register
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/19.jpg"><img src="/assets/img/posts/blazor_ecommerce/19.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/20.jpg"><img src="/assets/img/posts/blazor_ecommerce/20.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/21.jpg"><img src="/assets/img/posts/blazor_ecommerce/21.jpg"></a>
+  <figcaption>Register</figcaption>
+</figure>
+
+### Login
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/22.jpg"><img src="/assets/img/posts/blazor_ecommerce/22.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/23.jpg"><img src="/assets/img/posts/blazor_ecommerce/23.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/24.jpg"><img src="/assets/img/posts/blazor_ecommerce/24.jpg"></a>
+  <figcaption>Login</figcaption>
+</figure>
+
+  - You can check your JSON Web Token in <a href="https://jwt.io/">jwt.io</a>.
+
+### Profile
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/25.jpg"><img src="/assets/img/posts/blazor_ecommerce/25.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/26.jpg"><img src="/assets/img/posts/blazor_ecommerce/26.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/27.jpg"><img src="/assets/img/posts/blazor_ecommerce/27.jpg"></a>
+  <figcaption>Profile</figcaption>
+</figure>
+
 
 # Code
 
