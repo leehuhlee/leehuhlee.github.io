@@ -943,7 +943,8 @@ public class ProductService : IProductService
     public event Action ProductsChanged;
     public async Task<ServiceResponse<Product>> GetProduct(int productId)
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<Product>>($"api/product/{productId}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<Product>>
+            ($"api/product/{productId}");
         return result;
     }
 
@@ -951,7 +952,8 @@ public class ProductService : IProductService
     {
         var result = categoryUrl == null ?
             await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>("api/product/featured") :
-            await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>($"api/product/category/{categoryUrl}");
+            await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>
+                ($"api/product/category/{categoryUrl}");
         if(result != null && result.Data != null)
             Products = result.Data;
 
@@ -965,14 +967,16 @@ public class ProductService : IProductService
 
     public async Task<List<string>> GetProductSearchSuggestions(string searchText)
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<List<string>>>($"api/product/searchsuggestions/{searchText}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<List<string>>>
+            ($"api/product/searchsuggestions/{searchText}");
         return result.Data;
     }
 
     public async Task SearchProducts(string searchText, int page)
     {
         LastSearchText = searchText;
-        var result = await _http.GetFromJsonAsync<ServiceResponse<ProductSearchResult>>($"api/product/search/{searchText}/{page}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<ProductSearchResult>>
+            ($"api/product/search/{searchText}/{page}");
         if (result != null && result.Data != null)
         {
             Products = result.Data.Products;
@@ -2149,7 +2153,8 @@ else
                            class="form-control input-quantity" 
                            min="1"/>
                     <button class="btn-delete" 
-                            @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            @onclick="@(() 
+                                => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
                             Delete</button>
                 </div>
                 <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
@@ -2539,7 +2544,8 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("change-password"), Authorize]
-    public async Task<ActionResult<ServiceResponse<bool>>> ChangePassword([FromBody] string newPassword)
+    public async Task<ActionResult<ServiceResponse<bool>>> ChangePassword
+        ([FromBody] string newPassword)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var response = await _authService.ChangePassword(int.Parse(userId), newPassword);
@@ -2747,6 +2753,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
 {% endhighlight %}
+
 ## View
 
 ### Register
@@ -2769,7 +2776,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
     </div>
     <div class="mb-3">
         <label for="confirmPassword">Confirm Password</label>
-        <InputText id="confirmPassword" @bind-Value="user.ConfirmPassword" class="form-control" type="password" />
+        <InputText id="confirmPassword" @bind-Value="user.ConfirmPassword" class="form-control" 
+            type="password" />
         <ValidationMessage For="@(() => user.ConfirmPassword)"/>
     </div>
     <button type="submit" class="btn btn-primary">Register</button>
@@ -2947,7 +2955,8 @@ public partial class Login
                 <button class="dropdown-item" @onclick="Logout">Logout</button>
             </Authorized>
             <NotAuthorized>
-                <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" class="dropdown-item">Login</a>
+                <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" 
+                    class="dropdown-item">Login</a>
                 <a href="register" class="dropdown-item">Register</a>
             </NotAuthorized>
         </AuthorizeView>
@@ -3019,7 +3028,8 @@ ppublic partial class UserButton
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(ShopLayout)">
             <NotAuthorized>
                 <h3>Whoops! You're not allowed to see this page.</h3>
-                <h5>Please <a href="login">login</a> or <a href="register">register</a> for a new account.</h5>
+                <h5>Please <a href="login">login</a> or <a href="register">register</a> 
+                    for a new account.</h5>
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
@@ -3072,6 +3082,1124 @@ ppublic partial class UserButton
   <figcaption>Profile</figcaption>
 </figure>
 
+# Refactoring Auth Service
+  - `public int GetUserId() => int.Parse(_httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));` returns UserId which is logged in now.
+  - I will use it only in AuthService and use AuthService in other services.
+
+## Refactoring Auth Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    int GetUserId();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly DataContext _context;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public AuthService(
+        DataContext context, 
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _context = context;
+        _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public int GetUserId() 
+        => int.Parse(_httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+    ...
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddHttpContextAccessor();
+...
+{% endhighlight %}
+
+## Refactoring Auth Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    Task<bool> IsUserAuthenticated();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly HttpClient _http;
+    private readonly AuthenticationStateProvider _authStateProvider;
+
+    public AuthService(HttpClient http, AuthenticationStateProvider authStateProvider)
+    {
+        _http = http;
+        _authStateProvider = authStateProvider;
+    }
+    ...
+
+    public async Task<bool> IsUserAuthenticated() 
+        => (await _authStateProvider.GetAuthenticationStateAsync()).User.Identity.IsAuthenticated;
+}
+{% endhighlight %}
+
+# Cart with Authentication and Database
+
+## Models
+  - To add authentication, add UserId in CartItem.
+
+* BlazorEcommerce.Shared/CartItem.cs
+{% highlight cs %}
+public class CartItem
+{
+    public int UserId { get; set; }
+    public int ProductId { get; set; }
+    public int ProductTypeId { get; set; }
+    public int Quantity { get; set; } = 1;
+}
+{% endhighlight %}
+
+## Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CartItem>()
+            .HasKey(ci => new { ci.UserId, ci.ProductId, ci.ProductTypeId });
+        ...
+    }
+
+    ...
+    public DbSet<CartItem> CartItems { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add CartItems` and `dotnet ef database update`
+
+## Cart Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task<ServiceResponse<List<CartProductResponse>>> StoreCartItems(List<CartItem> cartItems);
+    Task<ServiceResponse<int>> GetCartItemsCount();
+    Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts();
+    Task<ServiceResponse<bool>> AddToCart(CartItem cartItem);
+    Task<ServiceResponse<bool>> UpdateQuantity(CartItem cartItem);
+    Task<ServiceResponse<bool>> RemoveItemFromCart(int productId, int productTypeId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+
+    public CartService(DataContext context, IAuthService authService)
+    {
+        _context = context;
+        _authService = authService;
+    }
+    ...
+
+    public async Task<ServiceResponse<List<CartProductResponse>>> StoreCartItems
+        (List<CartItem> cartItems)
+    {
+        cartItems.ForEach(cartItem => cartItem.UserId = _authService.GetUserId());
+        _context.CartItems.AddRange(cartItems);
+        await _context.SaveChangesAsync();
+
+        return await GetDbCartProducts();
+    }
+
+    public async Task<ServiceResponse<int>> GetCartItemsCount()
+    {
+        var count = await _context.CartItems.Where(ci => ci.UserId == _authService.GetUserId()).CountAsync();
+        return new ServiceResponse<int> { Data = count };
+    }
+
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts() => 
+        await GetCartProducts(await _context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()).ToListAsync());
+
+    public async Task<ServiceResponse<bool>> AddToCart(CartItem cartItem)
+    {
+        cartItem.UserId = _authService.GetUserId();
+
+        var sameItem = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == cartItem.ProductId &&
+            ci.ProductTypeId == cartItem.ProductTypeId && ci.UserId == cartItem.UserId);
+
+        if (sameItem == null)
+            _context.CartItems.Add(cartItem);
+        else
+            sameItem.Quantity += cartItem.Quantity;
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<bool>> UpdateQuantity(CartItem cartItem)
+    {
+        var dbCartItems = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == cartItem.ProductId &&
+            ci.ProductTypeId == cartItem.ProductTypeId && ci.UserId == _authService.GetUserId());
+        if(dbCartItems == null)
+            return new ServiceResponse<bool>
+            {
+                Data = false,
+                Success = false,
+                Message = "Cart item does not exist."
+            };
+
+        dbCartItems.Quantity = cartItem.Quantity;
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<bool>> RemoveItemFromCart(int productId, int productTypeId)
+    {
+        var dbCartItems = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == productId &&
+            ci.ProductTypeId == productTypeId && ci.UserId == _authService.GetUserId());
+        if (dbCartItems == null)
+            return new ServiceResponse<bool>
+            {
+                Data = false,
+                Success = false,
+                Message = "Cart item does not exist."
+            };
+
+        _context.CartItems.Remove(dbCartItems);
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+}
+{% endhighlight %}
+
+  - `CountAsync` returns count of the list items.
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/CartController.cs
+{% highlight cs %}
+...
+public class CartController : ControllerBase
+{
+    ...
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<List<CartProductResponse>>>> 
+        StoreCartItems(List<CartItem> cartItems)
+    {
+        var result = await _cartService.StoreCartItems(cartItems);
+        return Ok(result);
+    }
+
+    [HttpGet("count")]
+    public async Task<ActionResult<ServiceResponse<int>>> GetCartItemsCount() => 
+        await _cartService.GetCartItemsCount();
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<CartProductResponse>>>> GetDbCartProducts()
+    {
+        var result = await _cartService.GetDbCartProducts();
+        return Ok(result);
+    }
+
+    [HttpPost("add")]
+    public async Task<ActionResult<ServiceResponse<bool>>> AddToCart(CartItem cartItem)
+    {
+        var result = await _cartService.AddToCart(cartItem);
+        return Ok(result);
+    }
+
+    [HttpPost("update-quantity")]
+    public async Task<ActionResult<ServiceResponse<bool>>> UpdateQuantity(CartItem cartItem)
+    {
+        var result = await _cartService.UpdateQuantity(cartItem);
+        return Ok(result);
+    }
+
+    [HttpDelete("{productId}/{productTypeId}")]
+    public async Task<ActionResult> RemoveItemFromCart(int productId, int productTypeId)
+    {
+        var result = await _cartService.RemoveItemFromCart(productId, productTypeId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+## Cart Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task StoreCartItems(bool emptyLocalCart);
+    Task GetCartItemsCount();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    private readonly ILocalStorageService _localStorage;
+    private readonly HttpClient _http;
+    private readonly IAuthService _authService;
+
+    public CartService(
+        ILocalStorageService localStorage, 
+        HttpClient http,
+        IAuthService authService)
+    {
+        _localStorage = localStorage;
+        _http = http;
+        _authService = authService;
+    }
+
+    public event Action OnChange;
+
+    public async Task AddToCart(CartItem cartItem)
+    {
+        if (await _authService.IsUserAuthenticated())
+            await _http.PostAsJsonAsync("api/cart/add", cartItem);
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                cart = new List<CartItem>();
+
+            var sameItem = cart.Find(x => x.ProductId == cartItem.ProductId &&
+                x.ProductTypeId == cartItem.ProductTypeId);
+            if (sameItem == null)
+                cart.Add(cartItem);
+            else
+                sameItem.Quantity += cartItem.Quantity;
+
+            await _localStorage.SetItemAsync("cart", cart);
+        }
+
+        await GetCartItemsCount();
+    }
+
+    public async Task<List<CartProductResponse>> GetCartProducts()
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var response = await _http.GetFromJsonAsync<ServiceResponse<List<CartProductResponse>>>("api/cart");
+            return response.Data;
+        }
+        else
+        {
+            var cartItems = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cartItems == null)
+                return new List<CartProductResponse>();
+
+            var response = await _http.PostAsJsonAsync("api/cart/products", cartItems);
+            var cartProducts =
+                await response.Content.ReadFromJsonAsync<ServiceResponse<List<CartProductResponse>>>();
+            return cartProducts.Data;
+        }
+    }
+
+    public async Task RemoveProductFromCart(int productId, int productTypeId)
+    {
+        if (await _authService.IsUserAuthenticated())
+            await _http.DeleteAsync($"api/cart/{productId}/{productTypeId}");
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                return;
+
+            var cartItem = cart.Find(x => x.ProductId == productId
+            && x.ProductTypeId == productTypeId);
+            if (cartItem != null)
+            {
+                cart.Remove(cartItem);
+                await _localStorage.SetItemAsync("cart", cart);
+            }
+        }
+
+        await GetCartItemsCount();
+    }
+
+    public async Task UpdateQuantity(CartProductResponse product)
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var request = new CartItem
+            {
+                ProductId = product.ProductId,
+                Quantity = product.Quantity,
+                ProductTypeId = product.ProductTypeId
+            };
+            await _http.PostAsJsonAsync("api/cart/update-quantity", request);
+        }
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                return;
+
+            var cartItem = cart.Find(x => x.ProductId == product.ProductId
+            && x.ProductTypeId == product.ProductTypeId);
+            if (cartItem != null)
+            {
+                cartItem.Quantity = product.Quantity;
+                await _localStorage.SetItemAsync("cart", cart);
+            }
+        }
+    }
+
+    public async Task StoreCartItems(bool emptyLocalCart = false)
+    {
+        var localCart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+        if (localCart == null)
+            return;
+
+        await _http.PostAsJsonAsync("api/cart", localCart);
+
+        if (emptyLocalCart)
+            await _localStorage.RemoveItemAsync("cart");
+    }
+
+    public async Task GetCartItemsCount()
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var result = await _http.GetFromJsonAsync<ServiceResponse<int>>("api/cart/count");
+            var count = result.Data;
+
+            await _localStorage.SetItemAsync<int>("cartItemsCount", count);
+        }
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            await _localStorage.SetItemAsync<int>("cartItemsCount", cart != null ? cart.Count : 0);
+        }
+
+        OnChange.Invoke();
+    }
+}
+{% endhighlight %}
+
+# Order
+
+## Models
+
+* BlazorEcommerce.Shared/Order.cs
+{% highlight cs %}
+public class Order
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public DateTime OrderDate { get; set; } = DateTime.Now;
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalPrice { get; set; }
+    public List<OrderItem> OrderItems { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderDetailsProductResponse.cs
+{% highlight cs %}
+public class OrderDetailsProductResponse
+{
+    public int ProductId { get; set; }
+    public string Title { get; set; }
+    public string ProductType { get; set; }
+    public string ImageUrl { get; set; }
+    public int Quantity { get; set; }
+    public decimal TotalPrice { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderDetailsResponse.cs
+{% highlight cs %}
+public class OrderDetailsResponse
+{
+    public DateTime OrderDate { get; set; }
+    public decimal TotalPrice { get; set; }
+    public List<OrderDetailsProductResponse> Products { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderItem.cs
+{% highlight cs %}
+public class OrderItem
+{
+    public Order Order { get; set; }
+    public int OrderId { get; set; }
+    public Product Product { get; set; }
+    public int ProductId { get; set; }
+    public ProductType ProductType { get; set; }
+    public int ProductTypeId { get; set; }
+    public int Quantity { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalPrice { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderOverviewResponse.cs
+{% highlight cs %}
+public class OrderOverviewResponse
+{
+    public int Id { get; set; }
+    public DateTime OrderDate { get; set; }
+    public decimal TotalPrice { get; set; }
+    public string Product { get; set; }
+    public string ProductImageUrl { get; set; }
+}
+{% endhighlight %}
+
+## Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ...
+        modelBuilder.Entity<OrderItem>()
+            .HasKey(oi => new { oi.OrderId, oi.ProductId, oi.ProductTypeId });
+        ...
+    }
+
+    ...
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add Orders` and `dotnet ef database update`
+
+## Order Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<ServiceResponse<bool>> PlaceOrder();
+    Task<ServiceResponse<List<OrderOverviewResponse>>> GetOrders();
+    Task<ServiceResponse<OrderDetailsResponse>> GetOrderDetails(int orderId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+    private readonly ICartService _cartService;
+
+    public OrderService(
+        DataContext context,
+        IAuthService authService,
+        ICartService cartService)
+    {
+        _context = context;
+        _authService = authService;
+        _cartService = cartService;
+    }
+
+    public async Task<ServiceResponse<bool>> PlaceOrder()
+    {
+        var products = (await _cartService.GetDbCartProducts()).Data;
+        decimal totalPrice = 0;
+        products.ForEach(product => totalPrice += product.Price * product.Quantity);
+
+        var orderItems =  new List<OrderItem>();
+        products.ForEach(product => orderItems.Add(new OrderItem
+        {
+            ProductId = product.ProductId,
+            ProductTypeId = product.ProductTypeId,
+            Quantity = product.Quantity,
+            TotalPrice = product.Price * product.Quantity
+        }));
+
+        var order = new Order
+        {
+            UserId = _authService.GetUserId(),
+            OrderDate = DateTime.Now,
+            TotalPrice = totalPrice,
+            OrderItems = orderItems
+        };
+
+        _context.Add(order);
+
+        _context.CartItems.RemoveRange(_context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()));
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<List<OrderOverviewResponse>>> GetOrders()
+    {
+        var response = new ServiceResponse<List<OrderOverviewResponse>>();
+        var order = await _context.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .Where(o => o.UserId == _authService.GetUserId())
+            .OrderByDescending(o => o.OrderDate)
+            .ToListAsync();
+
+        var orderResponse = new List<OrderOverviewResponse>();
+        order.ForEach(o => orderResponse.Add(new OrderOverviewResponse
+        {
+            Id = o.Id,
+            OrderDate = o.OrderDate,
+            TotalPrice = o.TotalPrice,
+            Product = o.OrderItems.Count > 1 ?
+                $"{o.OrderItems.First().Product.Title} and" +
+                $"{o.OrderItems.Count - 1} more..." :
+                o.OrderItems.First().Product.Title,
+            ProductImageUrl = o.OrderItems.First().Product.ImageUrl
+        }));
+
+        response.Data = orderResponse;
+        return response;
+    }
+
+    public async Task<ServiceResponse<OrderDetailsResponse>> GetOrderDetails(int orderId)
+    {
+        var response = new ServiceResponse<OrderDetailsResponse>();
+        var order = await _context.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.ProductType)
+            .Where(o => o.UserId == _authService.GetUserId() && o.Id == orderId)
+            .OrderByDescending(o => o.OrderDate)
+            .FirstOrDefaultAsync();
+
+        if(order == null)
+        {
+            response.Success = false;
+            response.Message = "Order not found.";
+            return response;
+        }
+
+        var orderDetailsResponse = new OrderDetailsResponse
+        {
+            OrderDate = order.OrderDate,
+            TotalPrice = order.TotalPrice,
+            Products = new List<OrderDetailsProductResponse>()
+        };
+
+        order.OrderItems.ForEach(item =>
+        orderDetailsResponse.Products.Add(new OrderDetailsProductResponse
+        {
+            ProductId = item.ProductId,
+            ImageUrl = item.Product.ImageUrl,
+            ProductType = item.ProductType.Name,
+            Quantity = item.Quantity,
+            Title = item.Product.Title,
+            TotalPrice = item.TotalPrice
+        }));
+
+        response.Data = orderDetailsResponse;
+        return response;
+    }
+}
+{% endhighlight %}
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/OrderController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<bool>>> PlaceOrder()
+    {
+        var result = await _orderService.PlaceOrder();
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<OrderOverviewResponse>>>> GetOrders()
+    {
+        var result = await _orderService.GetOrders();
+        return Ok(result);
+    }
+
+    [HttpGet("{orderId}")]
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails(int orderId)
+    {
+        var result = await _orderService.GetOrderDetails(orderId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IOrderService, OrderService>();
+...
+{% endhighlight %}
+
+## Order Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task PlaceOrder();
+    Task<List<OrderOverviewResponse>> GetOrders();
+    Task<OrderDetailsResponse> GetOrderDetails(int orderId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    private readonly HttpClient _http;
+    private readonly AuthenticationStateProvider _authStateProvider;
+    private readonly NavigationManager _navigationManager;
+
+    public OrderService(
+        HttpClient http, 
+        AuthenticationStateProvider authStateProvider,
+        NavigationManager navigationManager)
+    {
+        _http = http;
+        _authStateProvider = authStateProvider;
+        _navigationManager = navigationManager;
+    }
+
+    private async Task<bool> IsUserAuthenticated()
+        => (await _authStateProvider.GetAuthenticationStateAsync())
+        .User.Identity.IsAuthenticated;
+
+    public async Task PlaceOrder()
+    {
+        if (await IsUserAuthenticated())
+            await _http.PostAsync("api/order", null);
+        else
+            _navigationManager.NavigateTo("login");
+    }
+
+    public async Task<List<OrderOverviewResponse>> GetOrders()
+    {
+        var result = await _http.GetFromJsonAsync<ServiceResponse<List<OrderOverviewResponse>>>("api/order");
+        return result.Data;
+    }
+
+    public async Task<OrderDetailsResponse> GetOrderDetails(int orderId)
+    {
+        var result = await _http.GetFromJsonAsync<ServiceResponse<OrderDetailsResponse>>($"api/order/{orderId}");
+        return result.Data;
+    }
+}
+{% endhighlight %}
+
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IOrderService, OrderService>();
+...
+{% endhighlight %}
+
+# View
+
+## Cart
+
+* BlazorEcommerce.Client/Shared/UserButton.razor
+{% highlight razor %}
+...
+<AuthorizeView>
+    <Authorized>
+        <a href="profile" class="dropdown-item">Profile</a>
+        <a href="orders" class="dropdown-item">Orders</a>
+        <hr/>
+        <button class="dropdown-item" @onclick="Logout">Logout</button>
+    </Authorized>
+    <NotAuthorized>
+        <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" 
+            class="dropdown-item">Login</a>
+        <a href="register" class="dropdown-item">Register</a>
+    </NotAuthorized>
+</AuthorizeView>
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.cs
+{% highlight cs %}
+public partial class UserButton
+{
+    ...
+    [Inject]
+    public ICartService CartService { get; set; }
+    ...
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await CartService.GetCartItemsCount();
+        await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        NavigationManager.NavigateTo("");
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/CartCounter.razor.cs
+{% highlight cs %}
+public partial class CartCounter : IDisposable
+{
+    ...
+    private int GetCartItemCount()
+    {
+        var count = LocalStorage.GetItem<int>("cartItemsCount");
+        return count;
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Login.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    [Inject]
+    public ICartService CartService { get; set; }
+    ...
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.Login(user);
+        if(result.Success)
+        {
+            errorMessage = string.Empty;
+
+            await LocalStorage.SetItemAsync("authToken", result.Data);
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            await CartService.StoreCartItems(true);
+            await CartService.GetCartItemsCount();
+            NavigationManager.NavigateTo(returnUrl);
+        }
+        else
+            errorMessage = result.Message;
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    private async Task LoadCart()
+    {
+        await CartService.GetCartItemsCount();
+        cartProducts = await CartService.GetCartProducts();
+        if (!cartProducts.Any())
+            message = "Your cart is empty.";
+    }
+}
+{% endhighlight %}
+
+## Order
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+...
+else if(orderPlaced)
+{
+    <span>Thank you for your order! You can check your orders <a href="orders">here</a>.</span>
+}
+else
+{
+    ...
+    <button @onclick="PlaceOrder" class="btn alert-success float-end mt-1">Place Order</button>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    ...
+    bool orderPlaced = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orderPlaced = false;
+        await LoadCart();
+    }
+
+    private async Task PlaceOrder()
+    {
+        await OrderService.PlaceOrder();
+        await CartService.GetCartItemsCount();
+        orderPlaced = true;
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor
+{% highlight razor %}
+@page "/orders"
+
+<h3>Orders</h3>
+
+@if(orders == null)
+{
+    <span>Loading your orders...</span>
+}
+else if(orders.Count <= 0)
+{
+    <span>You have no orders, yet.</span>
+}
+else
+{
+    foreach(var order in orders)
+    {
+        <div class="container">
+            <div class="image-wrapper">
+                <img src="@order.ProductImageUrl" class="image"/>
+            </div>
+            <div class="details">
+                <h4>@order.Product</h4>
+                <span>@order.OrderDate</span><br/>
+                <a href="orders/@order.Id">Show more...</a>
+            </div>
+            <div class="order-price">$@order.TotalPrice</div>
+        </div>
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor.cs
+{% highlight cs %}
+public partial class Orders
+{
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    List<OrderOverviewResponse> orders = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await OrderService.GetOrders();
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor.css
+{% highlight css %}
+.container {
+    display: flex;
+    padding: 6px;
+    border: 1px solid;
+    border-color: lightgray;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.image-wrapper {
+    width: 150px;
+    text-align: center;
+}
+
+.image {
+    max-height: 150px;
+    max-width: 150px;
+    padding: 6px;
+}
+
+.details {
+    flex-grow: 1;
+    padding: 6px;
+}
+
+.order-price {
+    font-weight: 600;
+    font-size: 1.2em;
+    text-align: right;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor
+{% highlight razor %}
+@page "/orders/{orderId:int}"
+
+@if(order == null)
+{
+    <span>Loading order...</span>
+}
+else
+{
+    <h3>Order from @order.OrderDate</h3>
+
+    <div>
+        @foreach(var product in order.Products)
+        {
+            <div class="container">
+                <div class="image-wrapper">
+                    <img src="@product.ImageUrl" class="image"/>
+                </div>
+            </div>
+            <div class="name">
+                <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
+                <span>@product.ProductType</span><br/>
+                <span>Quantity: @product.Quantity</span>
+            </div>
+            <div class="product-price">$@product.TotalPrice</div>
+        }
+        <div class="product-price">
+            Total: $@order.TotalPrice
+        </div>
+    </div>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor.cs
+{% highlight cs %}
+ public partial class OrderDetails
+{
+    [Parameter]
+    public int OrderId { get; set; }
+
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    OrderDetailsResponse order = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        order = await OrderService.GetOrderDetails(OrderId);
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor.css
+{% highlight css %}
+.container {
+    display: flex;
+    padding: 6px;
+}
+
+.image-wrapper {
+    width: 150px;
+    text-align: center;
+}
+
+.image {
+    max-height: 150px;
+    max-width: 150px;
+    padding: 6px;
+}
+
+.name {
+    flex-grow: 1;
+    padding: 6px;
+}
+
+.product-price {
+    font-weight: 600;
+    text-align: right;
+}
+{% endhighlight %}
+
+## Run
+
+### Cart
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/28.jpg"><img src="/assets/img/posts/blazor_ecommerce/28.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/29.jpg"><img src="/assets/img/posts/blazor_ecommerce/29.jpg"></a>
+  <figcaption>Cart</figcaption>
+</figure>
+
+### Order
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/30.jpg"><img src="/assets/img/posts/blazor_ecommerce/30.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/31.jpg"><img src="/assets/img/posts/blazor_ecommerce/31.jpg"></a>
+  <figcaption>Order</figcaption>
+</figure>
 
 # Code
 
