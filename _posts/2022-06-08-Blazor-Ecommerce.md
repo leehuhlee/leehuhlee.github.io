@@ -4201,6 +4201,452 @@ else
   <figcaption>Order</figcaption>
 </figure>
 
+# Payment with Webhook
+  - A webhook in web development is a method of augmenting or altering the behavior of a web page or web application with custom callbacks.
+
+## Stripe
+  - It offers payment processing software and application programming interfaces (APIs) for e-commerce websites and mobile.
+
+### Account
+  - Create account ot <a href="https://stripe.com/de">Stripe</a>.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/32.jpg"><img src="/assets/img/posts/blazor_ecommerce/32.jpg"></a>
+  <figcaption>Payment with Stripe Checkout</figcaption>
+</figure>
+
+### API Key
+  - Create your secret key from Stripe.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/34.jpg"><img src="/assets/img/posts/blazor_ecommerce/34.jpg"></a>
+  <figcaption>API Key</figcaption>
+</figure>
+
+### Stripe CLI
+  - Download <a href="https://github.com/stripe/stripe-cli/releases/tag/v1.10.3">Stripe-Cli</a>.
+  - Login in Stripe with `stripe login`.
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/36.jpg"><img src="/assets/img/posts/blazor_ecommerce/36.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/35.jpg"><img src="/assets/img/posts/blazor_ecommerce/35.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+## Package in Server
+  - Download `Stripe.net` in Server.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/33.jpg"><img src="/assets/img/posts/blazor_ecommerce/33.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+## Payment Service in Server
+
+### Get User Email From Auth Service
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    string GetUserEmail();
+    Task<User> GetUserByEmail(string email);
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    ...
+    public string GetUserEmail()
+            => _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name);
+
+    public async Task<User> GetUserByEmail(string email)
+        => await _context.Users.FirstOrDefaultAsync(u => u.Email.Equals(email));
+    ...
+}
+{% endhighlight %}
+
+### When you checkout, Get Cart Products from Database
+
+* BlazorEcommerce.Server/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts(int? userId = null);
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    ...
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts(int? userId  = null)
+    {
+        if(userId == null)
+            userId = _authService.GetUserId();
+
+        return await GetCartProducts(await _context.CartItems
+            .Where(ci => ci.UserId == userId).ToListAsync());
+    }
+    ...
+}
+{% endhighlight %}
+
+### get Orders when you checkout
+
+* BlazorEcommerce.Server/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<ServiceResponse<bool>> PlaceOrder(int userId);
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    ...
+    public async Task<ServiceResponse<bool>> PlaceOrder(int userId)
+    {
+        var products = (await _cartService.GetDbCartProducts(userId)).Data;
+        decimal totalPrice = 0;
+        products.ForEach(product => totalPrice += product.Price * product.Quantity);
+
+        var orderItems =  new List<OrderItem>();
+        products.ForEach(product => orderItems.Add(new OrderItem
+        {
+            ProductId = product.ProductId,
+            ProductTypeId = product.ProductTypeId,
+            Quantity = product.Quantity,
+            TotalPrice = product.Price * product.Quantity
+        }));
+
+        var order = new Order
+        {
+            UserId = userId,
+            OrderDate = DateTime.Now,
+            TotalPrice = totalPrice,
+            OrderItems = orderItems
+        };
+
+        _context.Add(order);
+
+        _context.CartItems.RemoveRange(_context.CartItems
+            .Where(ci => ci.UserId == userId));
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<OrderOverviewResponse>>>> GetOrders()
+    {
+        var result = await _orderService.GetOrders();
+        return Ok(result);
+    }
+
+    [HttpGet("{orderId}")]
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails(int orderId)
+    {
+        var result = await _orderService.GetOrderDetails(orderId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+### Payment Service
+
+* BlazorEcommerce.Server/Services/PaymentService/IPaymentService.cs
+{% highlight cs %}
+public interface IPaymentService
+{
+    Task<Session> CreateCheckoutSession();
+    Task<ServiceResponse<bool>> FulfillOrder(HttpRequest request);
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/PaymentService/PaymentService.cs
+{% highlight cs %}
+public class PaymentService : IPaymentService
+{
+    private readonly IAuthService _authService;
+    private readonly ICartService _cartService;
+    private readonly IOrderService _orderService;
+
+    const string secret = "your secret key";
+
+    public PaymentService(
+        IAuthService authService,
+        ICartService cartService,
+        IOrderService orderService)
+    {
+        StripeConfiguration.ApiKey = "your api key";
+
+        _authService = authService;
+        _cartService = cartService;
+        _orderService = orderService;
+    }
+
+    public async Task<Session> CreateCheckoutSession()
+    {
+        var products = (await _cartService.GetDbCartProducts()).Data;
+        var lineItems = new List<SessionLineItemOptions>();
+        products.ForEach(product => lineItems.Add(new SessionLineItemOptions
+        {
+            PriceData = new SessionLineItemPriceDataOptions
+            {
+                UnitAmountDecimal = product.Price * 100,
+                Currency = "usd",
+                ProductData = new SessionLineItemPriceDataProductDataOptions
+                {
+                    Name = product.Title,
+                    Images = new List<string> { product.ImageUrl }
+                }
+            },
+            Quantity = product.Quantity
+        }));
+
+        var options = new SessionCreateOptions
+        {
+            CustomerEmail = _authService.GetUserEmail(),
+            ShippingAddressCollection = 
+                new SessionShippingAddressCollectionOptions
+                {
+                    AllowedCountries = new List<string> { "US" }
+                },
+            PaymentMethodTypes = new List<string> { "card" },
+            LineItems = lineItems,
+            Mode = "payment",
+            SuccessUrl = "your local host url/order-success",
+            CancelUrl = "your local host url/cart"
+        };
+
+        var service = new SessionService();
+        Session session = service.Create(options);
+        return session;
+    }
+
+    public async Task<ServiceResponse<bool>> FulfillOrder(HttpRequest request)
+    {
+        var json = await new StreamReader(request.Body).ReadToEndAsync();
+        try
+        {
+            var stripeEvent = EventUtility.ConstructEvent(
+                json,
+                request.Headers["Stripe-Signature"],
+                secret);
+
+            if(stripeEvent.Type == Events.CheckoutSessionCompleted)
+            {
+                var session = stripeEvent.Data.Object as Session;
+                var user = await _authService.GetUserByEmail(session.CustomerEmail);
+                await _orderService.PlaceOrder(user.Id);
+            }
+
+            return new ServiceResponse<bool> { Data = true };
+        }
+        catch (StripeException e)
+        {
+            return new ServiceResponse<bool> { Data = false, Success = false, Message = e.Message };
+        }
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Controllers/PaymentController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class PaymentController : ControllerBase
+{
+    private readonly IPaymentService _paymentService;
+
+    public PaymentController(IPaymentService paymentService)
+    {
+        _paymentService = paymentService;
+    }
+
+    [HttpPost("checkout"), Authorize]
+    public async Task<ActionResult<string>> CreateCheckoutSession()
+    {
+        var session = await _paymentService.CreateCheckoutSession();
+        return Ok(session.Url);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<string>>> FulfillOrder()
+    {
+        var response = await _paymentService.FulfillOrder(Request);
+        if(!response.Success)
+            return BadRequest(response.Message);
+
+        return Ok(response);
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+...
+{% endhighlight %}
+
+## Refactoring Order Service in Client
+
+* BlazorEcommerce.Client/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<string> PlaceOrder();
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    ...
+    public async Task<string> PlaceOrder()
+    {
+        if (await IsUserAuthenticated())
+        {
+            var result = await _http.PostAsync("api/payment/checkout", null);
+            var url = await result.Content.ReadAsStringAsync();
+            return url;
+        }
+        else
+            return "login";
+    }
+    ...
+}
+{% endhighlight %}
+
+## View
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+@page "/cart"
+
+<h3>Shopping Cart</h3>
+
+@if (!cartProducts.Any())
+{
+    <span>@message</span>
+}
+else
+{
+    <div>
+        @foreach(var product in cartProducts)
+        {
+            <div class="container">
+                <div class="image-wrapper">
+                    <img src="@product.ImageUrl" class="image"/>
+                </div>
+                <div class="name">
+                    <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
+                    <span>@product.ProductType</span><br/>
+                    <input type="number" 
+                           value="@product.Quantity" 
+                           @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" 
+                           class="form-control input-quantity" 
+                           min="1"/>
+                    <button class="btn-delete" 
+                            @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            Delete</button>
+                </div>
+                <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
+            </div>
+        }
+        <div class="cart-product-price">
+            Total (@cartProducts.Count): $@cartProducts.Sum(product => 
+                @product.Price * product.Quantity)
+        </div>
+    </div>
+    <button @onclick="PlaceOrder" class="btn alert-success float-end mt-1">Checkout</button>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Cart
+{
+    ...
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    ...
+    protected override async Task OnInitializedAsync()
+        => await LoadCart();
+
+    ...
+    private async Task PlaceOrder()
+    {
+        string url = await OrderService.PlaceOrder();
+        NavigationManager.NavigateTo(url);
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderSuccess.razor
+{% highlight razor %}
+@page "/order-success"
+
+<h3>Thank you!</h3>
+
+<span>Thank you for your order! You can check your orders <a href="orders">here</a>.</span>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class OrderSucess
+{
+    [Inject]
+    public ICartService CartService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+        => await CartService.GetCartItemsCount();
+}
+{% endhighlight %}
+
+## Run
+
+### Payment
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/37.jpg"><img src="/assets/img/posts/blazor_ecommerce/37.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/38.jpg"><img src="/assets/img/posts/blazor_ecommerce/38.jpg"></a>
+  <figcaption>Payment</figcaption>
+</figure>
+
 # Code
 
 [Download](https://github.com/leehuhlee/BlazorEcommerce){: .btn}
