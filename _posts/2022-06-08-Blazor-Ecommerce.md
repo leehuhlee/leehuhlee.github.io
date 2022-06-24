@@ -4206,6 +4206,7 @@ else
 
 ## Stripe
   - It offers payment processing software and application programming interfaces (APIs) for e-commerce websites and mobile.
+  - Please read <a href="https://stripe.com/docs/payments/quickstart">Stripe Documents</a>, if you want to get more information.
 
 ### Account
   - Create account ot <a href="https://stripe.com/de">Stripe</a>.
@@ -4645,6 +4646,345 @@ public partial class OrderSucess
   <a href="/assets/img/posts/blazor_ecommerce/37.jpg"><img src="/assets/img/posts/blazor_ecommerce/37.jpg"></a>
   <a href="/assets/img/posts/blazor_ecommerce/38.jpg"><img src="/assets/img/posts/blazor_ecommerce/38.jpg"></a>
   <figcaption>Payment</figcaption>
+</figure>
+
+# Address
+
+## Models
+
+* BlazorEcommerce.Shared/Address.cs
+{% highlight cs %}
+public class Address
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Street { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string Zip { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/User.cs
+{% highlight cs %}
+public class User
+{
+    ...
+    public Address Address { get; set; }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Shared/Program.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    public DbSet<Address> Addresses { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add UserAddress` and `dotnet ef database update`.
+
+## Address Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/AddressService/IAddressService.cs
+{% highlight cs %}
+public interface IAddressService
+{
+    Task<ServiceResponse<Address>> GetAddress();
+    Task<ServiceResponse<Address>> AddOrUpdateAddress(Address address);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/AddressService/AddressService.cs
+{% highlight cs %}
+public class AddressService : IAddressService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+
+    public AddressService(DataContext context, IAuthService authService)
+    {
+        _context = context;
+        _authService = authService;
+    }
+
+    public async Task<ServiceResponse<Address>> AddOrUpdateAddress(Address address)
+    {
+        var response = new ServiceResponse<Address>();
+        var dbAddress = (await GetAddress()).Data;
+        if(dbAddress == null)
+        {
+            address.UserId = _authService.GetUserId();
+            _context.Addresses.Add(address);
+            response.Data = address;
+        }
+        else
+        { 
+            dbAddress.FirstName = address.FirstName;
+            dbAddress.LastName = address.LastName;
+            dbAddress.Street = address.Street;
+            dbAddress.City = address.City;
+            dbAddress.State = address.State;
+            dbAddress.Zip = address.Zip;
+            dbAddress.Country = address.Country;
+            response.Data = dbAddress;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return response;
+    }
+
+    public async Task<ServiceResponse<Address>> GetAddress()
+    {
+        int userId = _authService.GetUserId();
+        var address = await _context.Addresses
+            .FirstOrDefaultAsync(a => a.UserId == userId);
+        return new ServiceResponse<Address> { Data = address };
+    }
+}
+{% endhighlight %}
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/AddressController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+[Authorize]
+public class AddressController : ControllerBase
+{
+    private readonly IAddressService _addressService;
+
+    public AddressController(IAddressService addressService)
+    {
+        _addressService = addressService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<Address>>> GetAddress()
+        => await _addressService.GetAddress();
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<Address>>> AddOrUpdateAddress(Address address)
+        => await _addressService.AddOrUpdateAddress(address);
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAddressService, AddressService>();
+...
+{% endhighlight %}
+
+## Address Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AddressService/IAddressService.cs
+{% highlight cs %}
+public interface IAddressService
+{
+    Task<Address> GetAddress();
+    Task<Address> AddOrUpdateAddress(Address address);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AddressService/AddressService.cs
+{% highlight cs %}
+public class AddressService : IAddressService
+{
+    private readonly HttpClient _http;
+
+    public AddressService(HttpClient http)
+    {
+        _http = http;
+    }
+
+    public async Task<Address> AddOrUpdateAddress(Address address)
+    {
+        var response = await _http.PostAsJsonAsync("api/address", address);
+        return response.Content.ReadFromJsonAsync<ServiceResponse<Address>>().Result.Data;
+    }
+
+    public async Task<Address> GetAddress()
+    {
+        var response = await _http.GetFromJsonAsync<ServiceResponse<Address>>("api/address");
+        return response.Data;
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAddressService, AddressService>();
+...
+{% endhighlight %}
+
+## View
+
+* BlazorEcommerce.Client/Shared/AddressForm.razor
+{% highlight razor %}
+@if (address == null)
+{
+    <span>
+        You haven't specified a delivery address, yet.
+        <button class="btn" @onclick="InitAddress">Add an address?</button>
+    </span>
+}
+else if (!editAddress)
+{
+    <p>
+        <span>@address.FirstName @address.LastName</span><br/>
+        <span>@address.Street</span><br/>
+        <span>@address.City @address.State @address.Zip</span><br/>
+        <span>@address.Country</span><br/>
+    </p>
+    <button class="btn btn-primary" @onclick="EditAddress">Edit</button>
+}
+else
+{
+    <EditForm Model="address" OnSubmit="SubmitAddress">
+        <div class="mb-3">
+            <label for="firstname">First Name</label>
+            <InputText id="firstname" @bind-Value="address.FirstName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="lastname">Last Name</label>
+            <InputText id="lastname" @bind-Value="address.LastName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="street">Street</label>
+            <InputText id="street" @bind-Value="address.Street" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="city">City</label>
+            <InputText id="city" @bind-Value="address.City" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="state">State</label>
+            <InputText id="state" @bind-Value="address.State" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="zip">Zip/Postal Code</label>
+            <InputText id="zip" @bind-Value="address.Zip" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="country">Country</label>
+            <InputText id="country" @bind-Value="address.Country" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </EditForm>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/AddressForm.razor.cs
+{% highlight cs %}
+public partial class AddressForm
+{
+    [Inject]
+    public IAddressService AddressService { get; set; }
+
+    Address address = null;
+    bool editAddress = false;
+
+    protected override async Task OnInitializedAsync()
+        => address = await AddressService.GetAddress();
+
+    private async Task SubmitAddress()
+    {
+        editAddress = false;
+        address = await AddressService.AddOrUpdateAddress(address);
+    }
+
+    private void InitAddress()
+    {
+        address = new Address();
+        editAddress = true;
+    }
+
+    private void EditAddress()
+        => editAddress = true;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+...
+@if(isAuthenticated)
+{
+    <div>
+        <h5>Delivery Address</h5>
+        <AddressForm />
+    </div>
+}
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Cart
+{
+    ...
+    [Inject]
+    public IAuthService AuthService { get; set; }
+
+    ...
+    bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsUserAuthenticated();
+        await LoadCart();
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Profile.razor
+{% highlight razor %}
+...
+<h5>Delivery Address</h5>
+<AddressForm />
+<p></p>
+...
+{% endhighlight %}
+
+## Run
+
+### Profile
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/40.jpg"><img src="/assets/img/posts/blazor_ecommerce/40.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/41.jpg"><img src="/assets/img/posts/blazor_ecommerce/41.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/42.jpg"><img src="/assets/img/posts/blazor_ecommerce/42.jpg"></a>
+  <figcaption>Profile</figcaption>
+</figure>
+
+### Cart
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/43.jpg"><img src="/assets/img/posts/blazor_ecommerce/43.jpg"></a>
+  <figcaption>Cart</figcaption>
 </figure>
 
 # Code
