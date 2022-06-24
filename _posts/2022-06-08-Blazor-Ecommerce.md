@@ -3252,7 +3252,8 @@ public class CartService : ICartService
 
     public async Task<ServiceResponse<int>> GetCartItemsCount()
     {
-        var count = await _context.CartItems.Where(ci => ci.UserId == _authService.GetUserId()).CountAsync();
+        var count = await _context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()).CountAsync();
         return new ServiceResponse<int> { Data = count };
     }
 
@@ -3386,7 +3387,7 @@ public interface ICartService
 
 ### Implement
 
-* BlazorEcommerce.Server/Services/CartService/CartService.cs
+* BlazorEcommerce.Client/Services/CartService/CartService.cs
 {% highlight cs %}
 public class CartService : ICartService
 {
@@ -3433,7 +3434,8 @@ public class CartService : ICartService
     {
         if (await _authService.IsUserAuthenticated())
         {
-            var response = await _http.GetFromJsonAsync<ServiceResponse<List<CartProductResponse>>>("api/cart");
+            var response = await _http
+                .GetFromJsonAsync<ServiceResponse<List<CartProductResponse>>>("api/cart");
             return response.Data;
         }
         else
@@ -3444,7 +3446,8 @@ public class CartService : ICartService
 
             var response = await _http.PostAsJsonAsync("api/cart/products", cartItems);
             var cartProducts =
-                await response.Content.ReadFromJsonAsync<ServiceResponse<List<CartProductResponse>>>();
+                await response.Content
+                    .ReadFromJsonAsync<ServiceResponse<List<CartProductResponse>>>();
             return cartProducts.Data;
         }
     }
@@ -3790,7 +3793,8 @@ public class OrderController : ControllerBase
     }
 
     [HttpGet("{orderId}")]
-    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails(int orderId)
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails
+        (int orderId)
     {
         var result = await _orderService.GetOrderDetails(orderId);
         return Ok(result);
@@ -3855,13 +3859,15 @@ public class OrderService : IOrderService
 
     public async Task<List<OrderOverviewResponse>> GetOrders()
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<List<OrderOverviewResponse>>>("api/order");
+        var result = await _http
+            .GetFromJsonAsync<ServiceResponse<List<OrderOverviewResponse>>>("api/order");
         return result.Data;
     }
 
     public async Task<OrderDetailsResponse> GetOrderDetails(int orderId)
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<OrderDetailsResponse>>($"api/order/{orderId}");
+        var result = await _http
+            .GetFromJsonAsync<ServiceResponse<OrderDetailsResponse>>($"api/order/{orderId}");
         return result.Data;
     }
 }
@@ -4287,7 +4293,8 @@ public interface ICartService
 public class CartService : ICartService
 {
     ...
-    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts(int? userId  = null)
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts
+        (int? userId  = null)
     {
         if(userId == null)
             userId = _authService.GetUserId();
@@ -4351,7 +4358,7 @@ public class CartService : ICartService
 }
 {% endhighlight %}
 
-* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+* BlazorEcommerce.Server/Controllers/OrderController.cs
 {% highlight cs %}
 [Route("api/[controller]")]
 [ApiController]
@@ -4372,7 +4379,8 @@ public class OrderController : ControllerBase
     }
 
     [HttpGet("{orderId}")]
-    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails(int orderId)
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails
+        (int orderId)
     {
         var result = await _orderService.GetOrderDetails(orderId);
         return Ok(result);
@@ -4581,7 +4589,8 @@ else
                            class="form-control input-quantity" 
                            min="1"/>
                     <button class="btn-delete" 
-                            @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            @onclick="@(() 
+                                => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
                             Delete</button>
                 </div>
                 <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
