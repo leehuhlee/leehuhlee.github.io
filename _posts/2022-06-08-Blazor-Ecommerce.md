@@ -651,6 +651,9 @@ public class DataContext : DbContext
 }
 {% endhighlight %}
 
+### Datebase
+  - Enter `dotnet ef migrations add Products` and `dotnet ef update database` in CLI.
+
 ### Service Responce with Generics
 
 * BlazorEcommerce.Shared/ServiceResponse.cs
@@ -739,10 +742,12 @@ public class ProductService : IProductService
         return response;
     }
 
-    public async Task<ServiceResponse<ProductSearchResult>> SearchProducts(string searchText, int page)
+    public async Task<ServiceResponse<ProductSearchResult>> SearchProducts
+            (string searchText, int page)
     {
         var pageResults = 2f;
-        var pageCount = Math.Ceiling((await FindProductsBySearchText(searchText)).Count / pageResults);
+        var pageCount 
+                = Math.Ceiling((await FindProductsBySearchText(searchText)).Count / pageResults);
         var products = await _context.Products
                             .Where(p => p.Title.ToLower().Equals(searchText.ToLower())
                             || p.Description.ToLower().Contains(searchText.ToLower()))
@@ -792,7 +797,8 @@ public class ProductService : IProductService
 
                 foreach(var word in words)
                 {
-                    if(word.Contains(searchText, StringComparison.OrdinalIgnoreCase) && !result.Contains(word))
+                    if(word.Contains(searchText, StringComparison.OrdinalIgnoreCase) 
+                            && !result.Contains(word))
                         result.Add(word);
                 }
             }
@@ -852,21 +858,24 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("category/{categoryUrl}")]
-    public async Task<ActionResult<ServiceResponse<List<Product>>>> GetProductsByCategory(string categoryUrl)
+    public async Task<ActionResult<ServiceResponse<List<Product>>>> GetProductsByCategory
+            (string categoryUrl)
     {
         var result = await _productService.GetProductsByCategory(categoryUrl);
         return Ok(result);
     }
 
     [HttpGet("search/{searchText}/{page}")]
-    public async Task<ActionResult<ServiceResponse<ProductSearchResult>>> SearchProducts(string searchText, int page = 1)
+    public async Task<ActionResult<ServiceResponse<ProductSearchResult>>> SearchProducts
+            (string searchText, int page = 1)
     {
         var result = await _productService.SearchProducts(searchText, page);
         return Ok(result);
     }
 
     [HttpGet("searchsuggestions/{searchText}")]
-    public async Task<ActionResult<ServiceResponse<List<string>>>> GetProductSearchSuggestions(string searchText)
+    public async Task<ActionResult<ServiceResponse<List<string>>>> GetProductSearchSuggestions
+            (string searchText)
     {
         var result = await _productService.GetProductSearchSuggestions(searchText);
         return Ok(result);
@@ -934,7 +943,8 @@ public class ProductService : IProductService
     public event Action ProductsChanged;
     public async Task<ServiceResponse<Product>> GetProduct(int productId)
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<Product>>($"api/product/{productId}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<Product>>
+            ($"api/product/{productId}");
         return result;
     }
 
@@ -942,7 +952,8 @@ public class ProductService : IProductService
     {
         var result = categoryUrl == null ?
             await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>("api/product/featured") :
-            await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>($"api/product/category/{categoryUrl}");
+            await _http.GetFromJsonAsync<ServiceResponse<List<Product>>>
+                ($"api/product/category/{categoryUrl}");
         if(result != null && result.Data != null)
             Products = result.Data;
 
@@ -956,14 +967,16 @@ public class ProductService : IProductService
 
     public async Task<List<string>> GetProductSearchSuggestions(string searchText)
     {
-        var result = await _http.GetFromJsonAsync<ServiceResponse<List<string>>>($"api/product/searchsuggestions/{searchText}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<List<string>>>
+            ($"api/product/searchsuggestions/{searchText}");
         return result.Data;
     }
 
     public async Task SearchProducts(string searchText, int page)
     {
         LastSearchText = searchText;
-        var result = await _http.GetFromJsonAsync<ServiceResponse<ProductSearchResult>>($"api/product/search/{searchText}/{page}");
+        var result = await _http.GetFromJsonAsync<ServiceResponse<ProductSearchResult>>
+            ($"api/product/search/{searchText}/{page}");
         if (result != null && result.Data != null)
         {
             Products = result.Data.Products;
@@ -1175,7 +1188,8 @@ public class CartService : ICartService
         _context = context;
     }
 
-    public async Task<ServiceResponse<List<CartProductResponse>>> GetCartProducts(List<CartItem> cartItems)
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetCartProducts
+            (List<CartItem> cartItems)
     {
         var result = new ServiceResponse<List<CartProductResponse>>()
         {
@@ -1899,7 +1913,10 @@ else
     {
         for(var i = 1; i <= ProductService.PageCount; i++)
         {
-            <a class="btn @(i == ProductService.CurrentPage ? "btn-info" : "btn-outline-info") page-selection" href="/search/@ProductService.LastSearchText/@i">@i</a>
+            <a class="btn 
+                      @(i == ProductService.CurrentPage ? "btn-info" : "btn-outline-info") 
+                      page-selection" 
+               href="/search/@ProductService.LastSearchText/@i">@i</a>
         }
     }
 }
@@ -2130,14 +2147,22 @@ else
                 <div class="name">
                     <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
                     <span>@product.ProductType</span><br/>
-                    <input type="number" value="@product.Quantity" @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" class="form-control input-quantity" min="1"/>
-                    <button class="btn-delete" @onclick="@(() => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">Delete</button>
+                    <input type="number" 
+                           value="@product.Quantity" 
+                           @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" 
+                           class="form-control input-quantity" 
+                           min="1"/>
+                    <button class="btn-delete" 
+                            @onclick="@(() 
+                                => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            Delete</button>
                 </div>
                 <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
             </div>
         }
         <div class="cart-product-price">
-            Total (@cartProducts.Count): $@cartProducts.Sum(product => @product.Price * product.Quantity)
+            Total (@cartProducts.Count): $@cartProducts.Sum(product => 
+                @product.Price * product.Quantity)
         </div>
     </div>
 }
@@ -2244,6 +2269,2731 @@ public partial class Cart
   <a href="/assets/img/posts/blazor_ecommerce/14.jpg"><img src="/assets/img/posts/blazor_ecommerce/14.jpg"></a>
   <a href="/assets/img/posts/blazor_ecommerce/15.jpg"><img src="/assets/img/posts/blazor_ecommerce/15.jpg"></a>
   <figcaption>Package in Client</figcaption>
+</figure>
+
+# Auth
+
+## Models
+
+* BlazorEcommerce.Shared/User.cs
+{% highlight cs %}
+public class User
+{
+    public int Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public byte[] PasswordHash { get; set; }
+    public byte[] PasswordSalt { get; set; }
+    public DateTime DateCreated { get; set; } = DateTime.Now;
+}
+{% endhighlight %}
+
+  - `PasswordSalt` is added characters in your original password. 
+  - For example, your original password is yellow. But, you know, others also can use yellow for password. To avoid same passwords, we add salt like yellow#1Gn% or yellow9j?L.
+  - So hashed `PasswordSalt` is powerful than normal securities.
+
+* BlazorEcommerce.Shared/UserRegister.cs
+{% highlight cs %}
+public class UserRegister
+{
+    [Required, EmailAddress]
+    public string Email { get; set; } = string.Empty;
+    [Required, StringLength(100, MinimumLength = 6)]
+    public string Password { get; set; } = string.Empty;
+    [Compare("Password", ErrorMessage = "The passwords do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/UserLogin.cs
+{% highlight cs %}
+public class UserLogin
+{
+    [Required]
+    public string Email { get; set; } = string.Empty;
+    [Required]
+    public string Password { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/UserLogin.cs
+{% highlight cs %}
+public class UserChangePassword
+{
+    [Required, StringLength(100, MinimumLength = 6)]
+    public string Password { get; set; } = string.Empty;
+    [Compare("Password", ErrorMessage = "The password do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+...
+public DbSet<User> Users { get; set; }
+{% endhighlight %}
+
+### Datebase
+  - Enter `dotnet ef migrations add Users` and `dotnet ef update database` in CLI.
+
+## Auth Service in Server
+
+### Package in Server
+  - Download `Microsoft.AspNetCore.Authentication.JwtBearer`.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/16.jpg"><img src="/assets/img/posts/blazor_ecommerce/16.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+### Interface 
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    Task<ServiceResponse<int>> Register(User user, string password);
+    Task<bool> UserExists(string email);
+    Task<ServiceResponse<string>> Login(string email, string password);
+    Task<ServiceResponse<bool>> ChangePassword(int userId, string newPassword);
+}
+{% endhighlight %}
+
+### Implement 
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly DataContext _context;
+    private readonly IConfiguration _configuration;
+
+    public AuthService(DataContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _configuration = configuration;
+    }
+    
+    public async Task<ServiceResponse<int>> Register(User user, string password)
+    {
+        if(await UserExists(user.Email))
+            return new ServiceResponse<int> 
+            { 
+                Success = false, 
+                Message = "User already exists." 
+            };
+
+        CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
+
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<int> { Data = user.Id, Message = "Registration successful!" };
+    }
+
+    public async Task<ServiceResponse<string>> Login(string email, string password)
+    {
+        var response = new ServiceResponse<string>();
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.Email.ToLower().Equals(email.ToLower()));
+        if(user == null)
+        {
+            response.Success = false;
+            response.Message = "User not found.";
+        }
+        else if(!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+        {
+            response.Success = false;
+            response.Message = "Wrong password.";
+        }
+        else
+            response.Data = CreateToken(user);
+
+        return response;
+    }
+
+    public async Task<bool> UserExists(string email)
+    {
+        if (await _context.Users.AnyAsync(user => user.Email.ToLower()
+                .Equals(email.ToLower())))
+            return true;
+        return false;
+    }
+
+    private void CreatePasswordHash
+        (string password, out byte[] passwordHash, out byte[] passwordSalt)
+    {
+        using(var hmac = new HMACSHA512())
+        {
+            passwordSalt = hmac.Key;
+            passwordHash = hmac
+                .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+        }
+    }
+
+    private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+    {
+        using (var hmac = new HMACSHA512(passwordSalt))
+        {
+            var computedHash = 
+                hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+
+            return computedHash.SequenceEqual(passwordHash);
+        }
+    }
+
+    private string CreateToken(User user)
+    {
+        List<Claim> claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Email)
+        };
+
+        var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8
+            .GetBytes(_configuration.GetSection("AppSettings:Token").Value));
+
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: creds);
+
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return jwt;
+    }
+
+    public async Task<ServiceResponse<bool>> ChangePassword(int userId, string newPassword)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "User not found."
+            };
+
+        CreatePasswordHash(newPassword, out byte[] passwordHash, out byte[] passwordSalt);
+
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> 
+        { 
+            Data = true, 
+            Message = "Password has been changed." 
+        };
+    }
+}
+{% endhighlight %}
+
+  - `IConfiguration` reads appsettings.json.
+  - `out` reference object address but the variable should be setted.
+  - `ref` reference object address also, but the variable should have value before.
+  - `out` and `ref` are useful when you have more than two return values.
+  - `HMACSHA512` is a type of keyed hash algorithm that is constructed from the SHA-512 hash function and used as a Hash-based Message Authentication Code (HMAC).
+  - `Claim` is a base of the common authorization approache and provides a way of sharing user information throughout the application in a consistent way.
+  - `SymmetricSecurityKey` generates security key.
+  - `SigningCredentials` specifies the signing key, signing key identifier, and security algorithms that are used by .NET to generate the digital signature for a SamlAssertion.
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/AuthController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
+{
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
+    {
+        _authService = authService;
+    }
+
+    [HttpPost("register")]
+    public async Task<ActionResult<ServiceResponse<int>>> Register(UserRegister request)
+    {
+        var response = await _authService.Register(new User
+        {
+            Email = request.Email
+        }, 
+        request.Password);
+
+        if (!response.Success)
+            return BadRequest(response);
+        
+        return Ok(response);
+    } 
+
+    [HttpPost("login")]
+    public async Task<ActionResult<ServiceResponse<string>>> Login(UserLogin request)
+    {
+        var response = await _authService.Login(request.Email, request.Password);
+        if (!response.Success)
+            return BadRequest(response);
+        return Ok(response);
+    }
+
+    [HttpPost("change-password"), Authorize]
+    public async Task<ActionResult<ServiceResponse<bool>>> ChangePassword
+        ([FromBody] string newPassword)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var response = await _authService.ChangePassword(int.Parse(userId), newPassword);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+}
+{% endhighlight %}
+
+### Dependency Injection
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8
+                .GetBytes(builder.Configuration.GetSection("AppSettings:Token").Value)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+...
+app.UseAuthentication();
+app.UseAuthorization();
+...
+{% endhighlight %}
+
+### Set 
+
+* BlazorEcommerce.Server/appsettings.json
+{% highlight json %}
+...
+  "AppSettings": {
+    "Token":  "my top secret key"
+  },
+...
+{% endhighlight %}
+
+## Auth Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    Task<ServiceResponse<int>> Register(UserRegister request);
+    Task<ServiceResponse<string>> Login(UserLogin request);
+    Task<ServiceResponse<bool>> ChangePassword(UserChangePassword request);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly HttpClient _http;
+
+    public AuthService(HttpClient http)
+    {
+        _http = http;
+    }
+
+    public async Task<ServiceResponse<int>> Register(UserRegister request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/register", request);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<int>>();
+    }
+
+    public async Task<ServiceResponse<string>> Login(UserLogin request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/login", request);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<string>>();
+    }
+
+    public async Task<ServiceResponse<bool>> ChangePassword(UserChangePassword request)
+    {
+        var result = await _http.PostAsJsonAsync("api/auth/change-password", request.Password);
+        return await result.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+    }
+}
+{% endhighlight %}
+
+### Dependency Injection
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAuthService, AuthService>();
+...
+{% endhighlight %}
+
+## Authorization
+  - For authorization, I will use Claim, JSON Web Token and Local Storage.
+
+### Package for Authorization
+  - Download `Microsoft.AspNetCore.Components.Authorization` and `Microsoft.AspNetCore.WebUtilities` in Client.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/17.jpg"><img src="/assets/img/posts/blazor_ecommerce/17.jpg"></a>
+  <figcaption>Authorization</figcaption>
+</figure>
+
+### Auth State Provider
+
+* BlazorEcommerce.Client/CustomAuthStateProvider.cs
+{% highlight cs %}
+public class CustomAuthStateProvider : AuthenticationStateProvider
+{
+    private readonly ILocalStorageService _localStorageService;
+    private readonly HttpClient _http;
+
+    public CustomAuthStateProvider(ILocalStorageService localStorageService, HttpClient http)
+    {
+        _localStorageService = localStorageService;
+        _http = http;
+    }
+
+    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    {
+        string authToken = await _localStorageService.GetItemAsStringAsync("authToken");
+        
+        var identity = new ClaimsIdentity();
+        _http.DefaultRequestHeaders.Authorization = null;
+
+        if (!string.IsNullOrEmpty(authToken)) 
+        {
+            try 
+            {
+                identity = new ClaimsIdentity(ParseClaimsFromJwt(authToken), "jwt");
+                _http.DefaultRequestHeaders.Authorization
+                    = new AuthenticationHeaderValue("Bearer", authToken.Replace("\"", ""));
+            } 
+            catch 
+            {
+                await _localStorageService.RemoveItemAsync("authToken");
+                identity = new ClaimsIdentity();
+            }
+        }
+
+        var user = new ClaimsPrincipal(identity);
+        var state = new AuthenticationState(user);
+
+        NotifyAuthenticationStateChanged(Task.FromResult(state));
+
+        return state;
+    }
+
+    private byte[] ParseBase64WithoutPadding(string base64)
+    {
+        switch(base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
+
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+    {
+        var payload = jwt.Split('.')[1];
+        var jsonBytes = ParseBase64WithoutPadding(payload);
+        var keyValuePairs = JsonSerializer
+            .Deserialize<Dictionary<string, object>>(jsonBytes);
+
+        var claims = keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString())); 
+
+        return claims;
+    }
+}
+{% endhighlight %}
+
+  - `AuthenticationStateProvider` class provides information about the authentication state of the current user.
+  - We have to split jwt because of `HMACSHA512(base64UrlEncode(header) + "." + base64UrlEncode(payload))`.
+  - Bearer authentication (also called token authentication) is an HTTP authentication scheme that involves security tokens called bearer tokens. The name “Bearer authentication” can be understood as “give access to the bearer of this token.” The bearer token is a cryptic string, usually generated by the server in response to a login request. The client must send this token in the Authorization header when making requests to protected resources
+  - `ClaimsPrincipal` means user and `ClaimsIdentity` means user information. So, we get user information from JWT first, and then create user with this user information.
+  - And we will use `AuthorizeView` in our project, so `AuthenticationState` and `NotifyAuthenticationStateChanged` are for change authentication state.
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddOptions();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/_imports.cs
+{% highlight razor %}
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+{% endhighlight %}
+
+## View
+
+### Register
+
+* BlazorEcommerce.Client/Pages/Register.razor
+{% highlight razor %}
+@page "/register"
+
+<EditForm Model="user" OnValidSubmit="HandleRegistration">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="user.Email" class="form-control" />
+        <ValidationMessage For="@(() => user.Email)"/>
+    </div>
+    <div class="mb-3">
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="user.Password" class="form-control" type="password" />
+        <ValidationMessage For="@(() => user.Password)"/>
+    </div>
+    <div class="mb-3">
+        <label for="confirmPassword">Confirm Password</label>
+        <InputText id="confirmPassword" @bind-Value="user.ConfirmPassword" class="form-control" 
+            type="password" />
+        <ValidationMessage For="@(() => user.ConfirmPassword)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+    <div class="@messageCssClass">
+        <span>@message</span>
+    </div>
+</EditForm>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Register.razor.cs
+{% highlight cs %}
+public partial class Register
+{
+    [Inject]
+    public IAuthService AuthService { get; set; }
+
+    UserRegister user = new UserRegister();
+
+    string message = string.Empty;
+    string messageCssClass = string.Empty;
+
+    async Task HandleRegistration()
+    {
+        var result = await AuthService.Register(user);
+        message = result.Message;
+        if(result.Success)
+            messageCssClass = "text-success";
+        else
+            messageCssClass = "text-danger";
+    }
+}
+{% endhighlight %}
+
+### Login
+
+* BlazorEcommerce.Client/Pages/Login.razor
+{% highlight razor %}
+@page "/login"
+
+<EditForm Model="user" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="user.Email" class="form-control" />
+        <ValidationMessage For="@(() => user.Email)"/>
+    </div>
+    <div class="mb-3">
+        <label for="password">Password</label>
+        <InputText id="password" @bind-Value="user.Password" class="form-control" type="password" />
+        <ValidationMessage For="@(() => user.Password)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+<div class="text-danger">
+    <span>@errorMessage</span>
+</div>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Login.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    [Inject]
+    public IAuthService AuthService { get; set; }
+    [Inject]
+    public ILocalStorageService LocalStorage { get; set; }
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+    [Inject]
+    public AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+
+    private UserLogin user = new UserLogin();
+
+    private string errorMessage = string.Empty;
+
+    private string returnUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if(QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var url))
+            returnUrl = url;
+    }
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.Login(user);
+        if(result.Success)
+        {
+            errorMessage = string.Empty;
+
+            await LocalStorage.SetItemAsync("authToken", result.Data);
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            NavigationManager.NavigateTo(returnUrl);
+        }
+        else
+            errorMessage = result.Message;
+    }
+}
+{% endhighlight %}
+
+  - When you success the login, then you will return to `returnUrl`. QueryHelter is for this process.
+
+### Profile
+
+* BlazorEcommerce.Client/Pages/Profile.razor
+{% highlight razor %}
+@page "/profile"
+
+<AuthorizeView>
+    <h3>Hi! You're logged in with <i>@context.User.Identity.Name</i>.</h3>
+</AuthorizeView>
+
+<h5>Change Password</h5>
+
+<EditForm Model="request" OnValidSubmit="ChangePassword">
+    <DataAnnotationsValidator/>
+    <div class="mb-3">
+        <label for="password">New Password</label>
+        <InputText id="password" @bind-Value="request.Password" class="form-control" 
+            type="password"/>
+        <ValidationMessage For="@(() => request.Password)"/>
+    </div>
+    <div class="mb-3">
+        <label for="confirmPassword">Confirm New Password</label>
+        <InputText id="confirmPassword" @bind-Value="request.ConfirmPassword" 
+            class="form-control" type="password"/>
+        <ValidationMessage For="@(() => request.ConfirmPassword)"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Apply</button>
+</EditForm>
+@message
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Profile.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    [Authorize]
+    public partial class Profile
+    {
+        [Inject]
+        public IAuthService AuthService { get; set; }
+
+        UserChangePassword request = new UserChangePassword();
+        string message = string.Empty;
+
+        private async Task ChangePassword()
+        {
+            var result = await AuthService.ChangePassword(request);
+            message = result.Message;
+        }
+    }
+}
+{% endhighlight %}
+
+  - `[Authorize]` means this page is for authorized user.
+
+### User Button
+
+* BlazorEcommerce.Client/Shared/UserButton.razor
+{% highlight razor %}
+<div class="dropdown">
+    <button @onclick="ToggleUserMenu"
+            @onfocusout="HideUserMenu"
+            class="btn btn-secondary dropdown-toggle user-button">
+            <i class="oi oi-person"></i>
+        </button>
+    <div class="dropdown-menu dropdown-menu-right @UserMenuCssClass">
+        <AuthorizeView>
+            <Authorized>
+                <a href="profile" class="dropdown-item">Profile</a>
+                <hr/>
+                <button class="dropdown-item" @onclick="Logout">Logout</button>
+            </Authorized>
+            <NotAuthorized>
+                <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" 
+                    class="dropdown-item">Login</a>
+                <a href="register" class="dropdown-item">Register</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+{% endhighlight %}
+
+  - `login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)` means save current url to returnUrl variable in hyperlink url but go to login.
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.cs
+{% highlight cs %}
+ppublic partial class UserButton
+{
+    [Inject]
+    public ILocalStorageService LocalStorage { get; set; }
+    [Inject]
+    public AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    private bool showUserMenu = false;
+
+    private string UserMenuCssClass => showUserMenu ? "show-menu" : null;
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    private async Task HideUserMenu()
+    {
+        await Task.Delay(200);
+        showUserMenu = false;
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        NavigationManager.NavigateTo("");
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.css
+{% highlight css %}
+.show-menu {
+    display: block;
+}
+
+.user-button {
+    margin-left: .5em;
+}
+
+.top-row a {
+    margin-left: 0;
+}
+
+.dropdown-item:hover {
+    background-color: white;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/App.razor
+{% highlight razor %}
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(ShopLayout)">
+            <NotAuthorized>
+                <h3>Whoops! You're not allowed to see this page.</h3>
+                <h5>Please <a href="login">login</a> or <a href="register">register</a> 
+                    for a new account.</h5>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(ShopLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+</CascadingAuthenticationState>
+{% endhighlight %}
+
+## Run
+
+### User Button
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/18.jpg"><img src="/assets/img/posts/blazor_ecommerce/18.jpg"></a>
+  <figcaption>User Button</figcaption>
+</figure>
+
+### Register
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/19.jpg"><img src="/assets/img/posts/blazor_ecommerce/19.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/20.jpg"><img src="/assets/img/posts/blazor_ecommerce/20.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/21.jpg"><img src="/assets/img/posts/blazor_ecommerce/21.jpg"></a>
+  <figcaption>Register</figcaption>
+</figure>
+
+### Login
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/22.jpg"><img src="/assets/img/posts/blazor_ecommerce/22.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/23.jpg"><img src="/assets/img/posts/blazor_ecommerce/23.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/24.jpg"><img src="/assets/img/posts/blazor_ecommerce/24.jpg"></a>
+  <figcaption>Login</figcaption>
+</figure>
+
+  - You can check your JSON Web Token in <a href="https://jwt.io/">jwt.io</a>.
+
+### Profile
+
+<figure class="third">
+  <a href="/assets/img/posts/blazor_ecommerce/25.jpg"><img src="/assets/img/posts/blazor_ecommerce/25.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/26.jpg"><img src="/assets/img/posts/blazor_ecommerce/26.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/27.jpg"><img src="/assets/img/posts/blazor_ecommerce/27.jpg"></a>
+  <figcaption>Profile</figcaption>
+</figure>
+
+# Refactoring Auth Service
+  - `public int GetUserId() => int.Parse(_httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));` returns UserId which is logged in now.
+  - I will use it only in AuthService and use AuthService in other services.
+
+## Refactoring Auth Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    int GetUserId();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly DataContext _context;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public AuthService(
+        DataContext context, 
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor)
+    {
+        _context = context;
+        _configuration = configuration;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public int GetUserId() 
+        => int.Parse(_httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+    ...
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddHttpContextAccessor();
+...
+{% endhighlight %}
+
+## Refactoring Auth Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    Task<bool> IsUserAuthenticated();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    private readonly HttpClient _http;
+    private readonly AuthenticationStateProvider _authStateProvider;
+
+    public AuthService(HttpClient http, AuthenticationStateProvider authStateProvider)
+    {
+        _http = http;
+        _authStateProvider = authStateProvider;
+    }
+    ...
+
+    public async Task<bool> IsUserAuthenticated() 
+        => (await _authStateProvider.GetAuthenticationStateAsync()).User.Identity.IsAuthenticated;
+}
+{% endhighlight %}
+
+# Cart with Authentication and Database
+
+## Models
+  - To add authentication, add UserId in CartItem.
+
+* BlazorEcommerce.Shared/CartItem.cs
+{% highlight cs %}
+public class CartItem
+{
+    public int UserId { get; set; }
+    public int ProductId { get; set; }
+    public int ProductTypeId { get; set; }
+    public int Quantity { get; set; } = 1;
+}
+{% endhighlight %}
+
+## Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CartItem>()
+            .HasKey(ci => new { ci.UserId, ci.ProductId, ci.ProductTypeId });
+        ...
+    }
+
+    ...
+    public DbSet<CartItem> CartItems { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add CartItems` and `dotnet ef database update`
+
+## Cart Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task<ServiceResponse<List<CartProductResponse>>> StoreCartItems(List<CartItem> cartItems);
+    Task<ServiceResponse<int>> GetCartItemsCount();
+    Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts();
+    Task<ServiceResponse<bool>> AddToCart(CartItem cartItem);
+    Task<ServiceResponse<bool>> UpdateQuantity(CartItem cartItem);
+    Task<ServiceResponse<bool>> RemoveItemFromCart(int productId, int productTypeId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+
+    public CartService(DataContext context, IAuthService authService)
+    {
+        _context = context;
+        _authService = authService;
+    }
+    ...
+
+    public async Task<ServiceResponse<List<CartProductResponse>>> StoreCartItems
+        (List<CartItem> cartItems)
+    {
+        cartItems.ForEach(cartItem => cartItem.UserId = _authService.GetUserId());
+        _context.CartItems.AddRange(cartItems);
+        await _context.SaveChangesAsync();
+
+        return await GetDbCartProducts();
+    }
+
+    public async Task<ServiceResponse<int>> GetCartItemsCount()
+    {
+        var count = await _context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()).CountAsync();
+        return new ServiceResponse<int> { Data = count };
+    }
+
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts() => 
+        await GetCartProducts(await _context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()).ToListAsync());
+
+    public async Task<ServiceResponse<bool>> AddToCart(CartItem cartItem)
+    {
+        cartItem.UserId = _authService.GetUserId();
+
+        var sameItem = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == cartItem.ProductId &&
+            ci.ProductTypeId == cartItem.ProductTypeId && ci.UserId == cartItem.UserId);
+
+        if (sameItem == null)
+            _context.CartItems.Add(cartItem);
+        else
+            sameItem.Quantity += cartItem.Quantity;
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<bool>> UpdateQuantity(CartItem cartItem)
+    {
+        var dbCartItems = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == cartItem.ProductId &&
+            ci.ProductTypeId == cartItem.ProductTypeId && ci.UserId == _authService.GetUserId());
+        if(dbCartItems == null)
+            return new ServiceResponse<bool>
+            {
+                Data = false,
+                Success = false,
+                Message = "Cart item does not exist."
+            };
+
+        dbCartItems.Quantity = cartItem.Quantity;
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<bool>> RemoveItemFromCart(int productId, int productTypeId)
+    {
+        var dbCartItems = await _context.CartItems
+            .FirstOrDefaultAsync(ci => ci.ProductId == productId &&
+            ci.ProductTypeId == productTypeId && ci.UserId == _authService.GetUserId());
+        if (dbCartItems == null)
+            return new ServiceResponse<bool>
+            {
+                Data = false,
+                Success = false,
+                Message = "Cart item does not exist."
+            };
+
+        _context.CartItems.Remove(dbCartItems);
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+}
+{% endhighlight %}
+
+  - `CountAsync` returns count of the list items.
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/CartController.cs
+{% highlight cs %}
+...
+public class CartController : ControllerBase
+{
+    ...
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<List<CartProductResponse>>>> 
+        StoreCartItems(List<CartItem> cartItems)
+    {
+        var result = await _cartService.StoreCartItems(cartItems);
+        return Ok(result);
+    }
+
+    [HttpGet("count")]
+    public async Task<ActionResult<ServiceResponse<int>>> GetCartItemsCount() => 
+        await _cartService.GetCartItemsCount();
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<CartProductResponse>>>> GetDbCartProducts()
+    {
+        var result = await _cartService.GetDbCartProducts();
+        return Ok(result);
+    }
+
+    [HttpPost("add")]
+    public async Task<ActionResult<ServiceResponse<bool>>> AddToCart(CartItem cartItem)
+    {
+        var result = await _cartService.AddToCart(cartItem);
+        return Ok(result);
+    }
+
+    [HttpPost("update-quantity")]
+    public async Task<ActionResult<ServiceResponse<bool>>> UpdateQuantity(CartItem cartItem)
+    {
+        var result = await _cartService.UpdateQuantity(cartItem);
+        return Ok(result);
+    }
+
+    [HttpDelete("{productId}/{productTypeId}")]
+    public async Task<ActionResult> RemoveItemFromCart(int productId, int productTypeId)
+    {
+        var result = await _cartService.RemoveItemFromCart(productId, productTypeId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+## Cart Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task StoreCartItems(bool emptyLocalCart);
+    Task GetCartItemsCount();
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    private readonly ILocalStorageService _localStorage;
+    private readonly HttpClient _http;
+    private readonly IAuthService _authService;
+
+    public CartService(
+        ILocalStorageService localStorage, 
+        HttpClient http,
+        IAuthService authService)
+    {
+        _localStorage = localStorage;
+        _http = http;
+        _authService = authService;
+    }
+
+    public event Action OnChange;
+
+    public async Task AddToCart(CartItem cartItem)
+    {
+        if (await _authService.IsUserAuthenticated())
+            await _http.PostAsJsonAsync("api/cart/add", cartItem);
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                cart = new List<CartItem>();
+
+            var sameItem = cart.Find(x => x.ProductId == cartItem.ProductId &&
+                x.ProductTypeId == cartItem.ProductTypeId);
+            if (sameItem == null)
+                cart.Add(cartItem);
+            else
+                sameItem.Quantity += cartItem.Quantity;
+
+            await _localStorage.SetItemAsync("cart", cart);
+        }
+
+        await GetCartItemsCount();
+    }
+
+    public async Task<List<CartProductResponse>> GetCartProducts()
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var response = await _http
+                .GetFromJsonAsync<ServiceResponse<List<CartProductResponse>>>("api/cart");
+            return response.Data;
+        }
+        else
+        {
+            var cartItems = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cartItems == null)
+                return new List<CartProductResponse>();
+
+            var response = await _http.PostAsJsonAsync("api/cart/products", cartItems);
+            var cartProducts =
+                await response.Content
+                    .ReadFromJsonAsync<ServiceResponse<List<CartProductResponse>>>();
+            return cartProducts.Data;
+        }
+    }
+
+    public async Task RemoveProductFromCart(int productId, int productTypeId)
+    {
+        if (await _authService.IsUserAuthenticated())
+            await _http.DeleteAsync($"api/cart/{productId}/{productTypeId}");
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                return;
+
+            var cartItem = cart.Find(x => x.ProductId == productId
+            && x.ProductTypeId == productTypeId);
+            if (cartItem != null)
+            {
+                cart.Remove(cartItem);
+                await _localStorage.SetItemAsync("cart", cart);
+            }
+        }
+
+        await GetCartItemsCount();
+    }
+
+    public async Task UpdateQuantity(CartProductResponse product)
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var request = new CartItem
+            {
+                ProductId = product.ProductId,
+                Quantity = product.Quantity,
+                ProductTypeId = product.ProductTypeId
+            };
+            await _http.PostAsJsonAsync("api/cart/update-quantity", request);
+        }
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null)
+                return;
+
+            var cartItem = cart.Find(x => x.ProductId == product.ProductId
+            && x.ProductTypeId == product.ProductTypeId);
+            if (cartItem != null)
+            {
+                cartItem.Quantity = product.Quantity;
+                await _localStorage.SetItemAsync("cart", cart);
+            }
+        }
+    }
+
+    public async Task StoreCartItems(bool emptyLocalCart = false)
+    {
+        var localCart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+        if (localCart == null)
+            return;
+
+        await _http.PostAsJsonAsync("api/cart", localCart);
+
+        if (emptyLocalCart)
+            await _localStorage.RemoveItemAsync("cart");
+    }
+
+    public async Task GetCartItemsCount()
+    {
+        if (await _authService.IsUserAuthenticated())
+        {
+            var result = await _http.GetFromJsonAsync<ServiceResponse<int>>("api/cart/count");
+            var count = result.Data;
+
+            await _localStorage.SetItemAsync<int>("cartItemsCount", count);
+        }
+        else
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            await _localStorage.SetItemAsync<int>("cartItemsCount", cart != null ? cart.Count : 0);
+        }
+
+        OnChange.Invoke();
+    }
+}
+{% endhighlight %}
+
+# Order
+
+## Models
+
+* BlazorEcommerce.Shared/Order.cs
+{% highlight cs %}
+public class Order
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public DateTime OrderDate { get; set; } = DateTime.Now;
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalPrice { get; set; }
+    public List<OrderItem> OrderItems { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderDetailsProductResponse.cs
+{% highlight cs %}
+public class OrderDetailsProductResponse
+{
+    public int ProductId { get; set; }
+    public string Title { get; set; }
+    public string ProductType { get; set; }
+    public string ImageUrl { get; set; }
+    public int Quantity { get; set; }
+    public decimal TotalPrice { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderDetailsResponse.cs
+{% highlight cs %}
+public class OrderDetailsResponse
+{
+    public DateTime OrderDate { get; set; }
+    public decimal TotalPrice { get; set; }
+    public List<OrderDetailsProductResponse> Products { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderItem.cs
+{% highlight cs %}
+public class OrderItem
+{
+    public Order Order { get; set; }
+    public int OrderId { get; set; }
+    public Product Product { get; set; }
+    public int ProductId { get; set; }
+    public ProductType ProductType { get; set; }
+    public int ProductTypeId { get; set; }
+    public int Quantity { get; set; }
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalPrice { get; set; }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/OrderOverviewResponse.cs
+{% highlight cs %}
+public class OrderOverviewResponse
+{
+    public int Id { get; set; }
+    public DateTime OrderDate { get; set; }
+    public decimal TotalPrice { get; set; }
+    public string Product { get; set; }
+    public string ProductImageUrl { get; set; }
+}
+{% endhighlight %}
+
+## Set
+
+* BlazorEcommerce.Server/Data/DataContext.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ...
+        modelBuilder.Entity<OrderItem>()
+            .HasKey(oi => new { oi.OrderId, oi.ProductId, oi.ProductTypeId });
+        ...
+    }
+
+    ...
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add Orders` and `dotnet ef database update`
+
+## Order Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<ServiceResponse<bool>> PlaceOrder();
+    Task<ServiceResponse<List<OrderOverviewResponse>>> GetOrders();
+    Task<ServiceResponse<OrderDetailsResponse>> GetOrderDetails(int orderId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+    private readonly ICartService _cartService;
+
+    public OrderService(
+        DataContext context,
+        IAuthService authService,
+        ICartService cartService)
+    {
+        _context = context;
+        _authService = authService;
+        _cartService = cartService;
+    }
+
+    public async Task<ServiceResponse<bool>> PlaceOrder()
+    {
+        var products = (await _cartService.GetDbCartProducts()).Data;
+        decimal totalPrice = 0;
+        products.ForEach(product => totalPrice += product.Price * product.Quantity);
+
+        var orderItems =  new List<OrderItem>();
+        products.ForEach(product => orderItems.Add(new OrderItem
+        {
+            ProductId = product.ProductId,
+            ProductTypeId = product.ProductTypeId,
+            Quantity = product.Quantity,
+            TotalPrice = product.Price * product.Quantity
+        }));
+
+        var order = new Order
+        {
+            UserId = _authService.GetUserId(),
+            OrderDate = DateTime.Now,
+            TotalPrice = totalPrice,
+            OrderItems = orderItems
+        };
+
+        _context.Add(order);
+
+        _context.CartItems.RemoveRange(_context.CartItems
+            .Where(ci => ci.UserId == _authService.GetUserId()));
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<List<OrderOverviewResponse>>> GetOrders()
+    {
+        var response = new ServiceResponse<List<OrderOverviewResponse>>();
+        var order = await _context.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .Where(o => o.UserId == _authService.GetUserId())
+            .OrderByDescending(o => o.OrderDate)
+            .ToListAsync();
+
+        var orderResponse = new List<OrderOverviewResponse>();
+        order.ForEach(o => orderResponse.Add(new OrderOverviewResponse
+        {
+            Id = o.Id,
+            OrderDate = o.OrderDate,
+            TotalPrice = o.TotalPrice,
+            Product = o.OrderItems.Count > 1 ?
+                $"{o.OrderItems.First().Product.Title} and" +
+                $"{o.OrderItems.Count - 1} more..." :
+                o.OrderItems.First().Product.Title,
+            ProductImageUrl = o.OrderItems.First().Product.ImageUrl
+        }));
+
+        response.Data = orderResponse;
+        return response;
+    }
+
+    public async Task<ServiceResponse<OrderDetailsResponse>> GetOrderDetails(int orderId)
+    {
+        var response = new ServiceResponse<OrderDetailsResponse>();
+        var order = await _context.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.ProductType)
+            .Where(o => o.UserId == _authService.GetUserId() && o.Id == orderId)
+            .OrderByDescending(o => o.OrderDate)
+            .FirstOrDefaultAsync();
+
+        if(order == null)
+        {
+            response.Success = false;
+            response.Message = "Order not found.";
+            return response;
+        }
+
+        var orderDetailsResponse = new OrderDetailsResponse
+        {
+            OrderDate = order.OrderDate,
+            TotalPrice = order.TotalPrice,
+            Products = new List<OrderDetailsProductResponse>()
+        };
+
+        order.OrderItems.ForEach(item =>
+        orderDetailsResponse.Products.Add(new OrderDetailsProductResponse
+        {
+            ProductId = item.ProductId,
+            ImageUrl = item.Product.ImageUrl,
+            ProductType = item.ProductType.Name,
+            Quantity = item.Quantity,
+            Title = item.Product.Title,
+            TotalPrice = item.TotalPrice
+        }));
+
+        response.Data = orderDetailsResponse;
+        return response;
+    }
+}
+{% endhighlight %}
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/OrderController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<bool>>> PlaceOrder()
+    {
+        var result = await _orderService.PlaceOrder();
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<OrderOverviewResponse>>>> GetOrders()
+    {
+        var result = await _orderService.GetOrders();
+        return Ok(result);
+    }
+
+    [HttpGet("{orderId}")]
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails
+        (int orderId)
+    {
+        var result = await _orderService.GetOrderDetails(orderId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IOrderService, OrderService>();
+...
+{% endhighlight %}
+
+## Order Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task PlaceOrder();
+    Task<List<OrderOverviewResponse>> GetOrders();
+    Task<OrderDetailsResponse> GetOrderDetails(int orderId);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    private readonly HttpClient _http;
+    private readonly AuthenticationStateProvider _authStateProvider;
+    private readonly NavigationManager _navigationManager;
+
+    public OrderService(
+        HttpClient http, 
+        AuthenticationStateProvider authStateProvider,
+        NavigationManager navigationManager)
+    {
+        _http = http;
+        _authStateProvider = authStateProvider;
+        _navigationManager = navigationManager;
+    }
+
+    private async Task<bool> IsUserAuthenticated()
+        => (await _authStateProvider.GetAuthenticationStateAsync())
+        .User.Identity.IsAuthenticated;
+
+    public async Task PlaceOrder()
+    {
+        if (await IsUserAuthenticated())
+            await _http.PostAsync("api/order", null);
+        else
+            _navigationManager.NavigateTo("login");
+    }
+
+    public async Task<List<OrderOverviewResponse>> GetOrders()
+    {
+        var result = await _http
+            .GetFromJsonAsync<ServiceResponse<List<OrderOverviewResponse>>>("api/order");
+        return result.Data;
+    }
+
+    public async Task<OrderDetailsResponse> GetOrderDetails(int orderId)
+    {
+        var result = await _http
+            .GetFromJsonAsync<ServiceResponse<OrderDetailsResponse>>($"api/order/{orderId}");
+        return result.Data;
+    }
+}
+{% endhighlight %}
+
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IOrderService, OrderService>();
+...
+{% endhighlight %}
+
+# View
+
+## Cart
+
+* BlazorEcommerce.Client/Shared/UserButton.razor
+{% highlight razor %}
+...
+<AuthorizeView>
+    <Authorized>
+        <a href="profile" class="dropdown-item">Profile</a>
+        <a href="orders" class="dropdown-item">Orders</a>
+        <hr/>
+        <button class="dropdown-item" @onclick="Logout">Logout</button>
+    </Authorized>
+    <NotAuthorized>
+        <a href="login?returnUrl=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)" 
+            class="dropdown-item">Login</a>
+        <a href="register" class="dropdown-item">Register</a>
+    </NotAuthorized>
+</AuthorizeView>
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/UserButton.razor.cs
+{% highlight cs %}
+public partial class UserButton
+{
+    ...
+    [Inject]
+    public ICartService CartService { get; set; }
+    ...
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        await CartService.GetCartItemsCount();
+        await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        NavigationManager.NavigateTo("");
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/CartCounter.razor.cs
+{% highlight cs %}
+public partial class CartCounter : IDisposable
+{
+    ...
+    private int GetCartItemCount()
+    {
+        var count = LocalStorage.GetItem<int>("cartItemsCount");
+        return count;
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Login.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    [Inject]
+    public ICartService CartService { get; set; }
+    ...
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.Login(user);
+        if(result.Success)
+        {
+            errorMessage = string.Empty;
+
+            await LocalStorage.SetItemAsync("authToken", result.Data);
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            await CartService.StoreCartItems(true);
+            await CartService.GetCartItemsCount();
+            NavigationManager.NavigateTo(returnUrl);
+        }
+        else
+            errorMessage = result.Message;
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    private async Task LoadCart()
+    {
+        await CartService.GetCartItemsCount();
+        cartProducts = await CartService.GetCartProducts();
+        if (!cartProducts.Any())
+            message = "Your cart is empty.";
+    }
+}
+{% endhighlight %}
+
+## Order
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+...
+else if(orderPlaced)
+{
+    <span>Thank you for your order! You can check your orders <a href="orders">here</a>.</span>
+}
+else
+{
+    ...
+    <button @onclick="PlaceOrder" class="btn alert-success float-end mt-1">Place Order</button>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Login
+{
+    ...
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    ...
+    bool orderPlaced = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orderPlaced = false;
+        await LoadCart();
+    }
+
+    private async Task PlaceOrder()
+    {
+        await OrderService.PlaceOrder();
+        await CartService.GetCartItemsCount();
+        orderPlaced = true;
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor
+{% highlight razor %}
+@page "/orders"
+
+<h3>Orders</h3>
+
+@if(orders == null)
+{
+    <span>Loading your orders...</span>
+}
+else if(orders.Count <= 0)
+{
+    <span>You have no orders, yet.</span>
+}
+else
+{
+    foreach(var order in orders)
+    {
+        <div class="container">
+            <div class="image-wrapper">
+                <img src="@order.ProductImageUrl" class="image"/>
+            </div>
+            <div class="details">
+                <h4>@order.Product</h4>
+                <span>@order.OrderDate</span><br/>
+                <a href="orders/@order.Id">Show more...</a>
+            </div>
+            <div class="order-price">$@order.TotalPrice</div>
+        </div>
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor.cs
+{% highlight cs %}
+public partial class Orders
+{
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    List<OrderOverviewResponse> orders = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await OrderService.GetOrders();
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Order.razor.css
+{% highlight css %}
+.container {
+    display: flex;
+    padding: 6px;
+    border: 1px solid;
+    border-color: lightgray;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.image-wrapper {
+    width: 150px;
+    text-align: center;
+}
+
+.image {
+    max-height: 150px;
+    max-width: 150px;
+    padding: 6px;
+}
+
+.details {
+    flex-grow: 1;
+    padding: 6px;
+}
+
+.order-price {
+    font-weight: 600;
+    font-size: 1.2em;
+    text-align: right;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor
+{% highlight razor %}
+@page "/orders/{orderId:int}"
+
+@if(order == null)
+{
+    <span>Loading order...</span>
+}
+else
+{
+    <h3>Order from @order.OrderDate</h3>
+
+    <div>
+        @foreach(var product in order.Products)
+        {
+            <div class="container">
+                <div class="image-wrapper">
+                    <img src="@product.ImageUrl" class="image"/>
+                </div>
+            </div>
+            <div class="name">
+                <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
+                <span>@product.ProductType</span><br/>
+                <span>Quantity: @product.Quantity</span>
+            </div>
+            <div class="product-price">$@product.TotalPrice</div>
+        }
+        <div class="product-price">
+            Total: $@order.TotalPrice
+        </div>
+    </div>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor.cs
+{% highlight cs %}
+ public partial class OrderDetails
+{
+    [Parameter]
+    public int OrderId { get; set; }
+
+    [Inject]
+    public IOrderService OrderService { get; set; }
+
+    OrderDetailsResponse order = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        order = await OrderService.GetOrderDetails(OrderId);
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderDetails.razor.css
+{% highlight css %}
+.container {
+    display: flex;
+    padding: 6px;
+}
+
+.image-wrapper {
+    width: 150px;
+    text-align: center;
+}
+
+.image {
+    max-height: 150px;
+    max-width: 150px;
+    padding: 6px;
+}
+
+.name {
+    flex-grow: 1;
+    padding: 6px;
+}
+
+.product-price {
+    font-weight: 600;
+    text-align: right;
+}
+{% endhighlight %}
+
+## Run
+
+### Cart
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/28.jpg"><img src="/assets/img/posts/blazor_ecommerce/28.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/29.jpg"><img src="/assets/img/posts/blazor_ecommerce/29.jpg"></a>
+  <figcaption>Cart</figcaption>
+</figure>
+
+### Order
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/30.jpg"><img src="/assets/img/posts/blazor_ecommerce/30.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/31.jpg"><img src="/assets/img/posts/blazor_ecommerce/31.jpg"></a>
+  <figcaption>Order</figcaption>
+</figure>
+
+# Payment with Webhook
+  - A webhook in web development is a method of augmenting or altering the behavior of a web page or web application with custom callbacks.
+
+## Stripe
+  - It offers payment processing software and application programming interfaces (APIs) for e-commerce websites and mobile.
+  - Please read <a href="https://stripe.com/docs/payments/quickstart">Stripe Documents</a>, if you want to get more information.
+
+### Account
+  - Create account ot <a href="https://stripe.com/de">Stripe</a>.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/32.jpg"><img src="/assets/img/posts/blazor_ecommerce/32.jpg"></a>
+  <figcaption>Payment with Stripe Checkout</figcaption>
+</figure>
+
+### API Key
+  - Create your secret key from Stripe.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/34.jpg"><img src="/assets/img/posts/blazor_ecommerce/34.jpg"></a>
+  <figcaption>API Key</figcaption>
+</figure>
+
+### Stripe CLI
+  - Download <a href="https://github.com/stripe/stripe-cli/releases/tag/v1.10.3">Stripe-Cli</a>.
+  - Login in Stripe with `stripe login`.
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/36.jpg"><img src="/assets/img/posts/blazor_ecommerce/36.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/35.jpg"><img src="/assets/img/posts/blazor_ecommerce/35.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+## Package in Server
+  - Download `Stripe.net` in Server.
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/33.jpg"><img src="/assets/img/posts/blazor_ecommerce/33.jpg"></a>
+  <figcaption>Package in Server</figcaption>
+</figure>
+
+## Payment Service in Server
+
+### Get User Email From Auth Service
+
+* BlazorEcommerce.Server/Services/AuthService/IAuthService.cs
+{% highlight cs %}
+public interface IAuthService
+{
+    ...
+    string GetUserEmail();
+    Task<User> GetUserByEmail(string email);
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/AuthService/AuthService.cs
+{% highlight cs %}
+public class AuthService : IAuthService
+{
+    ...
+    public string GetUserEmail()
+            => _httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name);
+
+    public async Task<User> GetUserByEmail(string email)
+        => await _context.Users.FirstOrDefaultAsync(u => u.Email.Equals(email));
+    ...
+}
+{% endhighlight %}
+
+### When you checkout, Get Cart Products from Database
+
+* BlazorEcommerce.Server/Services/CartService/ICartService.cs
+{% highlight cs %}
+public interface ICartService
+{
+    ...
+    Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts(int? userId = null);
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/CartService/CartService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    ...
+    public async Task<ServiceResponse<List<CartProductResponse>>> GetDbCartProducts
+        (int? userId  = null)
+    {
+        if(userId == null)
+            userId = _authService.GetUserId();
+
+        return await GetCartProducts(await _context.CartItems
+            .Where(ci => ci.UserId == userId).ToListAsync());
+    }
+    ...
+}
+{% endhighlight %}
+
+### get Orders when you checkout
+
+* BlazorEcommerce.Server/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<ServiceResponse<bool>> PlaceOrder(int userId);
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class CartService : ICartService
+{
+    ...
+    public async Task<ServiceResponse<bool>> PlaceOrder(int userId)
+    {
+        var products = (await _cartService.GetDbCartProducts(userId)).Data;
+        decimal totalPrice = 0;
+        products.ForEach(product => totalPrice += product.Price * product.Quantity);
+
+        var orderItems =  new List<OrderItem>();
+        products.ForEach(product => orderItems.Add(new OrderItem
+        {
+            ProductId = product.ProductId,
+            ProductTypeId = product.ProductTypeId,
+            Quantity = product.Quantity,
+            TotalPrice = product.Price * product.Quantity
+        }));
+
+        var order = new Order
+        {
+            UserId = userId,
+            OrderDate = DateTime.Now,
+            TotalPrice = totalPrice,
+            OrderItems = orderItems
+        };
+
+        _context.Add(order);
+
+        _context.CartItems.RemoveRange(_context.CartItems
+            .Where(ci => ci.UserId == userId));
+
+        await _context.SaveChangesAsync();
+
+        return new ServiceResponse<bool> { Data = true };
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Controllers/OrderController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<List<OrderOverviewResponse>>>> GetOrders()
+    {
+        var result = await _orderService.GetOrders();
+        return Ok(result);
+    }
+
+    [HttpGet("{orderId}")]
+    public async Task<ActionResult<ServiceResponse<OrderDetailsResponse>>> GetOrderDetails
+        (int orderId)
+    {
+        var result = await _orderService.GetOrderDetails(orderId);
+        return Ok(result);
+    }
+}
+{% endhighlight %}
+
+### Payment Service
+
+* BlazorEcommerce.Server/Services/PaymentService/IPaymentService.cs
+{% highlight cs %}
+public interface IPaymentService
+{
+    Task<Session> CreateCheckoutSession();
+    Task<ServiceResponse<bool>> FulfillOrder(HttpRequest request);
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Services/PaymentService/PaymentService.cs
+{% highlight cs %}
+public class PaymentService : IPaymentService
+{
+    private readonly IAuthService _authService;
+    private readonly ICartService _cartService;
+    private readonly IOrderService _orderService;
+
+    const string secret = "your secret key";
+
+    public PaymentService(
+        IAuthService authService,
+        ICartService cartService,
+        IOrderService orderService)
+    {
+        StripeConfiguration.ApiKey = "your api key";
+
+        _authService = authService;
+        _cartService = cartService;
+        _orderService = orderService;
+    }
+
+    public async Task<Session> CreateCheckoutSession()
+    {
+        var products = (await _cartService.GetDbCartProducts()).Data;
+        var lineItems = new List<SessionLineItemOptions>();
+        products.ForEach(product => lineItems.Add(new SessionLineItemOptions
+        {
+            PriceData = new SessionLineItemPriceDataOptions
+            {
+                UnitAmountDecimal = product.Price * 100,
+                Currency = "usd",
+                ProductData = new SessionLineItemPriceDataProductDataOptions
+                {
+                    Name = product.Title,
+                    Images = new List<string> { product.ImageUrl }
+                }
+            },
+            Quantity = product.Quantity
+        }));
+
+        var options = new SessionCreateOptions
+        {
+            CustomerEmail = _authService.GetUserEmail(),
+            ShippingAddressCollection = 
+                new SessionShippingAddressCollectionOptions
+                {
+                    AllowedCountries = new List<string> { "US" }
+                },
+            PaymentMethodTypes = new List<string> { "card" },
+            LineItems = lineItems,
+            Mode = "payment",
+            SuccessUrl = "your local host url/order-success",
+            CancelUrl = "your local host url/cart"
+        };
+
+        var service = new SessionService();
+        Session session = service.Create(options);
+        return session;
+    }
+
+    public async Task<ServiceResponse<bool>> FulfillOrder(HttpRequest request)
+    {
+        var json = await new StreamReader(request.Body).ReadToEndAsync();
+        try
+        {
+            var stripeEvent = EventUtility.ConstructEvent(
+                json,
+                request.Headers["Stripe-Signature"],
+                secret);
+
+            if(stripeEvent.Type == Events.CheckoutSessionCompleted)
+            {
+                var session = stripeEvent.Data.Object as Session;
+                var user = await _authService.GetUserByEmail(session.CustomerEmail);
+                await _orderService.PlaceOrder(user.Id);
+            }
+
+            return new ServiceResponse<bool> { Data = true };
+        }
+        catch (StripeException e)
+        {
+            return new ServiceResponse<bool> { Data = false, Success = false, Message = e.Message };
+        }
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Server/Controllers/PaymentController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+public class PaymentController : ControllerBase
+{
+    private readonly IPaymentService _paymentService;
+
+    public PaymentController(IPaymentService paymentService)
+    {
+        _paymentService = paymentService;
+    }
+
+    [HttpPost("checkout"), Authorize]
+    public async Task<ActionResult<string>> CreateCheckoutSession()
+    {
+        var session = await _paymentService.CreateCheckoutSession();
+        return Ok(session.Url);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<string>>> FulfillOrder()
+    {
+        var response = await _paymentService.FulfillOrder(Request);
+        if(!response.Success)
+            return BadRequest(response.Message);
+
+        return Ok(response);
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+...
+{% endhighlight %}
+
+## Refactoring Order Service in Client
+
+* BlazorEcommerce.Client/Services/OrderService/IOrderService.cs
+{% highlight cs %}
+public interface IOrderService
+{
+    Task<string> PlaceOrder();
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Services/OrderService/OrderService.cs
+{% highlight cs %}
+public class OrderService : IOrderService
+{
+    ...
+    public async Task<string> PlaceOrder()
+    {
+        if (await IsUserAuthenticated())
+        {
+            var result = await _http.PostAsync("api/payment/checkout", null);
+            var url = await result.Content.ReadAsStringAsync();
+            return url;
+        }
+        else
+            return "login";
+    }
+    ...
+}
+{% endhighlight %}
+
+## View
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+@page "/cart"
+
+<h3>Shopping Cart</h3>
+
+@if (!cartProducts.Any())
+{
+    <span>@message</span>
+}
+else
+{
+    <div>
+        @foreach(var product in cartProducts)
+        {
+            <div class="container">
+                <div class="image-wrapper">
+                    <img src="@product.ImageUrl" class="image"/>
+                </div>
+                <div class="name">
+                    <h5><a href="/product/@product.ProductId">@product.Title</a></h5>
+                    <span>@product.ProductType</span><br/>
+                    <input type="number" 
+                           value="@product.Quantity" 
+                           @onchange="@((ChangeEventArgs e) => UpdateQuantity(e, product))" 
+                           class="form-control input-quantity" 
+                           min="1"/>
+                    <button class="btn-delete" 
+                            @onclick="@(() 
+                                => RemoveProductFromCart(product.ProductId, product.ProductTypeId))">
+                            Delete</button>
+                </div>
+                <div class="cart-product-price">$@(product.Price * product.Quantity)</div>
+            </div>
+        }
+        <div class="cart-product-price">
+            Total (@cartProducts.Count): $@cartProducts.Sum(product => 
+                @product.Price * product.Quantity)
+        </div>
+    </div>
+    <button @onclick="PlaceOrder" class="btn alert-success float-end mt-1">Checkout</button>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Cart
+{
+    ...
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    ...
+    protected override async Task OnInitializedAsync()
+        => await LoadCart();
+
+    ...
+    private async Task PlaceOrder()
+    {
+        string url = await OrderService.PlaceOrder();
+        NavigationManager.NavigateTo(url);
+    }
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/OrderSuccess.razor
+{% highlight razor %}
+@page "/order-success"
+
+<h3>Thank you!</h3>
+
+<span>Thank you for your order! You can check your orders <a href="orders">here</a>.</span>
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class OrderSucess
+{
+    [Inject]
+    public ICartService CartService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+        => await CartService.GetCartItemsCount();
+}
+{% endhighlight %}
+
+## Run
+
+### Payment
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/37.jpg"><img src="/assets/img/posts/blazor_ecommerce/37.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/38.jpg"><img src="/assets/img/posts/blazor_ecommerce/38.jpg"></a>
+  <figcaption>Payment</figcaption>
+</figure>
+
+# Address
+
+## Models
+
+* BlazorEcommerce.Shared/Address.cs
+{% highlight cs %}
+public class Address
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Street { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string Zip { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Shared/User.cs
+{% highlight cs %}
+public class User
+{
+    ...
+    public Address Address { get; set; }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Shared/Program.cs
+{% highlight cs %}
+public class DataContext : DbContext
+{
+    ...
+    public DbSet<Address> Addresses { get; set; }
+}
+{% endhighlight %}
+
+### Database
+  - Type `dotnet ef migrations add UserAddress` and `dotnet ef database update`.
+
+## Address Service in Server
+
+### Interface
+
+* BlazorEcommerce.Server/Services/AddressService/IAddressService.cs
+{% highlight cs %}
+public interface IAddressService
+{
+    Task<ServiceResponse<Address>> GetAddress();
+    Task<ServiceResponse<Address>> AddOrUpdateAddress(Address address);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Server/Services/AddressService/AddressService.cs
+{% highlight cs %}
+public class AddressService : IAddressService
+{
+    private readonly DataContext _context;
+    private readonly IAuthService _authService;
+
+    public AddressService(DataContext context, IAuthService authService)
+    {
+        _context = context;
+        _authService = authService;
+    }
+
+    public async Task<ServiceResponse<Address>> AddOrUpdateAddress(Address address)
+    {
+        var response = new ServiceResponse<Address>();
+        var dbAddress = (await GetAddress()).Data;
+        if(dbAddress == null)
+        {
+            address.UserId = _authService.GetUserId();
+            _context.Addresses.Add(address);
+            response.Data = address;
+        }
+        else
+        { 
+            dbAddress.FirstName = address.FirstName;
+            dbAddress.LastName = address.LastName;
+            dbAddress.Street = address.Street;
+            dbAddress.City = address.City;
+            dbAddress.State = address.State;
+            dbAddress.Zip = address.Zip;
+            dbAddress.Country = address.Country;
+            response.Data = dbAddress;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return response;
+    }
+
+    public async Task<ServiceResponse<Address>> GetAddress()
+    {
+        int userId = _authService.GetUserId();
+        var address = await _context.Addresses
+            .FirstOrDefaultAsync(a => a.UserId == userId);
+        return new ServiceResponse<Address> { Data = address };
+    }
+}
+{% endhighlight %}
+
+### Controller
+
+* BlazorEcommerce.Server/Controllers/AddressController.cs
+{% highlight cs %}
+[Route("api/[controller]")]
+[ApiController]
+[Authorize]
+public class AddressController : ControllerBase
+{
+    private readonly IAddressService _addressService;
+
+    public AddressController(IAddressService addressService)
+    {
+        _addressService = addressService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ServiceResponse<Address>>> GetAddress()
+        => await _addressService.GetAddress();
+
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<Address>>> AddOrUpdateAddress(Address address)
+        => await _addressService.AddOrUpdateAddress(address);
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Server/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAddressService, AddressService>();
+...
+{% endhighlight %}
+
+## Address Service in Client
+
+### Interface
+
+* BlazorEcommerce.Client/Services/AddressService/IAddressService.cs
+{% highlight cs %}
+public interface IAddressService
+{
+    Task<Address> GetAddress();
+    Task<Address> AddOrUpdateAddress(Address address);
+}
+{% endhighlight %}
+
+### Implement
+
+* BlazorEcommerce.Client/Services/AddressService/AddressService.cs
+{% highlight cs %}
+public class AddressService : IAddressService
+{
+    private readonly HttpClient _http;
+
+    public AddressService(HttpClient http)
+    {
+        _http = http;
+    }
+
+    public async Task<Address> AddOrUpdateAddress(Address address)
+    {
+        var response = await _http.PostAsJsonAsync("api/address", address);
+        return response.Content.ReadFromJsonAsync<ServiceResponse<Address>>().Result.Data;
+    }
+
+    public async Task<Address> GetAddress()
+    {
+        var response = await _http.GetFromJsonAsync<ServiceResponse<Address>>("api/address");
+        return response.Data;
+    }
+}
+{% endhighlight %}
+
+### Set
+
+* BlazorEcommerce.Client/Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IAddressService, AddressService>();
+...
+{% endhighlight %}
+
+## View
+
+* BlazorEcommerce.Client/Shared/AddressForm.razor
+{% highlight razor %}
+@if (address == null)
+{
+    <span>
+        You haven't specified a delivery address, yet.
+        <button class="btn" @onclick="InitAddress">Add an address?</button>
+    </span>
+}
+else if (!editAddress)
+{
+    <p>
+        <span>@address.FirstName @address.LastName</span><br/>
+        <span>@address.Street</span><br/>
+        <span>@address.City @address.State @address.Zip</span><br/>
+        <span>@address.Country</span><br/>
+    </p>
+    <button class="btn btn-primary" @onclick="EditAddress">Edit</button>
+}
+else
+{
+    <EditForm Model="address" OnSubmit="SubmitAddress">
+        <div class="mb-3">
+            <label for="firstname">First Name</label>
+            <InputText id="firstname" @bind-Value="address.FirstName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="lastname">Last Name</label>
+            <InputText id="lastname" @bind-Value="address.LastName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="street">Street</label>
+            <InputText id="street" @bind-Value="address.Street" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="city">City</label>
+            <InputText id="city" @bind-Value="address.City" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="state">State</label>
+            <InputText id="state" @bind-Value="address.State" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="zip">Zip/Postal Code</label>
+            <InputText id="zip" @bind-Value="address.Zip" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label for="country">Country</label>
+            <InputText id="country" @bind-Value="address.Country" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </EditForm>
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Shared/AddressForm.razor.cs
+{% highlight cs %}
+public partial class AddressForm
+{
+    [Inject]
+    public IAddressService AddressService { get; set; }
+
+    Address address = null;
+    bool editAddress = false;
+
+    protected override async Task OnInitializedAsync()
+        => address = await AddressService.GetAddress();
+
+    private async Task SubmitAddress()
+    {
+        editAddress = false;
+        address = await AddressService.AddOrUpdateAddress(address);
+    }
+
+    private void InitAddress()
+    {
+        address = new Address();
+        editAddress = true;
+    }
+
+    private void EditAddress()
+        => editAddress = true;
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor
+{% highlight razor %}
+...
+@if(isAuthenticated)
+{
+    <div>
+        <h5>Delivery Address</h5>
+        <AddressForm />
+    </div>
+}
+...
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Cart.razor.cs
+{% highlight cs %}
+public partial class Cart
+{
+    ...
+    [Inject]
+    public IAuthService AuthService { get; set; }
+
+    ...
+    bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsUserAuthenticated();
+        await LoadCart();
+    }
+    ...
+}
+{% endhighlight %}
+
+* BlazorEcommerce.Client/Pages/Profile.razor
+{% highlight razor %}
+...
+<h5>Delivery Address</h5>
+<AddressForm />
+<p></p>
+...
+{% endhighlight %}
+
+## Run
+
+### Profile
+
+<figure class="half">
+  <a href="/assets/img/posts/blazor_ecommerce/40.jpg"><img src="/assets/img/posts/blazor_ecommerce/40.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/41.jpg"><img src="/assets/img/posts/blazor_ecommerce/41.jpg"></a>
+  <a href="/assets/img/posts/blazor_ecommerce/42.jpg"><img src="/assets/img/posts/blazor_ecommerce/42.jpg"></a>
+  <figcaption>Profile</figcaption>
+</figure>
+
+### Cart
+
+<figure>
+  <a href="/assets/img/posts/blazor_ecommerce/43.jpg"><img src="/assets/img/posts/blazor_ecommerce/43.jpg"></a>
+  <figcaption>Cart</figcaption>
 </figure>
 
 # Code
