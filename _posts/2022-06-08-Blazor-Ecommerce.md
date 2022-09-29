@@ -4982,7 +4982,7 @@ public partial class Cart
 
 ### Profile
 
-<figure class="half">
+<figure class="third">
   <a href="/assets/img/posts/blazor_ecommerce/40.jpg"><img src="/assets/img/posts/blazor_ecommerce/40.jpg"></a>
   <a href="/assets/img/posts/blazor_ecommerce/41.jpg"><img src="/assets/img/posts/blazor_ecommerce/41.jpg"></a>
   <a href="/assets/img/posts/blazor_ecommerce/42.jpg"><img src="/assets/img/posts/blazor_ecommerce/42.jpg"></a>
