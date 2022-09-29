@@ -374,4 +374,183 @@ public class SuperHeroController : ControllerBase
 }
 {% endhighlight %}
 
+  - Add a row in database
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/18.jpg"><img src="/assets/img/posts/angular_superhero/18.jpg"></a>
+  <figcaption>Run the Initial Migration using Code-First Migration</figcaption>
+</figure>
+
+# Implement Create, Update and Delete in the SuperHeroController
+
+* SuperHero.API/Controllers/SuperHeroController.cs
+{% highlight cs %}
+...
+[HttpPost]
+public async Task<ActionResult<List<SuperHero>>> CreateSuperHero(SuperHero hero) 
+{
+    _context.SuperHeroes.Add(hero);
+    await _context.SaveChangesAsync();
+
+    return Ok(await _context.SuperHeroes.ToListAsync());
+}
+
+[HttpPut]
+public async Task<ActionResult<List<SuperHero>>> UpdateSuperHero(SuperHero hero)
+{
+    var dbHero = await _context.SuperHeroes.FindAsync(hero.Id);
+    if (dbHero == null)
+        return BadRequest("Hero not found.");
+
+    dbHero.Name = hero.Name;
+    dbHero.FirstName = hero.FirstName;
+    dbHero.LastName = hero.LastName;
+    dbHero.Place = hero.Place;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(await _context.SuperHeroes.ToListAsync());
+}
+
+[HttpDelete("{id}")]
+public async Task<ActionResult<List<SuperHero>>> DeleteSuperHero(int id)
+{
+    var dbHero = await _context.SuperHeroes.FindAsync(id);
+    if (dbHero == null)
+        return BadRequest("Hero not found.");
+
+    _context.SuperHeroes.Remove(dbHero);
+    await _context.SaveChangesAsync();
+
+    return Ok(await _context.SuperHeroes.ToListAsync()); 
+}
+...
+{% endhighlight %}
+
+# Build a Edit-Hero Component with Angular
+
+  - Add a new component with `ng n c edit-hero --skip-tests` in app\components
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/20.jpg"><img src="/assets/img/posts/angular_superhero/20.jpg"></a>
+  <figcaption>Build a Edit-Hero Component with Angular</figcaption>
+</figure>
+
+* SuperHero.UI/src/app/components/edit-hero.component.ts
+{% highlight ts %}
+...
+export class EditHeroComponent implements OnInit {
+  @Input() hero?: SuperHero;
+...
+  updateHero(hero:SuperHero){
+
+  }
+
+  deleteHero(hero:SuperHero){
+    
+  }
+
+  createHero(hero:SuperHero){
+    
+  }
+  ...
+{% endhighlight %}
+
+* SuperHero.UI/src/app.module.ts
+{% highlight ts %}
+...
+imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule,
+    FormsModule
+  ],
+...
+{% endhighlight %}
+
+* SuperHero.UI/src/app/components/edit-hero.component.ts
+{% highlight html %}
+<div *ngIf="hero">
+    <h2>{{ hero.name }}</h2>
+    <div>
+        Name:
+        <input [(ngModel)]="hero.name" placeholder="Name"/>
+    </div>
+    <div>
+        First Name:
+        <input [(ngModel)]="hero.firstName" placeholder="First Name"/>
+    </div>
+    <div>
+        Last Name:
+        <input [(ngModel)]="hero.lastName" placeholder="Last Name"/>
+    </div>
+    <div>
+        Place:
+        <input [(ngModel)]="hero.place" placeholder="Place"/>
+    </div>
+    <button (click)="updateHero(hero)" *ngIf="hero.id">Save</button>
+    <button (click)="deleteHero(hero)" *ngIf="hero.id">Delete</button>
+    <button (click)="createHero(hero)" *ngIf="!hero.id">Create</button>
+</div>
+{% endhighlight %}
+
+# Add the Edit-Hero Form to the Parent Form
+
+* SuperHero.UI/src/app/app.component.html
+{% highlight html %}
+<button (click)="initNewHero()">Create New Hero</button>
+
+<table>
+    <thead>
+        <th>Name</th>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Place</th>
+    </thead>
+    <tbody>
+        <tr *ngFor="let hero of heroes">
+            <td>{{ hero.name }}</td>
+            <td>{{ hero.firstName }}</td>
+            <td>{{ hero.lastName }}</td>
+            <td>{{ hero.place }}</td>
+            <td><button (click)="editHero(hero)">Edit</button></td>
+        </tr>
+    </tbody>
+</table>
+
+<app-edit-hero [hero]="heroToEdit"></app-edit-hero>
+{% endhighlight %}
+
+* SuperHero.UI/src/app/app.component.ts
+{% highlight ts %}
+export class AppComponent {
+  title = 'SuperHero.UI';
+  heroes: SuperHero[] = [];
+  heroToEdit?: SuperHero;
+
+  constructor(private superHeroService: SuperHeroService) {}
+
+  ngOnInit() : void {
+    this.superHeroService
+      .getSuperHeroes()
+      .subscribe((result: SuperHero[]) => (this.heroes = result));
+  }
+
+  initNewHero(){
+    this.heroToEdit = new SuperHero();
+  }
+
+  editHero(hero: SuperHero){
+    this.heroToEdit = hero;
+  }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/21.jpg"><img src="/assets/img/posts/angular_superhero/21.jpg"></a>
+  <figcaption>Add the Edit-Hero Form to the Parent Form</figcaption>
+</figure>
+
+# Implement Web Service Calls on the client
+
 [Download](https://github.com/leehuhlee/AngularEcommerce){: .btn}
