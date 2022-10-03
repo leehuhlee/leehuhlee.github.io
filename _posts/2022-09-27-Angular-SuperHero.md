@@ -653,4 +653,4 @@ export class AppComponent {
   <figcaption>UI</figcaption>
 </figure>
 
-[Download](https://github.com/leehuhlee/AngularEcommerce){: .btn}
+[Download](https://github.com/leehuhlee/AngularSuperHero){: .btn}
