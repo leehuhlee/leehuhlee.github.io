@@ -553,4 +553,104 @@ export class AppComponent {
 
 # Implement Web Service Calls on the client
 
+* SuperHero.UI/src/app/services/super-hero.service.ts
+{% highlight ts %}
+export class SuperHeroService {
+  private url = "SuperHero";
+
+  constructor(private http: HttpClient) { }
+
+  public getSuperHeroes() : Observable<SuperHero[]> {
+    return this.http.get<SuperHero[]>(`${environment.apiUrl}/${this.url}`);
+  }
+
+  public upgradeHero(hero: SuperHero) : Observable<SuperHero[]> {
+    return this.http.put<SuperHero[]>(`${environment.apiUrl}/${this.url}`, hero);
+  }
+
+  public createHero(hero: SuperHero) : Observable<SuperHero[]> {
+    return this.http.post<SuperHero[]>(`${environment.apiUrl}/${this.url}`, hero);
+  }
+
+  public deleteHero(hero: SuperHero) : Observable<SuperHero[]> {
+    return this.http.delete<SuperHero[]>(`${environment.apiUrl}/${this.url}/${hero.id}`);
+  }
+}
+{% endhighlight %}
+
+# Call the Service in the EditHero Component
+
+* SuperHero.UI/src/app/components/edit-hero.component.ts
+{% highlight ts %}
+export class EditHeroComponent implements OnInit {
+  @Input() hero?: SuperHero;
+  @Output() heroesUpdated = new EventEmitter<SuperHero[]>();
+
+  constructor(private superHeroService: SuperHeroService) { }
+
+  ngOnInit(): void {}
+
+  updateHero(hero:SuperHero){
+    this.superHeroService.upgradeHero(hero).subscribe((heroes: SuperHero[]) => this.heroesUpdated.emit(heroes));
+  }
+
+  deleteHero(hero:SuperHero){
+    this.superHeroService.deleteHero(hero).subscribe((heroes: SuperHero[]) => this.heroesUpdated.emit(heroes));
+  }
+
+  createHero(hero:SuperHero){
+    this.superHeroService.createHero(hero).subscribe((heroes: SuperHero[]) => this.heroesUpdated.emit(heroes));
+  }
+}
+{% endhighlight %}
+
+# Update the Super Hero Table
+
+* SuperHero.UI/src/app/app.component.ts
+{% highlight ts %}
+export class AppComponent {
+  ...
+  updateHeroList(heroes: SuperHero[]){
+    this.heroes = heroes;
+  }
+  ...
+{% endhighlight %}
+
+* SuperHero.UI/src/app/app.component.html
+{% highlight html %}
+...
+<app-edit-hero [hero]="heroToEdit" (heroesUpdated)="updateHeroList($event)"></app-edit-hero>
+{% endhighlight %}
+
+# UI
+
+## Read
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/22.jpg"><img src="/assets/img/posts/angular_superhero/22.jpg"></a>
+  <figcaption>UI</figcaption>
+</figure>
+
+## Create
+
+<figure class="half">
+  <a href="/assets/img/posts/angular_superhero/23.jpg"><img src="/assets/img/posts/angular_superhero/23.jpg"></a>
+  <a href="/assets/img/posts/angular_superhero/24.jpg"><img src="/assets/img/posts/angular_superhero/24.jpg"></a>
+  <figcaption>UI</figcaption>
+</figure>
+
+## Update
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/25.jpg"><img src="/assets/img/posts/angular_superhero/25.jpg"></a>
+  <figcaption>UI</figcaption>
+</figure>
+
+## Delete
+
+<figure>
+  <a href="/assets/img/posts/angular_superhero/26.jpg"><img src="/assets/img/posts/angular_superhero/26.jpg"></a>
+  <figcaption>UI</figcaption>
+</figure>
+
 [Download](https://github.com/leehuhlee/AngularEcommerce){: .btn}
