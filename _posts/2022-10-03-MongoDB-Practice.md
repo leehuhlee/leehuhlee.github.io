@@ -60,9 +60,9 @@ comments: false
 
 ## Insert
 
-  - `use` switch current database.
-  - `db.{collection}` access to the collection.
-  - `insertOne` insert one document on your collection.
+  - `use` switchs current database.
+  - `db.{collection}` accesses to the collection.
+  - `insertOne` inserts one document on your collection.
 
 {% highlight mongodb %}
 use('video');
@@ -79,7 +79,7 @@ db.movies.insertOne(movie);
   <figcaption>IRUD</figcaption>
 </figure>
 
-  - `insertMany` insert many document on your collection.
+  - `insertMany` inserts many document on your collection.
 
 {% highlight mongodb %}
 db.movies.insertMany([{"title" : "Ghostbusters"}, 
@@ -118,7 +118,7 @@ db.movies.findOne();
 
 ## Update
 
-  - `updateOne` update one document.
+  - `updateOne` updates one document.
 
 {% highlight mongodb %}
 db.movies.updateOne({title : "Star Wars: Episode IV - A New Hope"}, 
@@ -133,7 +133,7 @@ db.movies.updateOne({title : "Star Wars: Episode IV - A New Hope"},
 
 ## Delete
 
-  - `deleteOne` delete one document.
+  - `deleteOne` deletes one document.
   
 {% highlight mongodb %}
 db.movies.deleteOne({title : "Star Wars: Episode IV - A New Hope"});
@@ -144,7 +144,7 @@ db.movies.deleteOne({title : "Star Wars: Episode IV - A New Hope"});
   <figcaption>IRUD</figcaption>
 </figure>
 
-  - `deleteMany` delete many documents.
+  - `deleteMany` deletes many documents.
 
 <figure class="half">
   <a href="/assets/img/posts/mongodb_practice/14.jpg"><img src="/assets/img/posts/mongodb_practice/14.jpg"></a>
@@ -152,7 +152,7 @@ db.movies.deleteOne({title : "Star Wars: Episode IV - A New Hope"});
   <figcaption>IRUD</figcaption>
 </figure>
 
-  - `deleteMany({})` can delete all documents.
+  - `deleteMany({})` deletes all documents.
 
 <figure>
   <a href="/assets/img/posts/mongodb_practice/16.jpg"><img src="/assets/img/posts/mongodb_practice/16.jpg"></a>
@@ -176,7 +176,7 @@ DBCollection.prototype.dropIndexes = no; // block to delete Indexes
 
 ## Replace
 
-  - `replaceOne` can change database version.
+  - `replaceOne` changes database version.
 
 <figure class="half">
   <a href="/assets/img/posts/mongodb_practice/17.jpg"><img src="/assets/img/posts/mongodb_practice/17.jpg"></a>
@@ -207,5 +207,30 @@ DBCollection.prototype.dropIndexes = no; // block to delete Indexes
 <figure class="half">
   <a href="/assets/img/posts/mongodb_practice/24.jpg"><img src="/assets/img/posts/mongodb_practice/24.jpg"></a>
   <a href="/assets/img/posts/mongodb_practice/25.jpg"><img src="/assets/img/posts/mongodb_practice/25.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+  - `$push` adds element or create new array.
+  - `$each` adds elements at once.
+  - `$slice` limits the array size.
+  - `$sort` sorts elements with the field value.
+  - `$each` is always needed when you use `$push` with `$slice` or `$sort`.
+
+<figure class="third">
+  <a href="/assets/img/posts/mongodb_practice/26.jpg"><img src="/assets/img/posts/mongodb_practice/26.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/27.jpg"><img src="/assets/img/posts/mongodb_practice/27.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/28.jpg"><img src="/assets/img/posts/mongodb_practice/28.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+<figure class="half">
+  <a href="/assets/img/posts/mongodb_practice/29.jpg"><img src="/assets/img/posts/mongodb_practice/29.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/30.jpg"><img src="/assets/img/posts/mongodb_practice/30.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+<figure class="half">
+  <a href="/assets/img/posts/mongodb_practice/31.jpg"><img src="/assets/img/posts/mongodb_practice/31.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/32.jpg"><img src="/assets/img/posts/mongodb_practice/32.jpg"></a>
   <figcaption>Document</figcaption>
 </figure>
