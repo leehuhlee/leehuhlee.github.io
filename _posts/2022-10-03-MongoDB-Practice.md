@@ -234,3 +234,46 @@ DBCollection.prototype.dropIndexes = no; // block to delete Indexes
   <a href="/assets/img/posts/mongodb_practice/32.jpg"><img src="/assets/img/posts/mongodb_practice/32.jpg"></a>
   <figcaption>Document</figcaption>
 </figure>
+
+  - `$ne` finds documents which don't have not specific value.
+
+<figure class="half">
+  <a href="/assets/img/posts/mongodb_practice/33.jpg"><img src="/assets/img/posts/mongodb_practice/33.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/34.jpg"><img src="/assets/img/posts/mongodb_practice/34.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+  - `$addToSet` add specific value without duplication.
+
+<figure class="third">
+  <a href="/assets/img/posts/mongodb_practice/35.jpg"><img src="/assets/img/posts/mongodb_practice/35.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/36.jpg"><img src="/assets/img/posts/mongodb_practice/36.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/37.jpg"><img src="/assets/img/posts/mongodb_practice/37.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+  - `$ne/$push` can add only one value and `$addToSet/$each` can add several values at once.
+
+<figure>
+  <a href="/assets/img/posts/mongodb_practice/38.jpg"><img src="/assets/img/posts/mongodb_practice/38.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+  - `$pop` removes array elements like stack or queue.
+  - `{"$pop" : {"key" : 1}}` removes elements from last.
+  - `{"$pop" : {"key" : -1}}` removes elements from first.
+
+<figure class="half">
+  <a href="/assets/img/posts/mongodb_practice/39.jpg"><img src="/assets/img/posts/mongodb_practice/39.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/40.jpg"><img src="/assets/img/posts/mongodb_practice/40.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
+  - `$pull` removes array elements with specific conditions.
+
+<figure class="half">
+  <a href="/assets/img/posts/mongodb_practice/41.jpg"><img src="/assets/img/posts/mongodb_practice/41.jpg"></a>
+  <a href="/assets/img/posts/mongodb_practice/42.jpg"><img src="/assets/img/posts/mongodb_practice/42.jpg"></a>
+  <figcaption>Document</figcaption>
+</figure>
+
