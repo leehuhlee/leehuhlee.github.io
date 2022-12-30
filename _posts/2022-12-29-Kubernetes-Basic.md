@@ -70,3 +70,132 @@ comments: false
   <a href="/assets/img/posts/kubernetes_basic/4.jpg"><img src="/assets/img/posts/kubernetes_basic/4.jpg"></a>
   <figcaption>Pod</figcaption>
 </figure>
+
+## Connect Pod from Outside
+
+### Service
+
+  - We use a service to connect a pod from Outside.
+  - At first, service will be connected with a NodePort.
+  - Then the NodePort communicates with the node.
+  - As a result, the service finds the pod in the node.
+
+### Expose Service
+
+  - Enter `kubectl expose pod nginx --type=NodePort --port=80` to expose a service with a port.
+  - Enter `kubectl get service` and check your port number.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/5.jpg"><img src="/assets/img/posts/kubernetes_basic/5.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl get nodes -o wide` and check INTERNAL-IP.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/6.jpg"><img src="/assets/img/posts/kubernetes_basic/6.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Check one of IP is connected from outside like commands or web browser.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/7.jpg"><img src="/assets/img/posts/kubernetes_basic/7.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+## Deployment
+
+  - Union of Pods
+
+## Create Deployment
+
+  - Enter `kubectl create deployment deploy-nginx --image=nginx`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/8.jpg"><img src="/assets/img/posts/kubernetes_basic/8.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+## Scale Deployment
+
+  - Enter `kubectl scale deployment deploy-nginx --replicas=3` because default replicas set is 1.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/9.jpg"><img src="/assets/img/posts/kubernetes_basic/9.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+## Expose Deployment
+
+  - This way is not the best way to connect with pods because you have to share your Internal IP. 
+  - Enter `kubectl expose deployment deploy-nginx --type=NodePort --port=80`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/10.jpg"><img src="/assets/img/posts/kubernetes_basic/10.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+## Load Balancer
+
+  - We use Load Balancer to expose the Deployment with External IP.
+  - Enter `kubectl apply -f ~/_Lecture_k8s_starter.kit/ch2/2.4/metallb.yaml` to install MetaLib.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/11.jpg"><img src="/assets/img/posts/kubernetes_basic/11.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl create deployment chk-hn --image=sysnet4admin/chk-hn`.
+  - Enter `kubectl scale deployment chk-hn --replicas=3`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/12.jpg"><img src="/assets/img/posts/kubernetes_basic/12.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl expose deployment chk-hn --type=LoadBalancer --port=80`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/13.jpg"><img src="/assets/img/posts/kubernetes_basic/13.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Check your External IP with web browser
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/14.jpg"><img src="/assets/img/posts/kubernetes_basic/14.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+## Delete Deployment, Service, Pod and MetaLib
+
+  - Enter `kubectl delete deployment [Your Deployment Name]`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/15.jpg"><img src="/assets/img/posts/kubernetes_basic/15.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl delete service [Your Service Name]`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/16.jpg"><img src="/assets/img/posts/kubernetes_basic/16.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl delete Pod [Your Pod Name]`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/17.jpg"><img src="/assets/img/posts/kubernetes_basic/17.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  - Enter `kubectl delete -f ~/_Lecture_k8s_starter.kit/ch2/2.4/metallb.yaml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/18.jpg"><img src="/assets/img/posts/kubernetes_basic/18.jpg"></a>
+  <figcaption>Pod</figcaption>
+</figure>
+
+  
