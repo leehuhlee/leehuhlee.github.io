@@ -198,4 +198,168 @@ comments: false
   <figcaption>Pod</figcaption>
 </figure>
 
-  
+# Components
+
+## Native components
+  - Enter `kubectl get pods -n kube-system`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/19.jpg"><img src="/assets/img/posts/kubernetes_basic/19.jpg"></a>
+  <figcaption>Components</figcaption>
+</figure>
+
+### Kubernetes Cloud Service
+  - EKS : Elastic Kubernetes Service from AWS 
+  - AKS : Azure Kubernetes Service
+  - GKE : Google Kubernetes Engine
+
+# Issues
+
+## About Deleteing 
+  - If your deleted pod was a real pod, then you cannot rewind.
+  - But if your deleted pod was in a deployment, then kubernetes rewind the pod automatically.
+  - If you delete a pod in mater node, kubernetes recreate it automatically.
+
+### Pods
+  - At first, you have to make pods and a deployment for practice with `kubectl apply -f ~/_Lecture_k8s_starter.kit/ch4/4.1/`.
+  - Now, you have 3 deployment's pods and 1 just pod.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/20.jpg"><img src="/assets/img/posts/kubernetes_basic/20.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - When you delete del-pod with `kubectl delete pod [Your Pod]`, three pods will be remained.
+  - And del-pod is removed eternally.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/21.jpg"><img src="/assets/img/posts/kubernetes_basic/21.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - When you delete a pod which is in the deployment with `kubectl delete pod [Your Delpoyment's Pod]`, three pods will be remained.
+  - Your deployment will rewind your deleted pod automatically.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/22.jpg"><img src="/assets/img/posts/kubernetes_basic/22.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+### Deployment
+  - When you want to delete a pod which is in the deployment, enter `kubectl delete deployment [Your Deployment]`.
+  - Your deployment will remove your all pods in that deployment.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/23.jpg"><img src="/assets/img/posts/kubernetes_basic/23.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+### Scheduler
+  - To delete Scheduler in master node, enter `kubectl delete pod kube-scheduler-m-k8s -n kube-system`.
+  - Then you can see that your kubernetes create new scheduler immediately.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/30.jpg"><img src="/assets/img/posts/kubernetes_basic/30.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+## About Termination
+  - If you terminate a worker node, kubernetes seperate pods in that worker node to others.
+
+### Kubelet
+  - At first, terminate first worker node with `systemctl stop kubelet`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/24.jpg"><img src="/assets/img/posts/kubernetes_basic/24.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You have to make pods for practice with `kubectl apply -f ~/_Lecture_k8s_starter.kit/ch4/4.1/del-deploy.yaml`.
+  - Now, you have 3 deployment's pods unfairly.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/25.jpg"><img src="/assets/img/posts/kubernetes_basic/25.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - In master node, you can also practice terminating Kubelet with `systemctl stop kubelet` and `kubectl delete pod kube-scheduler-m-k8s -n kube-system`
+  - Now your scheduler in master node is always Terminating, because your master node kubelet is stopped.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/31.jpg"><img src="/assets/img/posts/kubernetes_basic/31.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You can check, that kubelet in master node is still working well, with `kubectl create deployment nginx --image=nginx`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/32.jpg"><img src="/assets/img/posts/kubernetes_basic/32.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You can check, that scheduler in master node is still working well, with `kubectl scale deployment nginx --replicas=3`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/33.jpg"><img src="/assets/img/posts/kubernetes_basic/33.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - By the way, to restart our kubelet and scheduler, enter `systemctl start kubelet`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/34.jpg"><img src="/assets/img/posts/kubernetes_basic/34.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+### ContainerD
+  - At first, terminate containerD in first worker node with `systemctl stop containerd`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/26.jpg"><img src="/assets/img/posts/kubernetes_basic/26.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You need to scale pods to 6 with `kubectl scale deployment del-deploy --replicas=6`.
+  - Now, you have 6 deployment's pods and those pods are working in worker node 2 and 3, not 1.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/27.jpg"><img src="/assets/img/posts/kubernetes_basic/27.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - To restart containerD, enter `systemctl start containerd`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/28.jpg"><img src="/assets/img/posts/kubernetes_basic/28.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You have to rescale to see the worker node 1 in pod list with `kubectl scale deployment del-deploy --replicas=9`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/29.jpg"><img src="/assets/img/posts/kubernetes_basic/29.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - In master node, you can also practice terminating ContainerD with `systemctl stop containerd`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/35.jpg"><img src="/assets/img/posts/kubernetes_basic/35.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - You can check, that ContainerD in master node is still working well, with `kubectl create deployment nginx --image=nginx` and `kubectl delete deployment nginx`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/36.jpg"><img src="/assets/img/posts/kubernetes_basic/36.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - By the way, to restart our kubelet and scheduler, enter `systemctl start containerd`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/37.jpg"><img src="/assets/img/posts/kubernetes_basic/37.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+
