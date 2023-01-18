@@ -355,11 +355,248 @@ comments: false
   <figcaption>Issues</figcaption>
 </figure>
 
-  - By the way, to restart our kubelet and scheduler, enter `systemctl start containerd`
+  - By the way, to restart our ContainerD and scheduler, enter `systemctl start containerd` and 
 
 <figure>
   <a href="/assets/img/posts/kubernetes_basic/37.jpg"><img src="/assets/img/posts/kubernetes_basic/37.jpg"></a>
   <figcaption>Issues</figcaption>
 </figure>
 
+### Docker
+  - In worker node #1, you will stop ContainerD and Docker with `systemctl stop containerd` and `systemctl stop docker`.
+  - Then your new scaled deployment is not working in worker node #1.
 
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/58.jpg"><img src="/assets/img/posts/kubernetes_basic/58.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+  - When you stoped worker node #1 more than 5 minutes, your pods in worker node #1 are terminated.
+  - But, those are not deleted, because there is no ContainerD.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/59.jpg"><img src="/assets/img/posts/kubernetes_basic/59.jpg"></a>
+  <figcaption>Issues</figcaption>
+</figure>
+
+# Object
+  - Most objects in kubernetes has the status and spec.
+  - Pod : union of container
+  - Service : Connection Pod with outside
+  - Namespace : Place to publish pods, services and delpoyments
+  - Volume : Place to save eternal data, like pod
+
+## Edit Status
+  - To edit status of deployment, enter `kubectl edit deployment del-deploy`
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_basic/38.jpg"><img src="/assets/img/posts/kubernetes_basic/38.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_basic/39.jpg"><img src="/assets/img/posts/kubernetes_basic/39.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+## Apply Volume
+  - At first, create symlink to make log file about volume with `~/_Lecture_k8s_starter.kit/ch5/5.2/nfs-exporter.sh log`, `cat /etc/exports` and `cat ~/_Lecture_k8s_starter.kit/ch5/5.2/dpy-chk-log.yaml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/40.jpg"><img src="/assets/img/posts/kubernetes_basic/40.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+  - Now, create deployments with `kubectl apply -f ~/_Lecture_k8s_starter.kit/ch5/5.2/dpy-chk-log.yaml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/40.jpg"><img src="/assets/img/posts/kubernetes_basic/40.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+  - Now, create deployments with `kubectl apply -f ~/_Lecture_k8s_starter.kit/ch5/5.2/dpy-chk-log.yaml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/41.jpg"><img src="/assets/img/posts/kubernetes_basic/41.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+  - To check your log file, first of all, you have to execute a deployment with `curl [Your Deployment IP]`.
+  - Then you will access this deployment with `kubectl exec dpy-chk-log-655668ffb8-jl9fr -it -- /bin/bash`.
+  - And you can access the log file with `cat audit/audit_dpy-chk-log-655668ffb8-jl9fr.log`.
+  - You can see your execution after that command line.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/42.jpg"><img src="/assets/img/posts/kubernetes_basic/42.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+  - This log file data is eternally saved, even when we deleted deployments.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/42.jpg"><img src="/assets/img/posts/kubernetes_basic/42.jpg"></a>
+  <figcaption>Object</figcaption>
+</figure>
+
+## Short Cut
+
+| Object | Short cut | 
+|---|---|
+| Pod | po |
+| Deployment | deploy |
+| Node | no |
+| Namespace | ns |
+| Service | svc |
+
+# Alias
+  - With alias, we can make short cut in kubernetes.
+
+## Master Node
+  - You can see all line of master node code with `cat ~/_Lecture_k8s_starter.kit/ch1/1.2/k8s-min-5GiB/master_node.sh`
+  - In this master node, for example, you can use `k` like `kubectl`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/42.jpg"><img src="/assets/img/posts/kubernetes_basic/42.jpg"></a>
+  <figcaption>Alias</figcaption>
+</figure>
+
+  - Now, we will use keq as `kubectl exec [Your Pod Number]`.
+  - You can see the code with `cat ~/_Lecture_k8s_starter.kit/ch6/6.1/k8s_rc.sh`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/45.jpg"><img src="/assets/img/posts/kubernetes_basic/45.jpg"></a>
+  <figcaption>Alias</figcaption>
+</figure>
+
+  - To run this file, enter ` ~/_Lecture_k8s_starter.kit/ch6/6.1/k8s_rc.sh`.
+  - When you type `keq`, you can see the selection.
+  - The default command line environment is shell, but if you want, you can change to bash with `/bin/bash`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/46.jpg"><img src="/assets/img/posts/kubernetes_basic/46.jpg"></a>
+  <figcaption>Alias</figcaption>
+</figure>
+
+# Upgrade
+  - Before upgrading, our master node version is 1.25.0.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/47.jpg"><img src="/assets/img/posts/kubernetes_basic/47.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+## Master node
+  - To upgrade your kubernetes, you should upgrade kubeadm with  `yum upgrade kubeadm-[Your Upgrade Version] -y`, cluster with `kubeadm upgrade apply [Your Upgrade Version] -y`, kubelet with `yum upgrade kubelet-[Your Upgrade Version] -y`.
+  - Now, you need to restart kubelet with `systemctl restart kubelet` and `systemctl daemon-reload`.
+
+## Worker node
+  - In worker node, you should upgrade kubeadm with `yum upgrade kubeadm-[Your Upgrade Version] -y`, cluster with `kubeadm upgrade node`, kubelet with `yum upgrade kubelet-[Your Upgrade Version] -y`
+  - When you have different cluster between master node and worker node, you can use `kubeadm upgrade node` and `kubectl -n kube-system get cm kubeadm-config -o yaml`.
+  
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/48.jpg"><img src="/assets/img/posts/kubernetes_basic/48.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - Now, you need to restart kubelet with `systemctl restart kubelet` and `systemctl daemon-reload`.
+  - You can see upgrade result in master node with `kubectl get nodes`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/49.jpg"><img src="/assets/img/posts/kubernetes_basic/49.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+## Automatic Upgrade with Ansible
+  - You can check the installer code for ansible with `cd _Lecture_k8s_starter.kit/ch8/009` and `vi ansible-installer.sh`
+  - `yum install ansible-2.9.27-1.el7 -y` will install ansible.
+  - `cat <<EOF > /etc/ansible/hosts [Master] 192.168.1.10 [Workers] 192.168.1.[101:103] EOF` describes upgrading hosts.
+  - `known_host` makes automatic authorization in ssh without password.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/50.jpg"><img src="/assets/img/posts/kubernetes_basic/50.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - You should run this file with `./ansible-installer.sh`,
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/51.jpg"><img src="/assets/img/posts/kubernetes_basic/51.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - There is an upgrade yaml code and you can check this with `vi k8s-upgrade.yml`.
+  - `hosts` means host for upgrading.
+  - In task, you can see `yum` and this describes we want to upgrade kubeadm, cluster and kubelet.
+  - `ansible.builtin.systemd` shows, we want to restart our kubelet and reload daemon.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/52.jpg"><img src="/assets/img/posts/kubernetes_basic/52.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - After you check your upgrade version, run this upgrade code with `ansible-playbook k8s-upgrade.yml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/53.jpg"><img src="/assets/img/posts/kubernetes_basic/53.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+# DNS
+  - Reference : <a href="https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/">Kubernetes DNS Query</a>
+  - Use that manifest to create a Pod with `kubectl apply -f https://k8s.io/examples/admin/dns/dnsutils.yaml`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/54.jpg"><img src="/assets/img/posts/kubernetes_basic/54.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - Take a look inside the resolv.conf file with `kubectl exec -ti dnsutils -- cat /etc/resolv.conf`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/55.jpg"><img src="/assets/img/posts/kubernetes_basic/55.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - Use the kubectl get pods command to verify that the DNS pod is running with `kubectl get pods --namespace=kube-system -l k8s-app=kube-dns`.
+  - The command line will show pods, that their label is kube-dns and they are belong to namespace kube-system.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/56.jpg"><img src="/assets/img/posts/kubernetes_basic/56.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+  - Use the kubectl logs command to see logs for the DNS containers with `kubectl logs --namespace=kube-system -l k8s-app=kube-dns`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/57.jpg"><img src="/assets/img/posts/kubernetes_basic/57.jpg"></a>
+  <figcaption>Upgrade</figcaption>
+</figure>
+
+# etcd
+  - In mater node, there is Api server and etcd.
+  - etcd communicates with Api server for cluster status.
+  - You can install etcd with `~/_Lecture_k8s_starter.kit/ch8/003/install_etcdctl.sh`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/60.jpg"><img src="/assets/img/posts/kubernetes_basic/60.jpg"></a>
+  <figcaption>etcd</figcaption>
+</figure>
+
+  - Create deployments with `k apply -f _Lecture_k8s_starter.kit/ch8/003/sysnet4admin.yaml`
+  - Sync Api server and etcd with `ETCDCTL_API=3 etcdctl --endpoints=https://[192.168.1.10]:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key get --prefix=true "" > /tmp/prefix`
+  - Then you can see two command line, `cat /tmp/prefix | nl | tail` and `cat /tmp/prefix | nl | grep -i 'pod":"sysnet4admin'`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/61.jpg"><img src="/assets/img/posts/kubernetes_basic/61.jpg"></a>
+  <figcaption>etcd</figcaption>
+</figure>
+
+  - When you scaled deployments, you should sync again.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/62.jpg"><img src="/assets/img/posts/kubernetes_basic/62.jpg"></a>
+  <figcaption>etcd</figcaption>
+</figure>
+
+  - When you delete deployments, you should sync again, too.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/62.jpg"><img src="/assets/img/posts/kubernetes_basic/62.jpg"></a>
+  <figcaption>etcd</figcaption>
+</figure>
