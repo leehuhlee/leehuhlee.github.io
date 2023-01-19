@@ -54,6 +54,13 @@ comments: false
   <figcaption>IDE</figcaption>
 </figure>
 
+  - If you want to change Putty colour, copy and paste `_puttycolor.js` and `k8s(github_SysNet4Admin) Terminal,reg` in `~\_Lecture_k8s_starter.kit-main\ch8\012` to your putty folder.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/72.jpg"><img src="/assets/img/posts/kubernetes_basic/72.jpg"></a>
+  <figcaption>IDE</figcaption>
+</figure>
+
 # Pod
 
   - Pod is union of containers.
@@ -597,6 +604,81 @@ comments: false
   - When you delete deployments, you should sync again, too.
 
 <figure>
-  <a href="/assets/img/posts/kubernetes_basic/62.jpg"><img src="/assets/img/posts/kubernetes_basic/62.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_basic/63.jpg"><img src="/assets/img/posts/kubernetes_basic/63.jpg"></a>
   <figcaption>etcd</figcaption>
+</figure>
+
+# Application
+  - Every application use a specific namespace, because it's easier to delete.
+
+## Polaris
+  - Reference : <a href="https://polaris.docs.fairwinds.com/dashboard/#installation">Fairwinds</a>
+  - Before practice, you need 6 normal deployments and 1 specific deployment, which belong to metallb-system namespace.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/64.jpg"><img src="/assets/img/posts/kubernetes_basic/64.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - Then, you need to download helm in your repository with belows.
+
+{% highlight vi %}
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/65.jpg"><img src="/assets/img/posts/kubernetes_basic/65.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - Now, you can download polaris with belows.
+
+{% highlight vi %}
+helm repo add fairwinds-stable https://charts.fairwinds.com/stable
+helm upgrade --install polaris fairwinds-stable/polaris --namespace polaris --create-namespace
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/66.jpg"><img src="/assets/img/posts/kubernetes_basic/66.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - Finally, you will expose polaris dashboard with LoadBalancer in port 8080 with `k expose -n polaris deployment polaris-dashboard --type=LoadBalancer --name=polaris --port=8080`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/67.jpg"><img src="/assets/img/posts/kubernetes_basic/67.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - Use `http://192.168.1.11:8080/` in your web browser to see your dashboard.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/68.jpg"><img src="/assets/img/posts/kubernetes_basic/68.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+## Chaos Mesh
+  - Reference : <a href="https://chaos-mesh.org/">Chaos Mesh</a>
+  - Download with `curl -sSL https://mirrors.chaos-mesh.org/v2.5.1/install.sh | bash`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/69.jpg"><img src="/assets/img/posts/kubernetes_basic/69.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - Use `k get svc -n chaos-mesh` to check your node port number.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/70.jpg"><img src="/assets/img/posts/kubernetes_basic/70.jpg"></a>
+  <figcaption>Application</figcaption>
+</figure>
+
+  - And you can access Chaos Mesh dashboard in your web browser on `[One of Your Node IP]:[Chaos Mesh Node Port]`
+  - Chaos Mesh is used as a lab with experiment tab.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_basic/71.jpg"><img src="/assets/img/posts/kubernetes_basic/71.jpg"></a>
+  <figcaption>Application</figcaption>
 </figure>
