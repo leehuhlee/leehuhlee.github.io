@@ -3,6 +3,7 @@ layout: post
 title: "[.Net 6] Blazor Ecommerce"
 date: 2022-06-08
 excerpt: "Blazor"
+project: true
 tags: [C#, .Net6, Blazor, WSAM]
 comments: false
 ---
