@@ -354,7 +354,7 @@ kubeadm join --token 123456.1234567890123456 \
 # IDE
 
 ## Deploy Kubernetes VM
-- Open your `~HashiCorp\_Lecture_k8s_learning.kit-main\ch1\1.5\k8s-min-5GiB-wo-add-nodes>` folder and use `vagrant up`.
+- Open your `~HashiCorp\_Lecture_k8s_learning.kit-main\ch1\1.5\k8s-min-5GiB-wo-add-nodes` folder in command and use `vagrant up`.
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/7.jpg"><img src="/assets/img/posts/kubernetes_advanced/7.jpg"></a>
@@ -377,4 +377,180 @@ kubeadm join --token 123456.1234567890123456 \
 - We need to delete all VM to upgrade our VM.
 
 # IDE 2
+- Update Kubernetes, Docker and ContainerD.
+- Upgrade memory in master and worker nodes.
+
+## Deploy Kubernetes VM 
+- Open your `~HashiCorp\_Lecture_k8s_learning.kit-main\ch2\2.1\k8s-UpTo-10GiB` folder in command and use `vagrant up`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/11.jpg"><img src="/assets/img/posts/kubernetes_advanced/11.jpg"></a>
+  <figcaption>IDE</figcaption>
+</figure>
+
+# Definitions
+
+## Object
+
+* Container
+- Container has one software or system.
+
+* Pod
+- Pod has one or union of containers.
+- Pod has a volume to save eternal data.
+
+{% highlight yaml %}
+apiVersion: v1 // pod version
+kind: Pod // Object type
+metadata: // information of pod
+  labels:
+    run: po-nginx
+  name: po-nginx
+spec: // spec of pod
+  containers:
+  - image: nginx
+    name: nginx
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/21.jpg"><img src="/assets/img/posts/kubernetes_advanced/21.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* Deployment
+
+{% highlight yaml %}
+apiVersion: apps/v1 // deployment version
+kind: Deployment // object type
+metadata: // information of deployment
+  labels:
+    app: deploy-nginx
+  name: deploy-nginx
+spec:  // spec of deployment
+  replicas: 3  // replica set
+  selector:  // choose templete
+    matchLabels:
+      app: po-nginx
+  template:  // templete to make pod
+    metadata:
+      labels:
+        app: po-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/22.jpg"><img src="/assets/img/posts/kubernetes_advanced/22.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* ReplicaSet
+- Deployment needs ReplicaSet to manage count of pods
+
+* Job
+- You can use job to decrese using memory.
+
+* CronJob
+- Use Job with schedule.
+
+* DaemonSet
+- DaemonSet makes one pod on each nodes.
+
+* StatefulSet
+- StatefulSet saves state of pod.
+
+* Application
+- Pod(s) containing container(s) and volume for specific work is(are) an application.
+- For example, NGINX, MySQL, etc.
+- Even when you add something on the application, that is also an application.
+
+## Commands
+
+* get
+- Read object
+
+* run, create, apply
+- Create object
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/12.jpg"><img src="/assets/img/posts/kubernetes_advanced/12.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* delete
+- Delet object
+
+* exec
+- Access to container in pod.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/14.jpg"><img src="/assets/img/posts/kubernetes_advanced/14.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* scale
+- Add or sub count of pods.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/13.jpg"><img src="/assets/img/posts/kubernetes_advanced/13.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* edit
+- Change deployed object.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/15.jpg"><img src="/assets/img/posts/kubernetes_advanced/15.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* events
+- Check events with namespace.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/18.jpg"><img src="/assets/img/posts/kubernetes_advanced/18.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* describe
+- Check status of object.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/19.jpg"><img src="/assets/img/posts/kubernetes_advanced/19.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* logs
+- Check log.
+- Log is worten when deploy is successed.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/20.jpg"><img src="/assets/img/posts/kubernetes_advanced/20.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+### yaml
+
+* -o yaml
+- Read yaml code.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/16.jpg"><img src="/assets/img/posts/kubernetes_advanced/16.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* --dry-run=client
+- Run yaml code to read.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/17.jpg"><img src="/assets/img/posts/kubernetes_advanced/17.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+# Deploy Application
+
+
+
 
