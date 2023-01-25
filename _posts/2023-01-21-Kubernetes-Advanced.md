@@ -407,10 +407,15 @@ metadata: // information of pod
     run: po-nginx
   name: po-nginx
 spec: // spec of pod
-  containers:
+  containers:  // information of container
   - image: nginx
     name: nginx
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/23.jpg"><img src="/assets/img/posts/kubernetes_advanced/23.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/21.jpg"><img src="/assets/img/posts/kubernetes_advanced/21.jpg"></a>
@@ -436,10 +441,15 @@ spec:  // spec of deployment
       labels:
         app: po-nginx
     spec:
-      containers:
-      - name: nginx
-        image: nginx
+      containers:  // information of container
+      - name: nginx  
+        image: nginx  // container image
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/24.jpg"><img src="/assets/img/posts/kubernetes_advanced/24.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/22.jpg"><img src="/assets/img/posts/kubernetes_advanced/22.jpg"></a>
@@ -449,8 +459,76 @@ spec:  // spec of deployment
 * ReplicaSet
 - Deployment needs ReplicaSet to manage count of pods
 
+{% highlight yaml %}
+apiVersion: apps/v1 // replicaset version
+kind: ReplicaSet // object type
+metadata: // information of replicaset
+  labels:
+    app: rs-nginx
+  name: rs-nginx
+spec:  // spec of replicaset
+  replicas: 3
+  selector:  // choose templete
+    matchLabels:
+      app: po-nginx
+  template:  // templete to make pod
+    metadata:
+      labels:
+        app: po-nginx
+    spec:
+      containers:  // information of container
+      - image: nginx  // container image
+        name: nginx
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/25.jpg"><img src="/assets/img/posts/kubernetes_advanced/25.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Honestly, the code is really similler with deployment, but we need ReplicaSet for rolling.
+- For example, when you upgrade a pod, Deployment will create ReplicaSet, and ReplilcaSet will duplicate itself.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/26.jpg"><img src="/assets/img/posts/kubernetes_advanced/26.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/27.jpg"><img src="/assets/img/posts/kubernetes_advanced/27.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
 * Job
 - You can use job to decrese using memory.
+
+{% highlight yaml %}
+apiVersion: batch/v1  // job version
+kind: Job  // object type
+metadata:  // information of job
+  name: job-curl-succ
+spec:  // spec of job
+  template:  // templete to make job
+    spec:
+      containers:  // information of container
+      - name: net-tools
+        image: sysnet4admin/net-tools  // container image
+        command: ["curlchk",  "nginx"]
+      restartPolicy: Never  // restart option
+{% endhighlight %}
+
+- `restartPolicy` default value in other object is `Always` and it will restart the object forever.
+- `restartPolicy` should be in job and this value should be `OnFailure` or `Never`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/34.jpg"><img src="/assets/img/posts/kubernetes_advanced/34.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/33.jpg"><img src="/assets/img/posts/kubernetes_advanced/33.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
 
 * CronJob
 - Use Job with schedule.
@@ -548,6 +626,38 @@ spec:  // spec of deployment
   <a href="/assets/img/posts/kubernetes_advanced/17.jpg"><img src="/assets/img/posts/kubernetes_advanced/17.jpg"></a>
   <figcaption>Definitions</figcaption>
 </figure>
+
+* command
+- Use command in yaml file to run specific command.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/28.jpg"><img src="/assets/img/posts/kubernetes_advanced/28.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* multiple commands
+- Use `&&` to run multiple commands at once.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/29.jpg"><img src="/assets/img/posts/kubernetes_advanced/29.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `;` to run multiple commans step by step.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/30.jpg"><img src="/assets/img/posts/kubernetes_advanced/30.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `|` to separate command lines.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/31.jpg"><img src="/assets/img/posts/kubernetes_advanced/31.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `arg` to separate config and commands.
 
 # Deploy Application
 
