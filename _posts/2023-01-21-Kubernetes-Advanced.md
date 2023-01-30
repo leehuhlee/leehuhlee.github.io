@@ -400,14 +400,14 @@ kubeadm join --token 123456.1234567890123456 \
 - Pod has a volume to save eternal data.
 
 {% highlight yaml %}
-apiVersion: v1 // pod version
-kind: Pod // Object type
-metadata: // information of pod
+apiVersion: v1 # pod version
+kind: Pod # Object type
+metadata: # information of pod
   labels:
     run: po-nginx
   name: po-nginx
-spec: // spec of pod
-  containers:  // information of container
+spec: # spec of pod
+  containers:  # information of container
   - image: nginx
     name: nginx
 {% endhighlight %}
@@ -425,25 +425,25 @@ spec: // spec of pod
 * Deployment
 
 {% highlight yaml %}
-apiVersion: apps/v1 // deployment version
-kind: Deployment // object type
-metadata: // information of deployment
+apiVersion: apps/v1 # deployment version
+kind: Deployment # object type
+metadata: # information of deployment
   labels:
     app: deploy-nginx
   name: deploy-nginx
-spec:  // spec of deployment
-  replicas: 3  // replica set
-  selector:  // choose templete
+spec:  # spec of deployment
+  replicas: 3  # replica set
+  selector:  # choose templete
     matchLabels:
       app: po-nginx
-  template:  // templete to make pod
+  template:  # templete to make pod
     metadata:
       labels:
         app: po-nginx
     spec:
-      containers:  // information of container
+      containers:  # information of container
       - name: nginx  
-        image: nginx  // container image
+        image: nginx  # container image
 {% endhighlight %}
 
 <figure>
@@ -460,24 +460,24 @@ spec:  // spec of deployment
 - Deployment needs ReplicaSet to manage count of pods
 
 {% highlight yaml %}
-apiVersion: apps/v1 // replicaset version
-kind: ReplicaSet // object type
-metadata: // information of replicaset
+apiVersion: apps/v1 # replicaset version
+kind: ReplicaSet # object type
+metadata: # information of replicaset
   labels:
     app: rs-nginx
   name: rs-nginx
-spec:  // spec of replicaset
+spec:  # spec of replicaset
   replicas: 3
-  selector:  // choose templete
+  selector:  # choose templete
     matchLabels:
       app: po-nginx
-  template:  // templete to make pod
+  template:  # templete to make pod
     metadata:
       labels:
         app: po-nginx
     spec:
-      containers:  // information of container
-      - image: nginx  // container image
+      containers:  # information of container
+      - image: nginx  # container image
         name: nginx
 {% endhighlight %}
 
@@ -503,18 +503,18 @@ spec:  // spec of replicaset
 - You can use job to decrese using memory.
 
 {% highlight yaml %}
-apiVersion: batch/v1  // job version
-kind: Job  // object type
-metadata:  // information of job
+apiVersion: batch/v1  # job version
+kind: Job  # object type
+metadata:  # information of job
   name: job-curl-succ
-spec:  // spec of job
-  template:  // templete to make job
+spec:  # spec of job
+  template:  # templete to make job
     spec:
-      containers:  // information of container
+      containers: # information of container
       - name: net-tools
-        image: sysnet4admin/net-tools  // container image
+        image: sysnet4admin/net-tools  # container image
         command: ["curlchk",  "nginx"]
-      restartPolicy: Never  // restart option
+      restartPolicy: Never  # restart option
 {% endhighlight %}
 
 - `restartPolicy` default value in other object is `Always` and it will restart the object forever.
@@ -530,14 +530,239 @@ spec:  // spec of job
   <figcaption>Definitions</figcaption>
 </figure>
 
+{% highlight yaml %}
+apiVersion: batch/v1  # job version
+kind: Job  # object type
+metadata:  # information of job
+  name: job-completions 
+spec:  # spec of job
+  completions: 3  # run sequentially 3 times
+  template:  # templete to make job
+    spec:
+      containers:
+      - name: net-tools
+        image: sysnet4admin/net-tools  # container image
+        command: ["curlchk",  "nginx"]
+      restartPolicy: Never  # restart option
+{% endhighlight %}
+
+- Use `completions` to run to sequentially.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/35.jpg"><img src="/assets/img/posts/kubernetes_advanced/35.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: batch/v1  # job version
+kind: Job  # object type
+metadata:  # information of job
+  name: job-parallelism
+spec:  # spec of job
+  parallelism: 3  # run parallely 3 times
+  template:  # templete to make job
+    spec:
+      containers:
+      - name: net-tools
+        image: sysnet4admin/net-tools  # container image
+        command: ["curlchk",  "nginx"]
+      restartPolicy: Never  # restart option
+{% endhighlight %}
+
+- Use `parallelism` to run to parallely.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/36.jpg"><img src="/assets/img/posts/kubernetes_advanced/36.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: batch/v1  # job version
+kind: Job  # object type
+metadata:  # information of job
+  name: job-activedeadlineseconds
+spec:  # spec of job
+  backoffLimit: 3
+  activeDeadlineSeconds: 30  # dead time after run command
+  template:  # templete to make job
+    spec:
+      containers:
+      - name: net-tools
+        image: sysnet4admin/net-tools  # container image
+        command: ["/bin/sh", "-c"]
+        args:
+        - sleep 60;
+          curlchk nginx;  
+      restartPolicy: Never  # restart option
+{% endhighlight %}
+
+- Use `activeDeadlineSeconds` to delete on specific time after your command 
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/37.jpg"><img src="/assets/img/posts/kubernetes_advanced/37.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: batch/v1  # job version
+kind: Job  # object type
+metadata: # information of job
+  name: job-ttlsecondsafterfinished
+spec:  # spec of job
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 30 # dead time after completed
+  template:  # templete to make job
+    spec:
+      containers:
+      - name: net-tools
+        image: sysnet4admin/net-tools  # container image
+        command: ["/bin/sh", "-c"]
+        args:
+        - sleep 60;
+          curlchk nginx;  
+      restartPolicy: Never  # restart option
+{% endhighlight %}
+
+- Use `ttlSecondsAfterFinished` to delete on specific time after completed
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/38.jpg"><img src="/assets/img/posts/kubernetes_advanced/38.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
 * CronJob
-- Use Job with schedule.
+- Use `CronJob` to run Job with schedule.
+
+{% highlight yaml %}
+apiVersion: batch/v1  # cron job version
+kind: CronJob  #  object type
+metadata:  # information of cron job
+  name: cj-1m-hist3-curl 
+spec:  # spec of cron job
+  schedule: "*/1 * * * *"  # cron rule
+  jobTemplate:             # Template for job 
+    spec:                  # same as before 
+      template:  # templete to make job
+        spec:
+          containers:
+          - name: net-tools
+            image: sysnet4admin/net-tools  # container image
+            command: ["curlchk",  "nginx"]
+          restartPolicy: Never   # restart option
+{% endhighlight %}
+
+- cron rule : `*/#` repeats the job # periods, and just `#` repeats the job at #.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/39.jpg"><img src="/assets/img/posts/kubernetes_advanced/39.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: batch/v1  # cron job version
+kind: CronJob  #  object type
+metadata:  # information of cron job
+  name: cj-1m-hist10-curl 
+spec:  # spec of cron job
+  schedule: "*/1 * * * *"   # cron rule
+  successfulJobsHistoryLimit: 10
+  jobTemplate:             # Template for job 
+    spec:                  # same as before 
+      template:  # templete to make job
+        spec:
+          containers:
+          - name: net-tools
+            image: sysnet4admin/net-tools  # container image
+            command: ["curlchk",  "nginx"]
+          restartPolicy: Never  # restart option
+{% endhighlight %}
+
+- `successfulJobsHistoryLimit` hold the job until specific number. After the limited number, it will delete first job automatically. Default value is 3.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/40.jpg"><img src="/assets/img/posts/kubernetes_advanced/40.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `k get po | wc -l` to get total pods count.
 
 * DaemonSet
 - DaemonSet makes one pod on each nodes.
 
+{% highlight yaml %}
+apiVersion: apps/v1  # daemon set version
+kind: DaemonSet  #  object type
+metadata:  # information of daemon set
+  labels:
+    app: ds-nginx 
+  name: ds-nginx
+spec:  # spec of daemon set
+  selector:
+    matchLabels:
+      app: po-nginx 
+  template:  # Template for job 
+    metadata:
+      labels:
+        app: po-nginx
+    spec:  # same as before 
+      containers:
+      - name: nginx 
+        image: nginx # container image
+{% endhighlight %}
+
+- DaemonSet is quit simillar with deployment, but it has no replicas, because one pod can include only one DaemonSet.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/41.jpg"><img src="/assets/img/posts/kubernetes_advanced/41.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `vagrant up w4-k8s-1.22` to make fourth worker node.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/42.jpg"><img src="/assets/img/posts/kubernetes_advanced/42.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Use `vagrant destroy -f w4-k8s-1.22` to destroy fourth worker node.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/43.jpg"><img src="/assets/img/posts/kubernetes_advanced/43.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- When you add node, DamonSet will be created automatically from code.
+
 * StatefulSet
 - StatefulSet saves state of pod.
+
+{% highlight yaml %}
+apiVersion: apps/v1  # StatefulSet version
+kind: StatefulSet  #  object type
+metadata:  # information of StatefulSet
+  name: sts-chk-hn
+spec:  # spec of StatefulSet
+  replicas: 3
+  serviceName: sts-svc-domain #statefulset need it
+  selector:
+    matchLabels:
+      app: sts
+  template:  # Template for StatefulSet 
+    metadata:
+      labels:
+        app: sts
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn  # container image
+{% endhighlight %}
+
+- You should use `serviceName`, because StatefulSet has specific name, not hash value.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/44.jpg"><img src="/assets/img/posts/kubernetes_advanced/44.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
 
 * Application
 - Pod(s) containing container(s) and volume for specific work is(are) an application.
@@ -659,8 +884,194 @@ spec:  // spec of job
 
 - Use `arg` to separate config and commands.
 
-# Deploy Application
+# Expose Deployed Application
+- We don't use HostPort and HostNetwork, because we should know where the pods is running.
 
+## Port-forward
+- We have host port and guest port. When we use host port, then this host port will be changed to guest port.
+- For example, our host port is 60010, and when we connect to 60010, then our master node will change 60010 to 22 and connect to 22.
 
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fwd-chk-hn
+spec:
+  containers:
+  - name: chk-hn 
+    image: sysnet4admin/chk-hn
+{% endhighlight %}
 
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/45.jpg"><img src="/assets/img/posts/kubernetes_advanced/45.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
 
+- `k port-forward fwd-chk-hn 80:80` means, we will open 80 with specific address and it will be changed to 80.
+- `k port-forward --address 0.0.0.0 fwd-chk-hn 80:80` means, we will open 80 with all address and it will be changed to 80.
+
+## HostPort
+- Outside users should know, which node they will connect.
+- For example, 8080 is second worker node host port, and it will change 8080 to 80.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hp-chk-hn 
+spec:
+  containers:
+  - name: chk-hn
+    image: sysnet4admin/chk-hn
+    ports:
+    - containerPort: 80
+      hostPort: 8080
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/46.jpg"><img src="/assets/img/posts/kubernetes_advanced/46.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## HostNetwork
+- Outside users should know, which node they will connect. And they connect directly that port.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hnet-chk-hn
+spec:
+  hostNetwork: true
+  containers:
+    - name: chk-hn
+      image: sysnet4admin/chk-hn 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/47.jpg"><img src="/assets/img/posts/kubernetes_advanced/47.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## NodePort
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx 
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+---  # separator for objects
+apiVersion: v1
+kind: Service
+metadata:
+  name: np-nginx 
+spec:
+  selector:
+    app: deploy-nginx  # deployment to expose
+  ports:
+    - name: http
+      port: 80  # service
+      targetPort: 80  # pod
+      nodePort: 30000 #option 
+  type: NodePort # using NodePort
+{% endhighlight %}
+
+- User will connect 30000 node and node will connect to 80 service and service will connect to 80 pod.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/48.jpg"><img src="/assets/img/posts/kubernetes_advanced/48.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## LoadBalancer
+- We will use matalib instead of NodePort.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx 
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-nginx 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80 
+  type: LoadBalancer
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-chk-ip
+  labels:
+    app: deploy-chk-ip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-chk-ip
+  template:
+    metadata:
+      labels:
+        app: deploy-chk-ip 
+    spec:
+      containers:
+      - name: chk-ip
+        image: sysnet4admin/chk-ip
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-chk-ip 
+spec:
+  selector:
+    app: deploy-chk-ip  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80 
+  type: LoadBalancer
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/49.jpg"><img src="/assets/img/posts/kubernetes_advanced/49.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
