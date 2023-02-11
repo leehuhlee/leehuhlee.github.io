@@ -1075,3 +1075,431 @@ spec:
   <a href="/assets/img/posts/kubernetes_advanced/49.jpg"><img src="/assets/img/posts/kubernetes_advanced/49.jpg"></a>
   <figcaption>Definitions</figcaption>
 </figure>
+
+## ExternalName
+- ExternalName has no Deployment because it uses external name to service.
+- ExternalName is matched metadata's name.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/50.jpg"><img src="/assets/img/posts/kubernetes_advanced/50.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ex-url-1 
+  namespace: default
+spec:
+  type: ExternalName 
+  externalName: sysnet4admin.github.io # External Domain Name
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ex-url-2 
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: k8s-edu.github.io # changable as you want 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/51.jpg"><img src="/assets/img/posts/kubernetes_advanced/51.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## ClusterIP
+- ClusterIP exposes Deployment or Pod.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/52.jpg"><img src="/assets/img/posts/kubernetes_advanced/52.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx 
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cl-nginx 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:  # ClusterIP has port and target port to connect each other. 
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+{% endhighlight %}
+
+
+## Headless
+- Headless exposes Deployment or Pod without IP.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/53.jpg"><img src="/assets/img/posts/kubernetes_advanced/53.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx 
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hdl-nginx 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  clusterIP: None # Headless has no type and no IP.
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/54.jpg"><img src="/assets/img/posts/kubernetes_advanced/54.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- Headless can communicate with domain name, without IP and connect to StateFulset with domain name.
+- StateFulset matches service Name to connect Headless.
+- When you use StateFulset with LoadBalancer, each External IP calls can show different pods. Therefore, I recommend, using StateFulset with Headless.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sts-chk-hn
+spec:
+  replicas: 3
+  serviceName: sts-svc-domain #statefulset need it
+  selector:
+    matchLabels:
+      app: sts
+  template:
+    metadata:
+      labels:
+        app: sts
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sts-svc-domain
+spec:
+  selector:
+    app: sts
+  ports:
+    - port: 80
+  clusterIP: None
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/55.jpg"><img src="/assets/img/posts/kubernetes_advanced/55.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## EndPoint
+- When you create Deployment and LoadBalancer together, EndPoint is also created.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-chk-ip
+  labels:
+    app: deploy-chk-ip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-chk-ip
+  template:
+    metadata:
+      labels:
+        app: deploy-chk-ip 
+    spec:
+      containers:
+      - name: chk-ip
+        image: sysnet4admin/chk-ip
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-chk-ip 
+spec:
+  selector:
+    app: deploy-chk-ip  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80 
+  type: LoadBalancer
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/56.jpg"><img src="/assets/img/posts/kubernetes_advanced/56.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- You can create EndPoint independently.
+- Create Service first as ClusterIP and create also EndPoint with service name and LoadBalancer IP. As a result, you can call EndPoint with service name and EndPoint is binded with LoadBalancer IP, like double binding.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-data 
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-data # match name with service.
+subsets:
+  - addresses:
+      - ip: 192.168.1.11 # LoadBalancer IP
+    ports:
+      - name: http
+        port: 80
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/57.jpg"><img src="/assets/img/posts/kubernetes_advanced/57.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+## Ingress
+- Ingress cannot exist without service.
+- Ingress has routing information and service routs the app. 
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/58.jpg"><img src="/assets/img/posts/kubernetes_advanced/58.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/59.jpg"><img src="/assets/img/posts/kubernetes_advanced/59.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+* Services
+
+- deploy-nginx
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx 
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ing-default 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+{% endhighlight %}
+
+- deploy-hn
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-hn
+  labels:
+    app: deploy-hn
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-hn
+  template:
+    metadata:
+      labels:
+        app: deploy-hn
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ing-hn 
+spec:
+  selector:
+    app: deploy-hn  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+{% endhighlight %}
+
+- deploy-ip
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-ip
+  labels:
+    app: deploy-ip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-ip
+  template:
+    metadata:
+      labels:
+        app: deploy-ip
+    spec:
+      containers:
+      - name: chk-ip
+        image: sysnet4admin/chk-ip
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ing-ip 
+spec:
+  selector:
+    app: deploy-ip  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+{% endhighlight %}
+
+* Ingress
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations: # set default path
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: / 
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-default
+            port:
+              number: 80
+      - path: /hn
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-hn
+            port:
+              number: 80
+      - path: /ip 
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-ip
+            port:
+              number: 80
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/61.jpg"><img src="/assets/img/posts/kubernetes_advanced/61.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- with NodePort
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/62.jpg"><img src="/assets/img/posts/kubernetes_advanced/62.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/63.jpg"><img src="/assets/img/posts/kubernetes_advanced/63.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+- with LoadBalancer
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/64.jpg"><img src="/assets/img/posts/kubernetes_advanced/64.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/65.jpg"><img src="/assets/img/posts/kubernetes_advanced/65.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
+
+### Label vs Annotation
+- Label is for human and annotation is for system.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/60.jpg"><img src="/assets/img/posts/kubernetes_advanced/60.jpg"></a>
+  <figcaption>Definitions</figcaption>
+</figure>
