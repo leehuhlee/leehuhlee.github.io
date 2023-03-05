@@ -1503,3 +1503,431 @@ spec:
   <a href="/assets/img/posts/kubernetes_advanced/60.jpg"><img src="/assets/img/posts/kubernetes_advanced/60.jpg"></a>
   <figcaption>Definitions</figcaption>
 </figure>
+
+# Volume
+
+## emptyDir
+- emptyDir is shared memory in pods.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod # make emptyDir as a pod
+metadata:
+  name: pod-emptydir 
+  labels:
+    app: nginx 
+spec:
+  containers:
+  - name: web-page # make container 1
+    image: nginx 
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html # container 1 first page
+      name: empty-directory 
+
+  - name: html-builder # make container 2
+    image: alpine 
+    volumeMounts:
+    - mountPath: /html-dir # container 2 first page is /html-dir/index.html
+      name: empty-directory 
+    command: ["/bin/sh", "-c"]
+    args: 
+      - echo "This page created on $(date +%Y-%m-%d)" > /html-dir/index.html;
+        sleep infinity;
+        
+  volumes:
+  - name: empty-directory 
+    emptyDir: {}
+{% endhighlight %}
+
+- In this example, we will create 2 containers. 
+- After creating each of first page, this first page gonna be empty-directory. 
+- This created empty-directory will be a volume and this volume connects 2 containers. 
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/68.jpg"><img src="/assets/img/posts/kubernetes_advanced/68.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+- We called container 2 with IP but actual running pod is container 1.
+
+## hostPath
+- hostPath can use Node directories.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-hostpath
+  labels:
+    app: deploy-hostpath
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-hostpath 
+  template:
+    metadata:
+      labels:
+        app: deploy-hostpath 
+    spec:
+      containers:
+      - name: host-mon
+        image: sysnet4admin/sleepy
+        volumeMounts:
+        - mountPath: /host-log  
+          name: hostpath-directory 
+      volumes:
+      - name: hostpath-directory 
+        hostPath:
+          path: /var/log
+{% endhighlight %}
+
+- It connects `/var/log` and `/host-log` with name `hostpath-directory`.
+- When Deployment is released on Node, Node can take diffrent amounts of Deployments.
+- So it's difficult to make a hostPath on one Node.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/69.jpg"><img src="/assets/img/posts/kubernetes_advanced/69.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ds-hostpath
+  labels:
+    app: ds-hostpath
+spec:
+  selector:
+    matchLabels:
+      app: ds-hostpath 
+  template:
+    metadata:
+      labels:
+        app: ds-hostpath 
+    spec:
+      containers:
+      - name: host-mon
+        image: sysnet4admin/sleepy
+        volumeMounts:
+        - mountPath: /host-log  
+          name: hostpath-directory 
+      volumes:
+      - name: hostpath-directory 
+        hostPath:
+          path: /var/log
+{% endhighlight %}
+
+- DaemonSet is created on one Node. It means our hostPath is separated fairly on Nodes.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/70.jpg"><img src="/assets/img/posts/kubernetes_advanced/70.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+## NFS
+- Network File System
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nfs
+  labels:
+    app: deploy-nfs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-nfs
+  template:
+    metadata:
+      labels:
+        app: deploy-nfs
+    spec:
+      containers:
+      - name: chk-log 
+        image: sysnet4admin/chk-log
+        volumeMounts:
+        - name: nfs-vol
+          mountPath: /audit
+      volumes:
+      - name: nfs-vol
+        nfs:
+          server: 192.168.1.10
+          path: /nfs_shared/nfs-vol
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/71.jpg"><img src="/assets/img/posts/kubernetes_advanced/71.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+## PV & PVC
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/72.jpg"><img src="/assets/img/posts/kubernetes_advanced/72.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+* accessModes
+- ReadWriteOnce(RWO) : Read and Write on only one node.
+- ReadOnlyMany(ROX) : Read on several nodes.
+- ReadWriteMany(RWX) : Read and Write on several nodes.
+- Block Storage uses RWO and ROX and Object Storage uses RWX.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-pvc
+  labels:
+    app: deploy-pvc 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-pvc
+  template:
+    metadata:
+      labels:
+        app: deploy-pvc
+    spec:
+      containers:
+      - name: chk-log 
+        image: sysnet4admin/chk-log
+        volumeMounts:
+        - name: pvc-vol
+          mountPath: /audit
+      volumes:
+      - name: pvc-vol
+        persistentVolumeClaim:
+          claimName: pvc-nfs # created pvc name
+{% endhighlight %}
+
+### PV
+- Persistent Volume
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-nfs 
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.1.10
+    path: /nfs_shared/pvc-vol
+{% endhighlight %}
+
+* persistentVolumeReclaimPolicy
+- Retain : retain PV even you delete PVC
+- Delete : delete PV when you delete PVC
+
+### PVC
+- Persistent Volume Claim
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-nfs  
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Mi
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/73.jpg"><img src="/assets/img/posts/kubernetes_advanced/73.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+## StorageClass
+- Persitent Volume Claim make StorageClass first, and then StorageClass make a Persistent Volume.
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/66.jpg"><img src="/assets/img/posts/kubernetes_advanced/66.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/74.jpg"><img src="/assets/img/posts/kubernetes_advanced/74.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/76.jpg"><img src="/assets/img/posts/kubernetes_advanced/76.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+* Provisioning
+- Static : nfs, PV & PVC
+- Dynamic : StorageClass
+- In nfs mode, administrator should create pv everytime when it is requested.
+- In PV & PVC mode, administrator should prepare always PV before user uses pvc.
+- In StorageClass mode, administrator don't need to prepare pvc before, because StorageClass will create PVC automatically everytime when it is requested.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/75.jpg"><img src="/assets/img/posts/kubernetes_advanced/75.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+* provisioner
+{% highlight yaml %}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nfs-client-provisioner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          image: k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s-sigs.io/nfs-subdir-external-provisioner
+            - name: NFS_SERVER # NFS Server
+              value: 192.168.1.10
+            - name: NFS_PATH
+              value: /nfs_shared/dynamic-vol
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 192.168.1.10 # NFS Client Root
+            path: /nfs_shared/dynamic-vol
+{% endhighlight %}
+
+- NFS server and NFS client Root should have same values.
+
+* StorageClass
+{% highlight yaml %}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: managed-nfs-storage
+# or choose another name, must match deployment's env PROVISIONER_NAME'
+provisioner: k8s-sigs.io/nfs-subdir-external-provisioner 
+parameters:
+  # waits for nfs.io/storage-path annotation, if not specified will accept as empty string.
+  pathPattern: "${.PVC.namespace}/${.PVC.annotations.nfs.io/storage-path}" 
+  onDelete: delete
+{% endhighlight %}
+
+* PVC
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-dynamic  
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: managed-nfs-storage # name of StorageClass
+{% endhighlight %}
+
+* Deployment
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-pvc 
+  labels:
+    app: deploy-pvc 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-pvc
+  template:
+    metadata:
+      labels:
+        app: deploy-pvc
+    spec:
+      containers:
+      - name: chk-log 
+        image: sysnet4admin/chk-log
+        volumeMounts:
+        - name: pvc-vol
+          mountPath: /audit
+      volumes:
+      - name: pvc-vol
+        persistentVolumeClaim:
+          claimName: pvc-dynamic # PVC name 
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/77.jpg"><img src="/assets/img/posts/kubernetes_advanced/77.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/78.jpg"><img src="/assets/img/posts/kubernetes_advanced/89.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+## vol
+- volumeClaimTemplates
+- This is a volume type only for StateFullSet.
+- StateFullSet has Status and independent Domain (with Headless). It means, StateFullSet accesses Pod independently.
+- Therefore, each pod has unique value and status.
+- When this pod claims volumeClaimTemplates, it creates independent PV.
+- As a result, When you deploy with StateFullSet, your Pod has independent Domain, volumeClaimTemplates and PV.
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/67.jpg"><img src="/assets/img/posts/kubernetes_advanced/67.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/79.jpg"><img src="/assets/img/posts/kubernetes_advanced/79.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/80.jpg"><img src="/assets/img/posts/kubernetes_advanced/80.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sts
+spec:
+  replicas: 3
+  serviceName: sts-svc-domain #statefulset need it
+  selector:
+    matchLabels:
+      app: sts
+  template:
+    metadata:
+      labels:
+        app: sts
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+        volumeMounts:
+        - name: each-sts-backup # should be same with vol
+          mountPath: /backup_data
+  volumeClaimTemplates:
+  - metadata:
+      name: each-sts-backup
+    spec:
+      accessModes: [ "ReadWriteOnce" ] # cause it takes only one Pod
+      storageClassName: "managed-nfs-storage"
+      resources:
+        requests:
+          storage: 20Gi
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/81.jpg"><img src="/assets/img/posts/kubernetes_advanced/81.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/82.jpg"><img src="/assets/img/posts/kubernetes_advanced/82.jpg"></a>
+  <figcaption>Volume</figcaption>
+</figure>
