@@ -1931,3 +1931,481 @@ spec:
   <a href="/assets/img/posts/kubernetes_advanced/82.jpg"><img src="/assets/img/posts/kubernetes_advanced/82.jpg"></a>
   <figcaption>Volume</figcaption>
 </figure>
+
+# Node Contributions and Management
+
+## Cordon
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/83.jpg"><img src="/assets/img/posts/kubernetes_advanced/83.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- When you use cordon in specific node, that node is not affected from scheduling.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/85.jpg"><img src="/assets/img/posts/kubernetes_advanced/85.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/86.jpg"><img src="/assets/img/posts/kubernetes_advanced/86.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- w3-k8s is not updated, cause we set it with cordon.
+
+## Drain
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/84.jpg"><img src="/assets/img/posts/kubernetes_advanced/84.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Drain moves original pod to other nodes and set cordon on the node. 
+- Set drain on pod to maintanance or when the pod can occur some error.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-drain 
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-drain
+  template:
+    metadata:
+      labels:
+        app: deploy-drain
+    spec:
+      containers:
+      - name: nginx  
+        image: nginx 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/87.jpg"><img src="/assets/img/posts/kubernetes_advanced/87.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- At first, you will get this error to drain, because daemonset pod cannot be deleted.
+- So you should use `--ignore-daemonsets --force`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/88.jpg"><img src="/assets/img/posts/kubernetes_advanced/88.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- And now you can see, we missed one pod `net`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/89.jpg"><img src="/assets/img/posts/kubernetes_advanced/89.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+## nodeName
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/90.jpg"><img src="/assets/img/posts/kubernetes_advanced/90.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Use nodeName to set where your pod should be deployed.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodename 
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  nodeName: w3-k8s # set nodeName where pod be deployed
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/91.jpg"><img src="/assets/img/posts/kubernetes_advanced/91.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+# nodeLabel
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/92.jpg"><img src="/assets/img/posts/kubernetes_advanced/92.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- With nodeLabel and nodeSelector you can release several pods at once. 
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/93.jpg"><img src="/assets/img/posts/kubernetes_advanced/93.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Use `k get node --show-labels` to see labels of nodes
+- Use `k label node [node] [label]` to add label on specific node
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/94.jpg"><img src="/assets/img/posts/kubernetes_advanced/94.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Use `k get node -l [label]` to search nodes with label
+- `=` symbol on label seperate key(left) value(right) and of course you can use only one when you search.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/95.jpg"><img src="/assets/img/posts/kubernetes_advanced/95.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Use `k label node [node] [label]-` to delete label on node
+
+{% highlight sh %}
+#!/usr/bin/env bash
+
+kubectl label node w1-k8s gpupool=nvidia accelerator=tesla-a100
+kubectl label node w2-k8s gpupool=nvidia accelerator=tesla-v100
+kubectl label node w3-k8s diskint=nvme inmemory=redis
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/96.jpg"><img src="/assets/img/posts/kubernetes_advanced/96.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+## nodeSelector
+
+- Use nodeSelector to set, in which node the pod should be deployed
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/97.jpg"><img src="/assets/img/posts/kubernetes_advanced/97.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeselector-inmemory
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  nodeSelector:
+    inmemory: redis # w3-k8s
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/98.jpg"><img src="/assets/img/posts/kubernetes_advanced/98.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeselector-gpupool
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  nodeSelector:
+    gpupool: nvidia # w1-k8s, w2-k8s
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/99.jpg"><img src="/assets/img/posts/kubernetes_advanced/99.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+# nodeAffinity
+
+- Use nodeAffinity to set more felexible confitions.
+- There is two options to set: requiredDuringSchedulingIgnoredDuringExecution and preferredDuringSchedulingIgnoredDuringExecution
+- Operators: 
+  * In vs NotIn
+  * Exists vs DoesNotExist
+  * Gt vs Lt
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeaffinity
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions: # inmemory-redis
+          - key: inmemory
+            operator: In
+            values:
+            - redis
+  containers:
+  - name: nginx
+    image: nginx
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/100.jpg"><img src="/assets/img/posts/kubernetes_advanced/100.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nodeaffinity-preferred
+  name: nodeaffinity-preferred
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nodeaffinity-preferred
+  template:
+    metadata:
+      labels:
+        app: nodeaffinity-preferred
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      affinity:
+        nodeAffinity: # It will search nodes who has gpupool-nvidia and prefer node who has accelerator-tesla-a100 to release
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: # gpupool-nvidia
+              - key: gpupool
+                operator: In
+                values:
+                - nvidia
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1 # higher means more affinity
+            preference:
+              matchExpressions: # accelerator-tesla-a100
+              - key: accelerator
+                operator: In
+                values:
+                - tesla-a100
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/101.jpg"><img src="/assets/img/posts/kubernetes_advanced/101.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: anti-nodeaffinity
+  name: anti-nodeaffinity
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: anti-nodeaffinity
+  template:
+    metadata:
+      labels:
+        app: anti-nodeaffinity
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      affinity:
+        nodeAffinity: # It will search nodes who has gpupool-nvidia and unprefer node who has accelerator-tesla-a100 to release
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: # gpupool-nvidia
+              - key: gpupool
+                operator: In
+                values:
+                - nvidia
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: accelerator # accelerator-tesla-a100 is unpreferred
+                operator: NotIn
+                values:
+                - tesla-a100
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/102.jpg"><img src="/assets/img/posts/kubernetes_advanced/102.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+# Taints & Tolerations
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/103.jpg"><img src="/assets/img/posts/kubernetes_advanced/103.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/112.jpg"><img src="/assets/img/posts/kubernetes_advanced/112.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Effect
+  * NoSchedule : Only deploy with Telerations
+  * PreferNoSchedule : When there is no more nodes to deploy, ignore Taints setting
+  * NoExecute : Reschedule and delete pods which has no telerations
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset-w-tolerations
+  labels:
+    app: daemonset-w-tolerations
+spec:
+  selector:
+    matchLabels:
+      app: daemonset-w-tolerations
+  template:
+    metadata:
+      labels:
+        app: daemonset-w-tolerations
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/104.jpg"><img src="/assets/img/posts/kubernetes_advanced/104.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- When key has kaster, then DaemonSet can be deployed in master also.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-after-taints
+  name: deploy-after-taints
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: deploy-after-taints
+  template:
+    metadata:
+      labels:
+        app: deploy-after-taints
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/105.jpg"><img src="/assets/img/posts/kubernetes_advanced/105.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/106.jpg"><img src="/assets/img/posts/kubernetes_advanced/106.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Pod cannot be deployed on w3-k8s, because w3-k8s has taint and pod has no teleration.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-w-tolerations
+  name: deploy-w-tolerations
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: deploy-w-tolerations
+  template:
+    metadata:
+      labels:
+        app: deploy-w-tolerations
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      tolerations: # it has telerations
+      - effect: NoSchedule
+        key: DB
+        value: customer-info
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/107.jpg"><img src="/assets/img/posts/kubernetes_advanced/107.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/108.jpg"><img src="/assets/img/posts/kubernetes_advanced/108.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+- Pod cab be deployed on w1-k8s, w2-k8s and w3-k8s, because pod has teleration.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-w-tolerations-nodeaffinity
+  name: deploy-w-tolerations-nodeaffinity
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: deploy-w-tolerations-nodeaffinity
+  template:
+    metadata:
+      labels:
+        app: deploy-w-tolerations-nodeaffinity
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      tolerations:
+      - effect: NoSchedule
+        key: DB
+        value: customer-info
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: # it prefer node who has inmemory-redis label
+              - key: inmemory
+                operator: In
+                values:
+                - redis
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/109.jpg"><img src="/assets/img/posts/kubernetes_advanced/109.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/110.jpg"><img src="/assets/img/posts/kubernetes_advanced/110.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+{% highlight sh %}
+#!/usr/bin/env bash
+
+kubectl patch node w1-k8s -p '{"spec":{"taints":[]}}'
+kubectl patch node w2-k8s -p '{"spec":{"taints":[]}}'
+kubectl patch node w3-k8s -p '{"spec":{"taints":[]}}'
+
+CODE=$(kubectl get node -o yaml |  grep -i taints | wc -l) # Check status of taints
+
+echo "successfully init taints in the k8s cluster"
+echo "Result code is $CODE"
+echo "if Result is not 1, please reload all of worker nodes"
+{% endhighlight %}
+
+- Above code is for deleting taints on nodes.
+- Or you can jsut rerun nodes to delte taints.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/111.jpg"><img src="/assets/img/posts/kubernetes_advanced/111.jpg"></a>
+  <figcaption>Node Contributions and Management</figcaption>
+</figure>
