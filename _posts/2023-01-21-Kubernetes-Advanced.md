@@ -2027,7 +2027,7 @@ spec:
   <figcaption>Node Contributions and Management</figcaption>
 </figure>
 
-# nodeLabel
+## nodeLabel
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/92.jpg"><img src="/assets/img/posts/kubernetes_advanced/92.jpg"></a>
@@ -2072,7 +2072,7 @@ kubectl label node w3-k8s diskint=nvme inmemory=redis
   <figcaption>Node Contributions and Management</figcaption>
 </figure>
 
-## nodeSelector
+### nodeSelector
 
 - Use nodeSelector to set, in which node the pod should be deployed
 
@@ -2117,7 +2117,7 @@ spec:
   <figcaption>Node Contributions and Management</figcaption>
 </figure>
 
-# nodeAffinity
+## nodeAffinity
 
 - Use nodeAffinity to set more felexible confitions.
 - There is two options to set: requiredDuringSchedulingIgnoredDuringExecution and preferredDuringSchedulingIgnoredDuringExecution
@@ -2239,7 +2239,7 @@ spec:
   <figcaption>Node Contributions and Management</figcaption>
 </figure>
 
-# Taints & Tolerations
+## Taints & Tolerations
 
 <figure class="half">
   <a href="/assets/img/posts/kubernetes_advanced/103.jpg"><img src="/assets/img/posts/kubernetes_advanced/103.jpg"></a>
@@ -2408,4 +2408,429 @@ echo "if Result is not 1, please reload all of worker nodes"
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/111.jpg"><img src="/assets/img/posts/kubernetes_advanced/111.jpg"></a>
   <figcaption>Node Contributions and Management</figcaption>
+</figure>
+
+# Pod Composition and Management
+
+## Label
+
+- Same with node label.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/113.jpg"><img src="/assets/img/posts/kubernetes_advanced/113.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/114.jpg"><img src="/assets/img/posts/kubernetes_advanced/114.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- `run=nginx` is created from `kubectl run` and `app=nginx` is created from `kubectl create`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/115.jpg"><img src="/assets/img/posts/kubernetes_advanced/115.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- Use `k label pod [pod] [label]` to create custom label on pod.
+
+## Static Pod
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/116.jpg"><img src="/assets/img/posts/kubernetes_advanced/116.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- Static Pod deploys etcd, controler manager and scheduler.
+- Kubelet read yaml file and create api, etcd, customer manager and scheduler.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-pod 
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/117.jpg"><img src="/assets/img/posts/kubernetes_advanced/117.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/118.jpg"><img src="/assets/img/posts/kubernetes_advanced/118.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- Use `cp [Your Code Path] [Target Path]` to copy yaml code
+- Use `scp [Your Code Path] [Target Node]:[Target Path]` to copy yaml code on other node
+- Use `rm [Target Path]` to remove copied yaml code
+- You can only remove yaml code on accessed node. It means, to delete copied yaml code on other node, you should access other node.
+
+## restartPolicy
+
+* Options
+  - Always : always restart
+  - Never : never restart
+  - OnFails : only restart when it failed
+- Typo makes also restarting when the pod has OnFails option.
+- Deployment only accept Always option, because Job is only once but deployment is continue.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: pod-always
+  name: pod-always
+spec:
+  containers:
+  - image: sysnet4admin/net-tools
+    name: net-tools
+    command: ["/bin/sh", "-c"]
+    args:
+    - nslookup kubernetes
+  restartPolicy: Always 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/119.jpg"><img src="/assets/img/posts/kubernetes_advanced/119.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: pod-never
+  name: pod-never
+spec:
+  containers:
+  - image: sysnet4admin/net-tools
+    name: net-tools
+    command: ["/bin/sh", "-c"]
+    args:
+    - nslookup kubernetes
+  restartPolicy: Never 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/120.jpg"><img src="/assets/img/posts/kubernetes_advanced/120.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: pod-onfailure
+  name: pod-onfailure
+spec:
+  containers:
+  - image: sysnet4admin/net-tools
+    name: net-tools
+    command: ["/bin/sh", "-c"]
+    args:
+    - nslookup kubernetes
+  restartPolicy: OnFailure 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/121.jpg"><img src="/assets/img/posts/kubernetes_advanced/121.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-never-failure
+  name: deploy-never-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-never-failure
+  template:
+    metadata:
+      labels:
+        app: deploy-never-failure
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+      restartPolicy: Never # Never cannot be used
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/122.jpg"><img src="/assets/img/posts/kubernetes_advanced/122.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-onfailure-failure
+  name: deploy-onfailure-failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-onfailure-failure
+  template:
+    metadata:
+      labels:
+        app: deploy-onfailure-failure
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+      restartPolicy: OnFailure # Never cannot be used
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/123.jpg"><img src="/assets/img/posts/kubernetes_advanced/123.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+## Probe
+
+* startupProbe
+  - Probe container status
+  - Kill container and execute with restartPolicy
+
+* livenessProbe
+  - Probe container's action
+  - Kill container and execute with restartPolicy
+
+* readinessProbe
+  - Probe containers's application whether can resolve requests
+  - Unpass traffic
+
+### livenessProbe
+
+* Check Options
+  - exec : Execute container's command
+  - httpGet : Get response from HTTP GET command
+  - tcpSocket : Check container's address or port is alive
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: liveness-exec
+  name: liveness-exec
+spec:
+  containers:
+  - name: tardy-nginx 
+    image: sysnet4admin/tardy-nginx 
+    livenessProbe:
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy-on
+      initialDelaySeconds: 10
+      periodSeconds: 10 #it cannot start properly 
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/126.jpg"><img src="/assets/img/posts/kubernetes_advanced/126.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/125.jpg"><img src="/assets/img/posts/kubernetes_advanced/125.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- `watch "kubectl describe po liveness-exec | tail"` show changing continue
+- This cannot be worked, because initialDelaySeconds is 10 and preiodSeconds is also 10. It will repeat delay and initial infinity.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: liveness-httpget
+  name: liveness-httpget
+spec:
+  containers:
+  - name: healthz-nginx 
+    image: sysnet4admin/healthz-nginx 
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 80
+        httpHeaders:
+        - name: purpose
+          value: health-check 
+      initialDelaySeconds: 3
+      periodSeconds: 3
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/128.jpg"><img src="/assets/img/posts/kubernetes_advanced/128.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/127.jpg"><img src="/assets/img/posts/kubernetes_advanced/127.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: liveness-tcpsocket
+  name: liveness-tcpsocket
+spec:
+  containers:
+  - name: healthz-nginx 
+    image: sysnet4admin/healthz-nginx 
+    livenessProbe:
+      tcpSocket:
+        port: 80
+      initialDelaySeconds: 3
+      periodSeconds: 3
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/129.jpg"><img src="/assets/img/posts/kubernetes_advanced/129.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+### readinessProbe
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: readiness-exec
+  name: readiness-exec
+spec:
+  containers:
+  - name: tardy-nginx 
+    image: sysnet4admin/tardy-nginx 
+    readinessProbe: // we will use a pod
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy-on
+      initialDelaySeconds: 10 
+      periodSeconds: 5 // we will give short periodSecond.
+---
+apiVersion: v1
+kind: Service // service is for removing endpoint.
+metadata:
+  name: readiness-exec-lb
+spec:
+  selector:
+    run: readiness-exec
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80 
+  type: LoadBalancer
+{% endhighlight %}
+
+
+- This application will not be killed because readinessProbe doesn't rerun the application.
+- readinessProbe just remove the endpoint.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/130.jpg"><img src="/assets/img/posts/kubernetes_advanced/130.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/131.jpg"><img src="/assets/img/posts/kubernetes_advanced/131.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+* How readinessProbe remove entpoint
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/132.jpg"><img src="/assets/img/posts/kubernetes_advanced/132.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+* How readinessProbe resume entpoint
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/133.jpg"><img src="/assets/img/posts/kubernetes_advanced/133.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+### startupProbe
+- startupProve is not used be alone because this is for bootup check.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: startup-w-others
+  name: startup-w-others
+spec:
+  containers:
+  - name: tardy-nginx 
+    image: sysnet4admin/tardy-nginx  
+    startupProbe: // startupProbe
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy-on
+      initialDelaySeconds: 10
+      periodSeconds: 60
+    livenessProbe: // livenessProbe
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy-on
+      initialDelaySeconds: 10
+      periodSeconds: 10 // This is not matter because startupProbe has already made the image.
+    readinessProbe: // readinessProbe
+      exec:
+        command:
+        - cat 
+        - /tmp/healthy-on
+      initialDelaySeconds: 5
+      periodSeconds: 5
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/134.jpg"><img src="/assets/img/posts/kubernetes_advanced/134.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/135.jpg"><img src="/assets/img/posts/kubernetes_advanced/135.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/136.jpg"><img src="/assets/img/posts/kubernetes_advanced/136.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+## Init Container
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-initcontainers 
+  labels:
+    app: nginx 
+spec:
+  containers:
+  - name: web-page
+    image: nginx 
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html 
+      name: empty-directory 
+  initContainers:
+  - name: html-builder 
+    image: alpine 
+    volumeMounts:
+    - mountPath: /html-dir 
+      name: empty-directory 
+    command: ["/bin/sh", "-c"]
+    args: 
+      - echo "This page created on $(date +%Y-%m-%d) by initContainers" > /html-dir/index.html;
+  volumes:
+  - name: empty-directory 
+    emptyDir: {}
+{% endhighlight %}
+
+- pod initializing is from initContainer.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/137.jpg"><img src="/assets/img/posts/kubernetes_advanced/137.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
 </figure>
