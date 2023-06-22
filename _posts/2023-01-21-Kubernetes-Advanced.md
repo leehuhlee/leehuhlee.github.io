@@ -2799,6 +2799,7 @@ spec:
 </figure>
 
 ## Init Container
+ - InitContainer make easier contratuctor for pod.
 
 {% highlight yaml %}
 apiVersion: v1
@@ -2834,3 +2835,385 @@ spec:
   <a href="/assets/img/posts/kubernetes_advanced/137.jpg"><img src="/assets/img/posts/kubernetes_advanced/137.jpg"></a>
   <figcaption>Pod Composition and Management</figcaption>
 </figure>
+
+## Multi Container
+
+### Sidecar
+- First container make Web page and second container make server(e.g, NginX).
+- This second container presents first conainer's web page.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/138.jpg"><img src="/assets/img/posts/kubernetes_advanced/138.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+### Ambassador
+- Second container is Proxy server and this second container takes over to present first container.
+- It means, second container communicates with extern servers.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/139.jpg"><img src="/assets/img/posts/kubernetes_advanced/139.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+### Adapter
+- First container make data and second container translate this data.
+- Second container expose this translated data to external.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/140.jpg"><img src="/assets/img/posts/kubernetes_advanced/140.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  default.conf: |
+    server {
+      listen       80;
+      server_name  nginx;
+      location / {
+          root   /usr/share/nginx/html;
+          index  index.html index.htm;
+      }
+      error_page   500 502 503 504  /50x.html;
+      location = /50x.html {
+          root   /usr/share/nginx/html;
+      }
+      location /stub_status {
+        stub_status;
+        allow 127.0.0.1;
+        allow 192.168.1.0/24;
+        allow 172.16.0.0/16;
+        deny all;   #deny all other hosts
+      }
+    }
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-adapter
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: web-page
+    image: nginx
+    volumeMounts:
+    - mountPath: /etc/nginx/conf.d
+      name: nginx-conf
+
+  - name: adapter
+    image: nginx/nginx-prometheus-exporter:0.9.0
+    env:
+    - name: SCRAPE_URI
+      value: http://localhost/stub_status
+    ports:
+    - containerPort: 9113
+
+  volumes:
+  - name: nginx-conf
+    configMap:
+      name: nginx-conf
+      items:
+      - key: default.conf
+        path: default.conf
+{% endhighlight %}
+
+- In this case, first container is NginX(server) and second container is Prometheus(translator).
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/141.jpg"><img src="/assets/img/posts/kubernetes_advanced/141.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/142.jpg"><img src="/assets/img/posts/kubernetes_advanced/142.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+## Pod Affinity and Anti-Affinity
+- You can use Pod affinity to group your pods.
+- You can use Anti-Affinity to exclude your pods from groupping pods.
+
+### Affinity
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: sleepy
+    affinity: leader 
+  name: w1-affinity-leader
+spec:
+  containers:
+  - image: sysnet4admin/sleepy
+    name: sleepy
+  nodeSelector:
+    kubernetes.io/hostname: w1-k8s
+{% endhighlight %}
+
+- Pod will be deployed on w1 always.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-podaffinity
+  name: deploy-podaffinity
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: deploy-podaffinity
+  template:
+    metadata:
+      labels:
+        app: deploy-podaffinity
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: affinity
+                operator: In
+                values:
+                - leader
+            # If you want to change topologyKey, 
+            # modify the admission controller, or disable.
+            topologyKey: kubernetes.io/hostname
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/143.jpg"><img src="/assets/img/posts/kubernetes_advanced/143.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: sleepy
+    affinity: leader 
+  name: w3-affinity-leader 
+spec:
+  containers:
+  - image: sysnet4admin/sleepy
+    name: sleepy
+  nodeSelector:
+    kubernetes.io/hostname: w3-k8s
+{% endhighlight %}
+
+- Newly created Pods will be deployed on w3 always.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/144.jpg"><img src="/assets/img/posts/kubernetes_advanced/144.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+### Anti-Affinity
+- Anti affinity will deploy pods, where has no affinity.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-anti-podaffinity
+  name: deploy-anti-podaffinity
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: deploy-anti-podaffinity
+  template:
+    metadata:
+      labels:
+        app: deploy-anti-podaffinity
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: affinity
+                operator: In
+                values:
+                - leader
+            # If you want to change topologyKey, 
+            # modify the admission controller, or disable.
+            topologyKey: kubernetes.io/hostname
+{% endhighlight %}
+
+- In this case, this pods will be deployed on w2, because w1 and w3 has affinity already from previous commands.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/145.jpg"><img src="/assets/img/posts/kubernetes_advanced/145.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+## TopologySpreadConstaints
+- TopologySpreadConstaints can group pods with balance eventhough specific situations.
+- At first, cluster read the count of nodes and set this all nodes as region.
+- Then devides this nodes and set this devided noodes as zone.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/146.jpg"><img src="/assets/img/posts/kubernetes_advanced/146.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/147.jpg"><img src="/assets/img/posts/kubernetes_advanced/147.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- Before we practice, we need one more worker node to make even.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/148.jpg"><img src="/assets/img/posts/kubernetes_advanced/148.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight sh %}
+#!/usr/bin/env bash
+
+kubectl label node w1-k8s topology.kubernetes.io/region=ap-northeast-2 topology.kubernetes.io/zone=ap-northeast-2a
+kubectl label node w2-k8s topology.kubernetes.io/region=ap-northeast-2 topology.kubernetes.io/zone=ap-northeast-2a
+kubectl label node w3-k8s topology.kubernetes.io/region=ap-northeast-2 topology.kubernetes.io/zone=ap-northeast-2b
+kubectl label node w4-k8s topology.kubernetes.io/region=ap-northeast-2 topology.kubernetes.io/zone=ap-northeast-2b
+{% endhighlight %}
+
+- This will create label on each node(e.gregion and zone).
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/149.jpg"><img src="/assets/img/posts/kubernetes_advanced/149.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-topologyspreadconstraints
+  name: deploy-topologyspreadconstraints
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: deploy-topologyspreadconstraints
+  template:
+    metadata:
+      labels:
+        app: deploy-topologyspreadconstraints
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      topologySpreadConstraints:
+      - maxSkew: 1 // difference of each section should be not bigger then 1
+        topologyKey: topology.kubernetes.io/region // make same key
+        whenUnsatisfiable: DoNotSchedule // If this condition is false, it will not schedule any pods more.
+        labelSelector:
+          matchLabels:
+            app: deploy-topologyspreadconstraints // it will use this label, so pods are 4.
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone // make same zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: deploy-topologyspreadconstraints
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/150.jpg"><img src="/assets/img/posts/kubernetes_advanced/150.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+- w2 has some pods before we try this command, so topology devide like, 2 pods on w1, 1 pod on w3 and 1 pod on w4.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy12-load-w3
+  name: deploy12-load-w3
+spec:
+  replicas: 12
+  selector:
+    matchLabels:
+      app: deploy12-load-w3
+  template:
+    metadata:
+      labels:
+        app: deploy12-load-w3
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+      nodeName: w3-k8s
+{% endhighlight %}
+
+- This will make 12 pods on w3.
+- And rerun topology, then it will devide like, 2 pods on w1 and 2 pods on w4.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/151.jpg"><img src="/assets/img/posts/kubernetes_advanced/151.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/152.jpg"><img src="/assets/img/posts/kubernetes_advanced/152.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+* Please remove w4 in virtual box!
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/153.jpg"><img src="/assets/img/posts/kubernetes_advanced/153.jpg"></a>
+  <figcaption>Pod Composition and Management</figcaption>
+</figure>
+
+# Cluster Management
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/154.jpg"><img src="/assets/img/posts/kubernetes_advanced/154.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/155.jpg"><img src="/assets/img/posts/kubernetes_advanced/155.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+## Access Control
+
+### RBAC(Role-Based Access Control)
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/156.jpg"><img src="/assets/img/posts/kubernetes_advanced/156.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Node : set access permission from kubelet of scheduled node.
+- RBAC : set access permission from role.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/157.jpg"><img src="/assets/img/posts/kubernetes_advanced/157.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Set role with behavior permission and set role group.
+
+* Context(Kubernetes Cluster)
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/158.jpg"><img src="/assets/img/posts/kubernetes_advanced/158.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- dev1 is EKS(AWS).
+- dev2 is AKS(Azure).
+- dev3 is GKE(Google).
+- Context makes cluster and has access control data.
+
