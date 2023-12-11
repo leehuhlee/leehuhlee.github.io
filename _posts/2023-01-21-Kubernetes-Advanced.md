@@ -3196,7 +3196,9 @@ spec:
 </figure>
 
 - Node : set access permission from kubelet of scheduled node.
+- ABAC : Attribute-based access control
 - RBAC : set access permission from role.
+- Webhook : Based on HTTP Post get Payload and control Authorization.
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/157.jpg"><img src="/assets/img/posts/kubernetes_advanced/157.jpg"></a>
@@ -3217,3 +3219,316 @@ spec:
 - dev3 is GKE(Google).
 - Context makes cluster and has access control data.
 
+* Practice
+
+- Create namespace and account for dev1, dev 2 and cluster
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/159.jpg"><img src="/assets/img/posts/kubernetes_advanced/159.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+# dev1 namespace and account 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev1
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dev1-hoon 
+  namespace: dev1
+---
+# dev2 namespace and account 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev2
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dev2-moon  
+  namespace: dev2
+{% endhighlight %}
+
+{% highlight yaml %}
+# account for clusterrole
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-pod-admin
+{% endhighlight %}
+
+- Create Role and bind this role and account for dev1
+- Role dev1 has get and list permission. So error is occured, when it try to create.
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/160.jpg"><img src="/assets/img/posts/kubernetes_advanced/160.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/161.jpg"><img src="/assets/img/posts/kubernetes_advanced/161.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/162.jpg"><img src="/assets/img/posts/kubernetes_advanced/162.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+# dev1 Role
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: dev1
+  name: role-get-dev1
+rules:
+- apiGroups: ["*"]
+  resources: ["pods", "deployments"]
+  verbs: ["get", "list"]
+{% endhighlight %}
+
+{% highlight yaml %}
+# dev1 Role Binding
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rolebinding-dev1
+  namespace: dev1
+subjects:
+- kind: ServiceAccount
+  name: dev1-hoon
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: role-get-dev1 
+  apiGroup: rbac.authorization.k8s.io
+{% endhighlight %}
+
+- Create Role and bind this role and account for dev2
+- Role dev2 has get, list and create permission. So error is occured, when it try to delete.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/163.jpg"><img src="/assets/img/posts/kubernetes_advanced/163.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/164.jpg"><img src="/assets/img/posts/kubernetes_advanced/164.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+# dev2 Role
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: dev2
+  name: role-gct-dev2
+rules:
+- apiGroups: ["*"]
+  resources: ["pods", "deployments"]
+  verbs: ["get", "list","create"]
+{% endhighlight %}
+
+{% highlight yaml %}
+# dev2 Role Binding
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rolebinding-dev2
+  namespace: dev2
+subjects:
+- kind: ServiceAccount
+  name: dev2-moon
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: role-gct-dev2
+  apiGroup: rbac.authorization.k8s.io
+{% endhighlight %}
+
+- Create Role and bind this role and account for cluster
+- Role cluster has every thing on verb but it is accepted for pods, deployments, and deployment scale. So when it try to use service, it occures error.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/165.jpg"><img src="/assets/img/posts/kubernetes_advanced/165.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/166.jpg"><img src="/assets/img/posts/kubernetes_advanced/166.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+# Cluster Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-admin 
+rules:
+- apiGroups: ["*"]
+  resources: ["pods","deployments","deployments/scale"]
+  verbs: ["*"]
+{% endhighlight %}
+
+{% highlight yaml %}
+# Cluster Role Binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clusterrolebinding-pod-admin 
+subjects:
+- kind: ServiceAccount
+  name: sa-pod-admin 
+  apiGroup: ""
+  # need namespace for CRB subjects
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: pod-admin 
+  apiGroup: rbac.authorization.k8s.io
+{% endhighlight %}
+
+- If you want to find with specific word, use "| grep".
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/167.jpg"><img src="/assets/img/posts/kubernetes_advanced/167.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/168.jpg"><img src="/assets/img/posts/kubernetes_advanced/168.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+### Resource Quota
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/169.jpg"><img src="/assets/img/posts/kubernetes_advanced/169.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Limitation for resource
+
+{% highlight yaml %}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: quota-dev1
+  namespace: dev1
+spec:
+  hard:
+    pods: 10
+    managed-nfs-storage.storageclass.storage.k8s.io/persistentvolumeclaims: "2"
+    managed-nfs-storage.storageclass.storage.k8s.io/requests.storage: "2Gi"
+    #persistentvolumeclaims: "2"
+    #requests.storage: "2Gi"
+{% endhighlight %}
+
+- So when we try to take attributes with more than limited value, it occures error.
+
+* Error with storage
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/170.jpg"><img src="/assets/img/posts/kubernetes_advanced/170.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quota-3g-pvc-failure  
+  namespace: dev1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+* Error with pvc
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/171.jpg"><img src="/assets/img/posts/kubernetes_advanced/171.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quota-1g-pvc1  
+  namespace: dev1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quota-1g-pvc2  
+  namespace: dev1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quota-1g-pvc3  
+  namespace: dev1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+* Error with pods
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/172.jpg"><img src="/assets/img/posts/kubernetes_advanced/172.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/173.jpg"><img src="/assets/img/posts/kubernetes_advanced/173.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- It will try to make 11 pods but error is occured when it try to make 11th pod.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quota-pod11-failure
+  namespace: dev1
+spec:
+  replicas: 11
+  selector:
+    matchLabels:
+      app: quota-pod11-failure
+  template:
+    metadata:
+      labels:
+        app: quota-pod11-failure
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/174.jpg"><img src="/assets/img/posts/kubernetes_advanced/174.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/175.jpg"><img src="/assets/img/posts/kubernetes_advanced/175.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/176.jpg"><img src="/assets/img/posts/kubernetes_advanced/176.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- 176.jpg command is 'k describe -n dev1 replicasets.apps quota-pod11-failure-7fc88499c7'
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/177.jpg"><img src="/assets/img/posts/kubernetes_advanced/177.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
