@@ -15,6 +15,25 @@ comments: false
 - Download theme <a href="https://github.com/wild-flame/jekyll-simple">Jekyll-Simple</a>
 - In this theme there is no Gemfile. I made Gemfile with `bundle init`.
 
+# Config
+- `_config.yml` is a setting file for blog.
+- If you need more plugins, use `plug-in` field and add plugins on `Gemfile` too.
+
+* _config.yml
+{% highlight yaml %}
+title: Baek Ha
+email: baek.ha.maggie@gmail.com
+description: > # this means to ignore newlines until "baseurl:"
+  Baek Ha
+baseurl: # the subpath of your site, e.g. /blog
+url: "https://maggienhanna.github.io/" # the base hostname & protocol for your site
+instagram_username:  baek_ha.aaaaaaaaa
+
+markdown: kramdown
+kramdown:
+  input: GFM
+{% endhighlight %}
+
 # Header
 
 * Result
@@ -29,7 +48,7 @@ comments: false
 - Remove container border.
 
 * _layouts\default.html
-{% highlight HTML %}
+{% highlight html %}
 <!DOCTYPE html>
 <html>
   {% include head.html %}
@@ -53,7 +72,7 @@ comments: false
 {% endhighlight %}
 
 * _sass/_layout.scss
-{% highlight CSS %}
+{% highlight css %}
 .logo {
   width: 283px;
   margin-bottom:12.5px;
@@ -62,7 +81,7 @@ comments: false
 {% endhighlight %}
 
 * _sass/_base.scss
-{% highlight CSS %}
+{% highlight css %}
 .container {
   position:relative;
   width: 100%;
@@ -88,7 +107,7 @@ comments: false
 {% endhighlight %}
 
 * _sass/_base.scss
-{% highlight CSS %}
+{% highlight css %}
 @media (min-width: 781px) {
   .container {
     width: 90%; }
@@ -107,7 +126,7 @@ comments: false
 - Every posts has `permalink`, which links url with the post.
 
 * _data/navigation.yml
-{% highlight YML %}
+{% highlight yaml %}
 main:
   - title: "HOME"
     url: "/"
@@ -140,7 +159,7 @@ main:
 {% endhighlight %}
 
 * _includes/header.html
-{% highlight HTML %}
+{% highlight html %}
 <div class="site-nav">
   <nav>
     <ul class="page-link">
@@ -171,7 +190,7 @@ main:
 {% endhighlight %}
 
 * _sass/_base.scss
-{% highlight CSS %}
+{% highlight css %}
 @media (min-width: 781px) {
   .container {
     width: 90%; }
@@ -354,7 +373,7 @@ main:
 - Download Instaram svg <a href="https://icons8.com/icons/set/instagram">here</a> and add svg file to `_includes` folder with name `icon-instagram.svg`.
 
 * _includes/footer.html
-{% highlight HTML %}
+{% highlight html %}
 <footer class="site-footer">
   <div class="container footer-container">
     <div class="footer left column one-half-left">
@@ -377,12 +396,12 @@ main:
 {% endhighlight %}
 
 * _includes/icon-instagram.html
-{% highlight HTML %}
+{% highlight html %}
 <a href="https://www.instagram.com/{{ include.username }}"><span class="icon icon--github">{% include icon-instagram.svg %}</span></a>
 {% endhighlight %}
 
 * _sass/_base.scss
-{% highlight CSS %}
+{% highlight css %}
 @media (min-width: 401px) {
   .container {
     width: 100%;
@@ -391,7 +410,7 @@ main:
 {% endhighlight %}
 
 * _sass/_layout.scss
-{% highlight CSS %}
+{% highlight css %}
 .site-footer {
   position: absolute;
   bottom: 0;
@@ -437,7 +456,7 @@ main:
 </figure>
 
 * index.html
-{% highlight HTML %}
+{% highlight html %}
 <div class="home">
   <figure>
     <a href="assets/img/home/home.jpg" data-lightbox="home" >
@@ -448,7 +467,7 @@ main:
 {% endhighlight %}
 
 * _includes/head.html
-{% highlight HTML %}
+{% highlight html %}
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -457,13 +476,8 @@ main:
   <title>Art | Baek Ha</title>
   <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
 
-  <!-- todo: include this into main.css -->
-
-  <!-- <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}"> -->
   <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}">
-  <!-- <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ "/feed.xml" | prepend: site.baseurl | prepend: site.url }}"> -->
 
-  <!-- Add scripts/style for Lightbox2 -->
   <script src="/assets/js/lightbox-plus-jquery.js"></script>
   <link rel="stylesheet" href="/assets/css/lightbox.css">
 </head>
@@ -490,7 +504,7 @@ main:
 </figure>
 
 * _layouts/post.html
-{% highlight HTML %}
+{% highlight html %}
 <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="artilce_header">
@@ -506,7 +520,7 @@ main:
 {% endhighlight %}
 
 * _posts/work/2023-12-29-work-2023.md
-{% highlight HTML %}
+{% highlight html %}
 <figure class="work">
   <a href="/assets/img/work/2023/1.jpg" data-lightbox="work-2023" data-title="조력자 MOMO">
     <img src="/assets/img/work/2023/1.jpg" alt="조력자 MOMO" title="조력자 MOMO">
@@ -516,7 +530,7 @@ main:
 {% endhighlight %}
 
 * _sass/_normalize.scss
-{% highlight CSS %}
+{% highlight css %}
 figure {
   &.work {
     margin: 15em 40px;
@@ -525,7 +539,7 @@ figure {
 {% endhighlight %}
 
 * _sass/_base.scss
-{% highlight CSS %}
+{% highlight css %}
 figcaption{
   color: rgb(153, 153, 153) ;
   text-align: center;
@@ -544,7 +558,7 @@ figcaption{
 </figure>
 
 * _posts/exhibition/2023-12-29-exhibition-2023.md
-{% highlight HTML %}
+{% highlight html %}
 <div class="exhibition">
   <div class="title">
     <h1>고양이 현대미술기획전 &lt;작은 파티 고양이&gt;</h1>
@@ -566,7 +580,7 @@ figcaption{
 {% endhighlight %}
 
 * _sass/_normalize.scss
-{% highlight CSS %}
+{% highlight css %}
 figure {
   ...
 
@@ -577,7 +591,7 @@ figure {
 {% endhighlight %}
 
 * _sass/_layout.scss
-{% highlight CSS %}
+{% highlight css %}
 .exhibition {
   text-align: center;
 
@@ -601,7 +615,7 @@ figure {
 </figure>
 
 * _posts/cv/2023-12-29-cv.md
-{% highlight HTML %}
+{% highlight html %}
 <div class="cv">
   <table>
     <tbody>
@@ -624,7 +638,7 @@ figure {
 {% endhighlight %}
 
 * _sass/_normalize.scss
-{% highlight CSS %}
+{% highlight css %}
 table {
   border-collapse: collapse;
   border-spacing: 0;
@@ -659,7 +673,7 @@ td {
 </figure>
 
 * _posts/cv/2023-12-29-contact.md
-{% highlight HTML %}
+{% highlight html %}
 <div class="contact">
   <a href="mailto:baek.ha.maggie@gmail.com">baek.ha.maggie@gmail.com</a><br><br>
   <a href="https://www.instagram.com/baek_ha.aaaaaaaaa/">https://www.instagram.com/baek_ha.aaaaaaaaa/</a><br>
@@ -669,7 +683,7 @@ td {
 {% endhighlight %}
 
 * _sass/_layout.scss
-{% highlight CSS %}
+{% highlight css %}
 .contact {
   a {
     border-bottom: none;
