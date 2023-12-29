@@ -21,7 +21,6 @@ comments: false
 
 * _config.yml
 {% highlight YML %}
-# Site settings
 title: Baek Ha
 email: baek.ha.maggie@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
@@ -30,7 +29,6 @@ baseurl: # the subpath of your site, e.g. /blog
 url: "https://maggienhanna.github.io/" # the base hostname & protocol for your site
 instagram_username:  baek_ha.aaaaaaaaa
 
-# Build settings
 markdown: kramdown
 kramdown:
   input: GFM
