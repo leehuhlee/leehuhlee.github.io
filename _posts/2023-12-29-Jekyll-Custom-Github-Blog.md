@@ -48,24 +48,57 @@ kramdown:
 - Remove container border.
 
 * _layouts\default.html
-{% highlight html %}
-  <body>
-    <div class="page-content">
-      <div class="container">
-          <h2 class="logo"><a href="{{ site.baseurl }}/">{{ site.title }}</a></h2>
-        <div class="three columns">
-          {% include header.html %}
-        </div>
-        <div class="nine columns" style="z-index:100;">
-          <div class="wrapper">
-            {{ content }}
-          </div>
-        </div>
-      </div>
-      {% include footer.html %} 
-    </div>
-  </body>
+- <a href="https://github.com/Maggienhanna/Maggienhanna.github.io/blob/main/_layouts/default.html">Code</a>
+
+* _sass/_layout.scss
+{% highlight css %}
+.logo {
+  width: 283px;
+  margin-bottom:12.5px;
+  font-weight:$font-weight-bold;
+}
 {% endhighlight %}
+
+* _sass/_base.scss
+{% highlight css %}
+.container {
+  position:relative;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px 10px;
+  box-sizing: border-box;
+  /* for test only */
+  // border: 1px dashed #eeeeee;
+}
+
+...
+
+@media (min-width: 781px) {
+  .container {
+    width: 90%; }
+  .column,
+  .columns {
+    // margin-right: 4%; 
+  }
+  ...
+}
+{% endhighlight %}
+
+* _sass/_base.scss
+{% highlight css %}
+@media (min-width: 781px) {
+  .container {
+    width: 90%; }
+  .column,
+  .columns {
+    // margin-right: 4%; 
+  }
+  ...
+}
+{% endhighlight %}
+
+
 
 # Code
 
