@@ -71,7 +71,7 @@ kramdown:
 </html>
 {% endhighlight %}
 
-* _sass/_layout.CSS
+* _sass/_layout.scss
 {% highlight CSS %}
 .logo {
   width: 283px;
@@ -80,7 +80,7 @@ kramdown:
 }
 {% endhighlight %}
 
-* _sass/_base.CSS
+* _sass/_base.scss
 {% highlight CSS %}
 .container {
   position:relative;
@@ -106,7 +106,7 @@ kramdown:
 }
 {% endhighlight %}
 
-* _sass/_base.CSS
+* _sass/_base.scss
 {% highlight CSS %}
 @media (min-width: 781px) {
   .container {
@@ -189,7 +189,7 @@ main:
 </div>
 {% endhighlight %}
 
-* _sass/_base.CSS
+* _sass/_base.scss
 {% highlight CSS %}
 @media (min-width: 781px) {
   .container {
@@ -202,7 +202,7 @@ main:
 }
 {% endhighlight %}
 
-* _sass/_layout.CSS
+* _sass/_layout.scss
 {% highlight CSS %}
 .nav {
   line-height: $base-line-height;
@@ -358,348 +358,6 @@ main:
 - <a href="https://thinkshout.com/blog/2014/12/creating-dynamic-menus-in-jekyll">https://thinkshout.com/blog/2014/12/creating-dynamic-menus-in-jekyll/</a>
 - <a href="http://planetjekyll.github.io/snippets/nav-with-data.html">http://planetjekyll.github.io/snippets/nav-with-data.html</a>
 - <a href="https://github.com/mmistakes/minimal-mistakes/issues/1801">https://github.com/mmistakes/minimal-mistakes/issues/1801</a>
-
-# Footer
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/1.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/1.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-## Change Layout
-- Change size of footer continer.
-- Add instagram, hyperlink and mailto.
-- Download Instaram svg <a href="https://icons8.com/icons/set/instagram">here</a> and add svg file to `_includes` folder with name `icon-instagram.svg`.
-
-* _includes/footer.html
-{% highlight HTML %}
-<footer class="site-footer">
-  <div class="container footer-container">
-    <div class="footer left column one-half-left">
-      <section class="small-font">
-        © 2024 by <a href="https://www.instagram.com/baek_ha.aaaaaaaaa/">Baek Ha</a>
-      </section>
-    </div>
-
-    <div class="footer right column one-half-right">
-      <section class="small-font">
-        <a href="https://www.instagram.com/baek_ha.aaaaaaaaa">https://www.instagram.com/baek_ha.aaaaaaaaa</a>
-        {% if site.instagram_username %}
-        {% include icon-instagram.html username=site.instagram_username %}
-        {% endif %}
-        <a href="mailto:baek.ha.maggie@gmail.com">baek.ha.maggie@gmail.com</a>
-      </section>
-    </div>
-  </div>
-</footer>
-{% endhighlight %}
-
-* _includes/icon-instagram.html
-{% highlight HTML %}
-<a href="https://www.instagram.com/{{ include.username }}"><span class="icon icon--github">{% include icon-instagram.svg %}</span></a>
-{% endhighlight %}
-
-* _sass/_base.CSS
-{% highlight CSS %}
-@media (min-width: 401px) {
-  .container {
-    width: 100%;
-    padding: 64px 15px; }
-}
-{% endhighlight %}
-
-* _sass/_layout.CSS
-{% highlight CSS %}
-.site-footer {
-  position: absolute;
-  bottom: 0;
-  padding-bottom: 0rem;
-  width:100%;
-
-  /* footer style */    
-  color: #99999a;
-  background-color: #FAFAFB;
-
-  .left {
-    a {
-      color: #666;
-      border-bottom:1px dotted;
-      text-decoration:none;
-    }
-    a:hover {
-      color:red;
-      border-bottom:1px dotted;
-    }
-  }
-
-  .right{
-    a {
-      color: #666;
-      border-bottom:1px none;
-      text-decoration:none;
-      vertical-align : top;
-    }
-  }
-}
-{% endhighlight %}
-
-# Home
-- Content start line should be aligned with side menu.
-- Image should be showed with modal as Gallery when it is clicked.
-- For Gallery I downloaded button images from <a href="https://github.com/lokesh/lightbox2/tree/dev/src/images">here</a>.
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/2.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/2.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-* index.html
-{% highlight HTML %}
-<div class="home">
-  <figure>
-    <a href="assets/img/home/home.jpg" data-lightbox="home" >
-      <img src="assets/img/home/home.jpg" alt="home" title="Home">
-    </a>
-  </figure>
-</div>
-{% endhighlight %}
-
-* _includes/head.html
-{% highlight HTML %}
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Art | Baek Ha</title>
-  <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
-
-  <!-- todo: include this into main.css -->
-
-  <!-- <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}"> -->
-  <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}">
-  <!-- <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ "/feed.xml" | prepend: site.baseurl | prepend: site.url }}"> -->
-
-  <!-- Add scripts/style for Lightbox2 -->
-  <script src="/assets/js/lightbox-plus-jquery.js"></script>
-  <link rel="stylesheet" href="/assets/css/lightbox.css">
-</head>
-{% endhighlight %}
-
-* assets/css/lightbox.min.css
-- Add this <a href="https://raw.githubusercontent.com/lokesh/lightbox2/dev/dist/css/lightbox.min.css">css script</a>.
-
-* assets/js/lightbox-plus-jquery.js
-- Add this <a href="https://raw.githubusercontent.com/lokesh/lightbox2/dev/dist/js/lightbox-plus-jquery.min.js">js script</a>.
-
-### References
-- <a href="https://www.friedrichkurz.me/blog/2021/12/31/jekyll-lightbox/">https://www.friedrichkurz.me/blog/2021/12/31/jekyll-lightbox/</a>
-
-# Work
-- Show just title.
-- Set large margin because those pages of work have just images.
-- Add image caption.
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/3.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/3.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-* _layouts/post.html
-{% highlight HTML %}
-<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
-
-  <header class="artilce_header">
-    <h1 class="artilce_title" itemprop="name headline">{{ page.title }}</h1>
-    <!-- <p class="artilce_meta"><time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%b %-d, %Y" }}</time>{% if page.author %} • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">{{ page.author }}</span></span>{% endif %}</p> -->
-  </header>
-
-  <div class="article-content" itemprop="articleBody">
-    {{ page.content }}
-  </div>
-
-</article>
-{% endhighlight %}
-
-* _posts/work/2023-12-29-work-2023.md
-{% highlight HTML %}
-<figure class="work">
-  <a href="/assets/img/work/2023/1.jpg" data-lightbox="work-2023" data-title="조력자 MOMO">
-    <img src="/assets/img/work/2023/1.jpg" alt="조력자 MOMO" title="조력자 MOMO">
-  </a>
-  <figcaption>조력자 MOMO</figcaption>
-</figure>
-{% endhighlight %}
-
-* _sass/_normalize.CSS
-{% highlight CSS %}
-figure {
-  &.work {
-    margin: 15em 40px;
-  }
-}
-{% endhighlight %}
-
-* _sass/_base.CSS
-{% highlight CSS %}
-figcaption{
-  color: rgb(153, 153, 153) ;
-  text-align: center;
-  font-size: 13px;
-  margin: 2em 0px;
-}
-{% endhighlight %}
-
-# Exhibition
-- Exhibition margin is smaller then work's, because there is some description too.
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/4.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/4.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-* _posts/exhibition/2023-12-29-exhibition-2023.md
-{% highlight HTML %}
-<div class="exhibition">
-  <div class="title">
-    <h1>고양이 현대미술기획전 &lt;작은 파티 고양이&gt;</h1>
-    <p>
-      장소: 고양이스퀘어 <br>
-      날짜 : 2023. 11. 13.(월). ~ 11. 26.(일).<br>
-      운영 시간 : 평일 10시 30분~19시, 주말 11시~18시<br>
-    </p>
-  </div>
-
-  <div class="content">
-    <figure class="exhibition">
-      <a href="/assets/img/exhibition/2023/2023_01.jpg" data-lightbox="exhibition-2023" data-title="">
-        <img src="/assets/img/exhibition/2023/2023_01.jpg" alt="" title="">
-      </a>
-    </figure>
-  </div>
-</div>
-{% endhighlight %}
-
-* _sass/_normalize.CSS
-{% highlight CSS %}
-figure {
-  ...
-
-  &.exhibition {
-    margin: 5em 40px;
-  }
-}
-{% endhighlight %}
-
-* _sass/_layout.CSS
-{% highlight CSS %}
-.exhibition {
-  text-align: center;
-
-  .title{
-    margin-top: 8em;
-  }
-
-  .content{
-    margin-bottom: 8em;
-  }
-}
-{% endhighlight %}
-
-# CV
-- I made CV with table.
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/5.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/5.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-* _posts/cv/2023-12-29-cv.md
-{% highlight HTML %}
-<div class="cv">
-  <table>
-    <tbody>
-      <tr>
-        <td colspan="2">Baek Ha</td>
-      </tr>
-      <tr>
-        <td colspan="2">b.1996</td>
-      </tr>
-      <tr>
-        <td class="title" colspan="2">학력</td>
-      </tr>
-      <tr>
-        <td>2019</td>
-        <td>Graduated Cat University Fine Art</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-{% endhighlight %}
-
-* _sass/_normalize.CSS
-{% highlight CSS %}
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  margin-top: 5em;
-}
-
-td,
-th {
-  padding: 0;
-}
-
-td {
-  &.title {
-    padding-top: 2em;
-  }
-}
-{% endhighlight %}
-
-* _sass/_layout.CSS
-{% highlight CSS %}
-.cv {
-  font-size: 13px;
-}
-{% endhighlight %}
-
-# Contact
-
-* Result
-<figure>
-  <a href="/assets/img/posts/jekyll-custom-github-blog/6.jpg"><img src="/assets/img/posts/jekyll-custom-github-blog/6.jpg"></a>
-	<figcaption>Jekyll Custom Github Blog</figcaption>
-</figure>
-
-* _posts/cv/2023-12-29-contact.md
-{% highlight HTML %}
-<div class="contact">
-  <a href="mailto:baek.ha.maggie@gmail.com">baek.ha.maggie@gmail.com</a><br><br>
-  <a href="https://www.instagram.com/baek_ha.aaaaaaaaa/">https://www.instagram.com/baek_ha.aaaaaaaaa/</a><br>
-  <a href="https://www.instagram.com/maggie.i.can/">https://www.instagram.com/maggie.i.can/</a><br><br>
-  <p>(+82)10 0000 0000</p>
-</div>
-{% endhighlight %}
-
-* _sass/_layout.CSS
-{% highlight CSS %}
-.contact {
-  a {
-    border-bottom: none;
-  }
-  
-  a:hover{
-    border-bottom: none;
-    color: #666;
-  }
-}
-{% endhighlight %}
 
 # Code
 
