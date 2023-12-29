@@ -1,5 +1,5 @@
 ---
-layout: project
+layout: post
 title: "[Jekyll] Jekyll Custom Github Blog"
 date: 2023-12-29
 excerpt: "Jekyll"
