@@ -49,9 +49,6 @@ kramdown:
 
 * _layouts\default.html
 {% highlight html %}
-<!DOCTYPE html>
-<html>
-  {% include head.html %}
   <body>
     <div class="page-content">
       <div class="container">
@@ -68,55 +65,6 @@ kramdown:
       {% include footer.html %} 
     </div>
   </body>
-</html>
-{% endhighlight %}
-
-* _sass/_layout.scss
-{% highlight css %}
-.logo {
-  width: 283px;
-  margin-bottom:12.5px;
-  font-weight:$font-weight-bold;
-}
-{% endhighlight %}
-
-* _sass/_base.scss
-{% highlight css %}
-.container {
-  position:relative;
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 10px 10px;
-  box-sizing: border-box;
-  /* for test only */
-  // border: 1px dashed #eeeeee;
-}
-
-...
-
-@media (min-width: 781px) {
-  .container {
-    width: 90%; }
-  .column,
-  .columns {
-    // margin-right: 4%; 
-  }
-  ...
-}
-{% endhighlight %}
-
-* _sass/_base.scss
-{% highlight css %}
-@media (min-width: 781px) {
-  .container {
-    width: 90%; }
-  .column,
-  .columns {
-    // margin-right: 4%; 
-  }
-  ...
-}
 {% endhighlight %}
 
 # Code
