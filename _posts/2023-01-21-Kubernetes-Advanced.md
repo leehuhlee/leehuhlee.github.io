@@ -3388,6 +3388,8 @@ roleRef:
   <figcaption>Cluster Management</figcaption>
 </figure>
 
+## Resource Management
+
 ### Resource Quota
 
 <figure>
@@ -3530,5 +3532,411 @@ spec:
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/177.jpg"><img src="/assets/img/posts/kubernetes_advanced/177.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+### LimitRange
+
+- LimitRange is effective object to process objective requests. 
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/178.jpg"><img src="/assets/img/posts/kubernetes_advanced/178.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits-dev2
+  namespace: dev2 
+spec:
+  limits:
+  - type: PersistentVolumeClaim
+    max:
+      storage: 2Gi
+    min:
+      storage: 1Gi
+  - type: Container
+    default:
+      memory: 512Mi
+    defaultRequest:
+      memory: 256Mi
+{% endhighlight %}
+
+- Pod's minimum memory size would be 256 Mi and maximum would be 512 Mi.
+- PVC's minimum memory size would be 1 Gi and maximum would be 2 Gi.
+- Like this, we can set LimitRange in namespace.
+
+* G vs Gi
+- For example, 5G means 5 Gigabytes while 5 Gibibytes.
+- 5 G = 5000000 KB / 5000 MB
+- 5 Gi = 5368709.12 KB / 5368.70 MB
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/179.jpg"><img src="/assets/img/posts/kubernetes_advanced/179.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Now, dev2 has Limit Ranges with minimum 256 Mi and maximum 512 Mi.
+- And when we request more resource on that namespace(our case is dev2), it occurs error like below.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: limits-3g-pvc-failure
+  namespace: dev2
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/180.jpg"><img src="/assets/img/posts/kubernetes_advanced/180.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- But when we reauest appropriate resources, it will be created on namespace well.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: limits-1g-pvc
+  namespace: dev2
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/181.jpg"><img src="/assets/img/posts/kubernetes_advanced/181.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+* Extra experimence
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: limits-defaultrequest
+  namespace: dev2
+spec:
+  replicas: 6 # will be out of memory 
+  selector:
+    matchLabels:
+      app: limits-defaultrequest
+  template:
+    metadata:
+      labels:
+        app: limits-defaultrequest
+    spec:
+      containers:
+      - name: chk-log 
+        image: sysnet4admin/chk-log
+        volumeMounts:
+        - name: pvc-vol
+          mountPath: /audit
+      volumes:
+      - name: pvc-vol
+        persistentVolumeClaim:
+          claimName: limits-1g-pvc  
+      nodeName: w3-k8s # only here for testing purpose
+{% endhighlight %}
+
+- Worker nodes have 1.5 Gi per each.
+- We will test on w3-k8s to create 6 pods with minimum size 256 Mi.(6 x 256 Mi = 1.5 Gi)
+- It should occur out of memory error because total needed memory is bigger than 1.5 Gi. (ex. pod memory)
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/182.jpg"><img src="/assets/img/posts/kubernetes_advanced/182.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- So please delete ASAP if you tested this code.
+
+## Network Policy
+
+- Ingress Traffic : Traffic getting in to server through firewall
+- Egress Traffic :  Traffic getting out from server through firewall
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/183.jpg"><img src="/assets/img/posts/kubernetes_advanced/183.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+### Network Policy in Kubernetes
+
+- Ingress : set direction of netrowk
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/184.jpg"><img src="/assets/img/posts/kubernetes_advanced/184.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Before you run experiments, check you have net tools.
+- If you don't have net tools, run this `0-1-net-tools-ifn-default.yaml` and `0-2-net-tools-ifn-dev[1-2].yaml` first.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: net
+spec:
+  containers:
+  - image: sysnet4admin/net-tools-ifn
+    name: net
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: net-dev1
+  namespace: dev1
+spec:
+  containers:
+  - image: sysnet4admin/net-tools-ifn
+    name: net
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: net-dev2
+  namespace: dev2
+spec:
+  containers:
+  - image: sysnet4admin/net-tools-ifn
+    name: net
+{% endhighlight %}
+
+* Experiment 1 : Deny all
+- if label's role is sensitive, then deny all.
+- This blocks every network transport in the pod.
+- Because Ingress and Egress are just declared and there is no description for transporting.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    role: sensitive  
+    app: chk-info
+  name: deploy-deny-all
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      role: sensitive  
+      app: chk-info
+  template:
+    metadata:
+      labels:
+        role: sensitive  
+        app: chk-info
+    spec:
+      containers:
+      - image: sysnet4admin/chk-info
+        name: chk-info
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: chk-info
+  name: deploy-deny-all
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: chk-info
+  type: LoadBalancer
+{% endhighlight %}
+
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-deny-all
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: sensitive 
+  policyTypes:
+  - Ingress
+  - Egress
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/185.jpg"><img src="/assets/img/posts/kubernetes_advanced/185.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- It doesn't work to get in the server, so please delete pods and policy after experiment.
+
+* Experiment 2 : Process with machted label
+
+- if label's role is internal, Ingress and Egress will be processed with mached label.
+- In this case, Ingress will get in through chk-info app and Egress will get out though chk-info app.
+
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-podselector
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: internal  
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from: 
+    - podSelector:
+        matchLabels:
+          app: chk-info
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: chk-info
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/186.jpg"><img src="/assets/img/posts/kubernetes_advanced/186.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- Those pods can connect with only each others, it means transport occurs only inside of them.
+- That is the reason, why we cannot connect the pod outside.
+- Please delete pods and policy before going to next expriment.
+
+* Experiment 3-1 : Using IP block as criterion
+- `podSelector:{}` means there is no criterion for label. So it will accept every labels.
+- In this case, Ingress will get in through ip 172.16.0.1 - 172.16.255.254 and Egress will get out through ip 172.16.0.1 - 172.16.127.254.
+- So half of IPs cannot transport.
+
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-ipblock
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        # 172.16.0.1 - 172.16.255.254
+        cidr: 172.16.0.0/16
+  egress:
+  - to:
+    - ipBlock:
+        # 172.16.0.1 - 172.16.127.254
+        cidr: 172.16.0.0/17
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/187.jpg"><img src="/assets/img/posts/kubernetes_advanced/187.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- I can use only `172.16.103.132`, others are over 127.
+- I executed net pod first with `k exec net -it -- /bin/bash` and then connected with `ping 172.16.103.132`.
+- Of course, I cannot connected with `ping 172.16.221.133` because of the policy.
+- Please delete pods and policy for the next.
+
+* Experiment 3-2 : Using IP block as criterion
+- You can also except a specific IPs for transporting with `except`.
+- That excepted node should not be transported.
+
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-ipblock-except
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 172.16.0.0/16
+        # change your CIDR to shut it down 
+        #except:
+        # - 172.16.n.n/24
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 172.16.0.0/16
+        # change your CIDR to shut it down 
+        #except:
+        # - 172.16.n.n/24
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/188.jpg"><img src="/assets/img/posts/kubernetes_advanced/188.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- In my case, I blocked `172.16.132.0/24` for Ingress and Egress.
+- You can also change above code with `vi` command.
+- Please delete pods and policy for the next.
+
+* Experiment 4 : Using namespace as criterion
+- In this case, Ingress is only getting in through dev2.
+
+{% highlight yaml %}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: networkpolicy-namespaceselector-dev2
+  namespace: dev2
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress 
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: dev2
+  egress:
+  - {}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/189.jpg"><img src="/assets/img/posts/kubernetes_advanced/189.jpg"></a>
+  <figcaption>Cluster Management</figcaption>
+</figure>
+
+- So it doesn't work, when you are not in dev2.
+- But it works, when you are in dev2 because of the policy.
+- Please delete pods and policy for the next.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/190.jpg"><img src="/assets/img/posts/kubernetes_advanced/190.jpg"></a>
   <figcaption>Cluster Management</figcaption>
 </figure>
