@@ -3940,3 +3940,809 @@ spec:
   <a href="/assets/img/posts/kubernetes_advanced/190.jpg"><img src="/assets/img/posts/kubernetes_advanced/190.jpg"></a>
   <figcaption>Cluster Management</figcaption>
 </figure>
+
+# Application Construction and Management
+- Version upgrade
+- Auto-Scale
+- Deployment with Web UI
+
+## ConfigMap
+- ConfigMap is for additional or changiable settings and messages.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: sleepy-config 
+data: 
+ STATUS: "SLEEP AGAIN"
+ NOTE: "TestBed Configuration"
+ # create a form with data type
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/191.jpg"><img src="/assets/img/posts/kubernetes_advanced/191.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-configmapref
+  name: deploy-configmapref
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-configmapref
+  template:
+    metadata:
+      labels:
+        app: deploy-configmapref
+    spec:
+      containers:
+      - image: sysnet4admin/sleepy 
+        name: sleepy 
+        command: ["/bin/sh","-c"]
+        args:
+        - |
+          echo "sleepy $STATUS"
+          echo "NOTE: $NOTE"
+          sleep 3600
+          # $ means, we will use a specific variable here with same name
+        envFrom:
+        - configMapRef:
+            name: sleepy-config
+            # reference container 'sleepy-config' and it will be used as a environment variable
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/192.jpg"><img src="/assets/img/posts/kubernetes_advanced/192.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-configmapkeyref
+  name: deploy-configmapkeyref
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-configmapkeyref
+  template:
+    metadata:
+      labels:
+        app: deploy-configmapkeyref
+    spec:
+      containers:
+      - image: sysnet4admin/sleepy 
+        name: sleepy 
+        command: ["/bin/sh","-c"]
+        args:
+        - |
+          echo "sleepy $APP_STATUS"
+          sleep 3600
+        env:
+        - name: APP_STATUS # mandantory field
+          valueFrom:
+            configMapKeyRef:
+              name: sleepy-config
+              key: STATUS
+              # reference key STATUS in 'sleepy-config' and this STATUS renamed to APP_STATUS
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/193.jpg"><img src="/assets/img/posts/kubernetes_advanced/193.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: deploy-vol-configMap
+  name: deploy-vol-configmap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-vol-configmap
+  template:
+    metadata:
+      labels:
+        app: deploy-vol-configmap
+    spec:
+      containers:
+      - image: sysnet4admin/sleepy 
+        name: sleepy 
+        command: ["/bin/sh","-c"]
+        args:
+        - |
+          sleep 3600
+        volumeMounts:
+        - name: appconfigvol
+          mountPath: /etc/sleepy.d
+          # mount ConfigMap as a volume
+          # read ConfigMap and mount it on the directory
+          # take values when we need
+      volumes:
+      - name: appconfigvol
+        configMap:
+          name: sleepy-config
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/194.jpg"><img src="/assets/img/posts/kubernetes_advanced/194.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- If ConfigMap is changed, then environment variables gonna be also changed.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: sleepy-config 
+data:
+ STATUS: "SLEEP AGAIN" # changed
+ NOTE: "TestBed Configuration"
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/195.jpg"><img src="/assets/img/posts/kubernetes_advanced/195.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Metallb can choose IP range by ConfigMap in load balance service.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: metallb-ip-range
+      protocol: layer2
+      addresses:
+      - 192.168.1.11-192.168.1.19
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/196.jpg"><img src="/assets/img/posts/kubernetes_advanced/196.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+## Secret
+- for security(ex. id or password)
+- <a href="https://kubernetes.io/docs/concepts/configuration/secret/#secret-types">Secret Types</a>
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/197.jpg"><img src="/assets/img/posts/kubernetes_advanced/197.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-cred
+  namespace: default
+data: # base64
+  username: ZGItdXNlcg==
+  password: bGVlaHVobGVl
+type: Opaque # default value
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/198.jpg"><img src="/assets/img/posts/kubernetes_advanced/198.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- This endoding keys can be decoded by `echo {your key} | base64 --decode`
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: deploy-secretkeyref
+  name: deploy-secretkeyref
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-secretkeyref
+  template:
+    metadata:
+      labels:
+        app: deploy-secretkeyref
+    spec:
+      containers:
+      - image: sysnet4admin/mysql-auth 
+        name: mysql-auth 
+        env:
+        # Need to init mysql 
+        - name: MYSQL_ROOT_PASSWORD
+          value: rootpassword
+        # Custom auth 
+        - name: MYSQL_USER_ID
+          valueFrom: # similar with ConfigMapRef
+            secretKeyRef:
+              name: mysql-cred # secret name
+              key: username # db-user
+        - name: MYSQL_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-cred 
+              key: password # leehuhlee
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-pvc
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-pvc
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc  
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: managed-nfs-storage 
+{% endhighlight %}
+
+- Secret and ConfigMap can be changed with `kubectl edit`.
+- It means, when pod is dead and reveal, Secret and ConfigMap can be changed automatically.
+- If Secret and ConfigMap should not or will not be changed, use <a href="https://kubernetes.io/docs/concepts/configuration/secret/#secret-immutable">`immutable`</a>.
+
+{% highlight yaml %}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-cred
+  namespace: default
+data:
+  username: ZGItdXNlcg==
+  password: bGVlaHVobGVl
+type: Opaque
+immutable: true
+{% endhighlight %}
+
+- After deploy secret, you cannot change this file again.
+
+## Roll Out
+- Rolling Update
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/199.jpg"><img src="/assets/img/posts/kubernetes_advanced/199.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Kubernetes updates 1 by 1 to continue services.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-rollout
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-rollout 
+  template:
+    metadata:
+      labels:
+        app: deploy-rollout
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20.1
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/200.jpg"><img src="/assets/img/posts/kubernetes_advanced/200.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/201.jpg"><img src="/assets/img/posts/kubernetes_advanced/201.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/202.jpg"><img src="/assets/img/posts/kubernetes_advanced/202.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- update with unexisting version.
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/203.jpg"><img src="/assets/img/posts/kubernetes_advanced/203.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/204.jpg"><img src="/assets/img/posts/kubernetes_advanced/204.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/205.jpg"><img src="/assets/img/posts/kubernetes_advanced/205.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- update with specific version.
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/206.jpg"><img src="/assets/img/posts/kubernetes_advanced/206.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/207.jpg"><img src="/assets/img/posts/kubernetes_advanced/207.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+## Kustomize
+- Dynamic deplyoment
+- Metallb can deploy several application at once.
+
+{% highlight yaml %}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  labels:
+    app: metallb
+  name: controller
+  namespace: metallb-system
+spec:
+  allowPrivilegeEscalation: false
+  allowedCapabilities: []
+  allowedHostPaths: []
+  defaultAddCapabilities: []
+  defaultAllowPrivilegeEscalation: false
+  fsGroup:
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
+  hostIPC: false
+  hostNetwork: false
+  hostPID: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  requiredDropCapabilities:
+  - ALL
+  runAsUser:
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
+  volumes:
+  - configMap
+  - secret
+  - emptyDir
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  labels:
+    app: metallb
+  name: speaker
+  namespace: metallb-system
+spec:
+  allowPrivilegeEscalation: false
+  allowedCapabilities:
+  - NET_RAW
+  allowedHostPaths: []
+  defaultAddCapabilities: []
+  defaultAllowPrivilegeEscalation: false
+  fsGroup:
+    rule: RunAsAny
+  hostIPC: false
+  hostNetwork: true
+  hostPID: false
+  hostPorts:
+  - max: 7472
+    min: 7472
+  - max: 7946
+    min: 7946
+  privileged: true
+  readOnlyRootFilesystem: true
+  requiredDropCapabilities:
+  - ALL
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - configMap
+  - secret
+  - emptyDir
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: metallb
+  name: controller
+  namespace: metallb-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: metallb
+  name: speaker
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: metallb
+  name: metallb-system:controller
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - services/status
+  verbs:
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - policy
+  resourceNames:
+  - controller
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: metallb
+  name: metallb-system:speaker
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - services
+  - endpoints
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - policy
+  resourceNames:
+  - speaker
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: metallb
+  name: config-watcher
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: metallb
+  name: pod-lister
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: metallb
+  name: controller
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  resourceNames:
+  - memberlist
+  verbs:
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - controller
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: metallb-system:controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: metallb-system:controller
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: metallb-system:speaker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: metallb-system:speaker
+subjects:
+- kind: ServiceAccount
+  name: speaker
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: config-watcher
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: config-watcher
+subjects:
+- kind: ServiceAccount
+  name: controller
+- kind: ServiceAccount
+  name: speaker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: pod-lister
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-lister
+subjects:
+- kind: ServiceAccount
+  name: speaker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: controller
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: controller
+subjects:
+- kind: ServiceAccount
+  name: controller
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: metallb
+    component: speaker
+  name: speaker
+  namespace: metallb-system
+spec:
+  selector:
+    matchLabels:
+      app: metallb
+      component: speaker
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '7472'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: metallb
+        component: speaker
+    spec:
+      containers:
+      - args:
+        - --port=7472
+        - --config=config
+        env:
+        - name: METALLB_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: METALLB_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: METALLB_ML_BIND_ADDR
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        # needed when another software is also using memberlist / port 7946
+        # when changing this default you also need to update the container ports definition
+        # and the PodSecurityPolicy hostPorts definition
+        #- name: METALLB_ML_BIND_PORT
+        #  value: "7946"
+        - name: METALLB_ML_LABELS
+          value: "app=metallb,component=speaker"
+        - name: METALLB_ML_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: memberlist
+              key: secretkey
+        image: quay.io/metallb/speaker:main
+        name: speaker
+        ports:
+        - containerPort: 7472
+          name: monitoring
+        - containerPort: 7946
+          name: memberlist-tcp
+        - containerPort: 7946
+          name: memberlist-udp
+          protocol: UDP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_RAW
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: speaker
+      terminationGracePeriodSeconds: 2
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: metallb
+    component: controller
+  name: controller
+  namespace: metallb-system
+spec:
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: metallb
+      component: controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '7472'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: metallb
+        component: controller
+    spec:
+      containers:
+      - args:
+        - --port=7472
+        - --config=config
+        env:
+        - name: METALLB_ML_SECRET_NAME
+          value: memberlist
+        - name: METALLB_DEPLOYMENT
+          value: controller
+        image: quay.io/metallb/controller:main
+        name: controller
+        ports:
+        - containerPort: 7472
+          name: monitoring
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      serviceAccountName: controller
+      terminationGracePeriodSeconds: 0
+{% endhighlight %}
+
+### Kustomize process
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/208.jpg"><img src="/assets/img/posts/kubernetes_advanced/208.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- We can change dynamically kustomization.yaml file with sources by `kustomize create`.
+- And then we can create upgrade build file with `kustomize build`.
+- Finally you can upgrade with `kubectl apply -f`.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/209.jpg"><img src="/assets/img/posts/kubernetes_advanced/209.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Delete MetalLB
