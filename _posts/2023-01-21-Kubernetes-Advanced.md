@@ -4746,3 +4746,178 @@ spec:
 </figure>
 
 - Delete MetalLB
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/210.jpg"><img src="/assets/img/posts/kubernetes_advanced/210.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Check MetalLB is deleted and install kustomize
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/211.jpg"><img src="/assets/img/posts/kubernetes_advanced/211.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Create kustomize and edit version
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/212.jpg"><img src="/assets/img/posts/kubernetes_advanced/212.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Deploy MetalLB
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/213.jpg"><img src="/assets/img/posts/kubernetes_advanced/213.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Chcek MetalLB is deployed
+
+## helm
+- helm make dynamic deploy easier.
+- helm > kustomize.io > kubectl
+- User's work with helm is just setting storage and intalling release
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/214.jpg"><img src="/assets/img/posts/kubernetes_advanced/214.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Install helm
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/215.jpg"><img src="/assets/img/posts/kubernetes_advanced/215.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Set storage
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/216.jpg"><img src="/assets/img/posts/kubernetes_advanced/216.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Delete oldest metalLB and NFS provisioner because we will use only helm
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/217.jpg"><img src="/assets/img/posts/kubernetes_advanced/217.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/218.jpg"><img src="/assets/img/posts/kubernetes_advanced/218.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Install metalLB with helm
+- This is `metallb-installer-by-helm.sh`
+{% highlight sh %}
+helm install metallb edu/metallb \
+     --create-namespace \
+     --namespace=metallb-system \
+     --set controller.image.tag=v0.10.2 \
+     --set speaker.image.tag=v0.10.2 \
+     -f ~/_Lecture_k8s_learning.kit/ch9/9.6/installer-by-helm/l2-config-by-helm.yaml
+{% endhighlight %}
+- helm will install metalLB with namespace `metallb-system` and image version `0.10.2`.
+- helm will apply config with this.
+{% highlight yaml %}
+configInline:
+  address-pools:
+   - name: default
+     protocol: layer2
+     addresses:
+     - 192.168.1.11-192.168.1.49
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/219.jpg"><img src="/assets/img/posts/kubernetes_advanced/219.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Install metalLB with helm
+- This is `nfs-provisioner-installer-by-helm.sh`
+{% highlight sh %}
+helm install nfs-provisioner edu/nfs-subdir-external-provisioner \
+    --set nfs.server=192.168.1.10 \
+    --set nfs.path=/nfs_shared/dynamic-vol \
+    --set storageClass.name=managed-nfs-storage
+{% endhighlight %}
+
+- Uninstall metalLB with helm, if you need.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/220.jpg"><img src="/assets/img/posts/kubernetes_advanced/220.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+## Metrics-Server
+- Mornitoring resources, like CPU and memory.
+- Each kubelet in worker node sends measured value to Metrics-Server.
+- And user can get measured value from Metrics-Server with API.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/221.jpg"><img src="/assets/img/posts/kubernetes_advanced/221.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- If current system has not kustomization, `kubectl apply -k .` will read and excute all referenced kustomization files.
+- You can see measured value by `k top`
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/222.jpg"><img src="/assets/img/posts/kubernetes_advanced/222.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/223.jpg"><img src="/assets/img/posts/kubernetes_advanced/223.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/224.jpg"><img src="/assets/img/posts/kubernetes_advanced/224.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+## HPA (Horizontal Pod Autoscaler)
+- Sync with Metrics-Server
+- Scale pods automatically
+- Applications will be managed automatically depends on kubernetes resources' status.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/225.jpg"><img src="/assets/img/posts/kubernetes_advanced/225.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- API Server sends measured value about pods to HPA.
+- HPA applies resources to appropriate deployment when they has to be needed.
+
+{% highlight yaml %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-4-hpa
+  labels:
+    app: deploy-4-hpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deploy-4-hpa
+  template:
+    metadata:
+      labels:
+        app: deploy-4-hpa
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+        resources:
+          requests:
+            cpu: "10m"
+          limits:
+            cpu: "20m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-deploy-4-hpa 
+spec:
+  selector:
+    app: deploy-4-hpa
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80 
+  type: LoadBalancer
+{% endhighlight %}
