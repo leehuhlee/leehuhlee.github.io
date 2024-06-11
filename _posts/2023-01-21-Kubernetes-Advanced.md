@@ -4873,6 +4873,7 @@ helm install nfs-provisioner edu/nfs-subdir-external-provisioner \
 - Sync with Metrics-Server
 - Scale pods automatically
 - Applications will be managed automatically depends on kubernetes resources' status.
+- HPA is for linear load increasing or predictable load.
 
 <figure>
   <a href="/assets/img/posts/kubernetes_advanced/225.jpg"><img src="/assets/img/posts/kubernetes_advanced/225.jpg"></a>
@@ -4899,13 +4900,13 @@ spec:
       labels:
         app: deploy-4-hpa
     spec:
-      containers:
+      containers: # Set resources for containers
       - name: chk-hn
         image: sysnet4admin/chk-hn
         resources:
-          requests:
+          requests: # min
             cpu: "10m"
-          limits:
+          limits: # max
             cpu: "20m"
 ---
 apiVersion: v1
@@ -4921,3 +4922,121 @@ spec:
       targetPort: 80 
   type: LoadBalancer
 {% endhighlight %}
+
+- Active HPA with below code or command `k autoscale deployment deploy-4-hpa --min=1 --max=10 --cpu-percent=50`
+- You can create below code by `k autoscale deployment deploy-4-hpa --min=1 --max=10 --cpu-percent=50 --dry-run=client -o yaml`
+
+{% highlight yaml %}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: deploy-4-hpa
+spec:
+  maxReplicas: 10
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-4-hpa
+  targetCPUUtilizationPercentage: 50
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/228.jpg"><img src="/assets/img/posts/kubernetes_advanced/228.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Set load
+
+{% highlight sh %}
+while true
+do
+  COUNTER=$((COUNTER + 1))
+  echo -ne "$COUNTER - " ; curl $1 
+done
+{% endhighlight %}
+
+### Excersice 
+
+- Apply deployment and autoscale.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/227.jpg"><img src="/assets/img/posts/kubernetes_advanced/227.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/226.jpg"><img src="/assets/img/posts/kubernetes_advanced/226.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Monitor pods by `watch kubectl top pods --use-protocol-buffers`
+- Monitor HPA by `watch kubectl get hpa`
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/229.jpg"><img src="/assets/img/posts/kubernetes_advanced/229.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Set load
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/230.jpg"><img src="/assets/img/posts/kubernetes_advanced/230.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/231.jpg"><img src="/assets/img/posts/kubernetes_advanced/231.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/232.jpg"><img src="/assets/img/posts/kubernetes_advanced/232.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Stop load
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/233.jpg"><img src="/assets/img/posts/kubernetes_advanced/233.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/234.jpg"><img src="/assets/img/posts/kubernetes_advanced/234.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+## kube-dashboard
+- You can do all commands on Web UI.
+
+### Excercise
+- Check kubernetes-dashboard service IP.
+
+<figure>
+  <a href="/assets/img/posts/kubernetes_advanced/235.jpg"><img src="/assets/img/posts/kubernetes_advanced/235.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Open Web UI with kubernetes-dashboard service IP.
+- Click skip for authorization.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/236.jpg"><img src="/assets/img/posts/kubernetes_advanced/236.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/237.jpg"><img src="/assets/img/posts/kubernetes_advanced/237.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Create a pod with left-top `+` button.
+- Click deploy button.
+
+<figure class="third">
+  <a href="/assets/img/posts/kubernetes_advanced/238.jpg"><img src="/assets/img/posts/kubernetes_advanced/238.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/239.jpg"><img src="/assets/img/posts/kubernetes_advanced/239.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/240.jpg"><img src="/assets/img/posts/kubernetes_advanced/240.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Click Pods in bread.
+- Click three dots button to see information of pod-web.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/241.jpg"><img src="/assets/img/posts/kubernetes_advanced/241.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/242.jpg"><img src="/assets/img/posts/kubernetes_advanced/242.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/243.jpg"><img src="/assets/img/posts/kubernetes_advanced/243.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
+
+- Click deployment
+- Delete pod-web deployment with three dots button.
+
+<figure class="half">
+  <a href="/assets/img/posts/kubernetes_advanced/244.jpg"><img src="/assets/img/posts/kubernetes_advanced/244.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/245.jpg"><img src="/assets/img/posts/kubernetes_advanced/245.jpg"></a>
+  <a href="/assets/img/posts/kubernetes_advanced/246.jpg"><img src="/assets/img/posts/kubernetes_advanced/246.jpg"></a>
+  <figcaption>Application Management</figcaption>
+</figure>
