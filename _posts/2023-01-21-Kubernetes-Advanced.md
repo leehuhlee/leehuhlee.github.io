@@ -5024,7 +5024,7 @@ done
 - Click Pods in bread.
 - Click three dots button to see information of pod-web.
 
-<figure class="half">
+<figure class="third">
   <a href="/assets/img/posts/kubernetes_advanced/241.jpg"><img src="/assets/img/posts/kubernetes_advanced/241.jpg"></a>
   <a href="/assets/img/posts/kubernetes_advanced/242.jpg"><img src="/assets/img/posts/kubernetes_advanced/242.jpg"></a>
   <a href="/assets/img/posts/kubernetes_advanced/243.jpg"><img src="/assets/img/posts/kubernetes_advanced/243.jpg"></a>
@@ -5034,7 +5034,7 @@ done
 - Click deployment
 - Delete pod-web deployment with three dots button.
 
-<figure class="half">
+<figure class="third">
   <a href="/assets/img/posts/kubernetes_advanced/244.jpg"><img src="/assets/img/posts/kubernetes_advanced/244.jpg"></a>
   <a href="/assets/img/posts/kubernetes_advanced/245.jpg"><img src="/assets/img/posts/kubernetes_advanced/245.jpg"></a>
   <a href="/assets/img/posts/kubernetes_advanced/246.jpg"><img src="/assets/img/posts/kubernetes_advanced/246.jpg"></a>
