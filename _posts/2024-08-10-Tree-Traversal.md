@@ -236,43 +236,46 @@ public static class Program
 
 ### Code
 {% highlight C# %}
-namespace QuickSort;
-
-class Program
+public class TreeNode
 {
-    public static void Main(string[] args)
+    public int Value;
+    public TreeNode Left;
+    public TreeNode Right;
+    public TreeNode(int x) { Value = x; }
+}
+
+public static class Program
+{
+    public static void Main()
     {
-        int[] arr = { 1, 10, 5, 8, 7, 6, 4, 3, 2, 9 };
-        Console.WriteLine("Original array : ");
-        Common.Print(arr);
-        Console.WriteLine();
+        // Example usage
+        TreeNode root = new TreeNode(1);
+        root.Left = new TreeNode(2);
+        root.Right = new TreeNode(3);
+        root.Left.Left = new TreeNode(4);
+        root.Left.Right = new TreeNode(5);
+        root.Right.Right = new TreeNode(6);
 
-        Console.WriteLine("Choose pivot: ");
-        Console.WriteLine("[1] First as pivot");
-        Console.WriteLine("[2] Middle as pivot");
-        Console.WriteLine("[3] Last as pivot");
-        var choice = Console.ReadLine();
-        Console.WriteLine();
+        Console.Write("Level Order Traversal: ");
+        LevelOrder(root);
+    }
 
-        switch (choice)
+    // Function to perform postorder traversal
+    public static void LevelOrder(TreeNode root)
+    {
+        if (root == null) return;
+
+        Queue<TreeNode> queue = new Queue<TreeNode>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
         {
-            case "1":
-                FirstAsPivot.Run(arr);
-                break;
-            case "2":
-                MiddleAsPivot.Run(arr);
-                break;
-            case "3":
-                LastAsPivot.Run(arr);
-                break;
-            default:
-                Console.WriteLine("Choose 1 to 3");
-                return;
-        }
+            TreeNode node = queue.Dequeue();
+            Console.Write(node.Value + " ");
 
-        Console.WriteLine();
-        Console.WriteLine("Sorted array : ");
-        Common.Print(arr);
+            if (node.Left != null) queue.Enqueue(node.Left);
+            if (node.Right != null) queue.Enqueue(node.Right);
+        }
     }
 }
 {% endhighlight %}
