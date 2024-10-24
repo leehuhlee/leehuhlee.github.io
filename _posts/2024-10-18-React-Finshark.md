@@ -3985,6 +3985,7 @@ export default DesignPage
 {% endhighlight %}
 
 ### Router
+
 * Routes.tsx
 {% highlight tsx %}
 import { createBrowserRouter } from "react-router-dom";
@@ -4016,6 +4017,95 @@ export const router = createBrowserRouter([
 <figure>
   <a href="/assets/img/posts/react_finshark/32.jpg"><img src="/assets/img/posts/react_finshark/32.jpg"></a>
 	<figcaption>Table</figcaption>
+</figure>
+
+# RatioList
+- create `RatioList` folder in components folder
+- create `RatioList.tsx` and `RatioList.css` in RatioList folder
+
+* RatioList.tsx
+{% highlight tsx %}
+import React from 'react'
+import { TestDataCompany } from '../Table/testData'
+
+type Props = {}
+
+const data = TestDataCompany[0];
+
+type Company = typeof data;
+
+const config = [
+  {
+    label: "Company Name",
+    render: (company: Company) => company.companyName,
+    subTitle: "This is the company name"
+  },
+  {
+    label: "Company Name",
+    render: (company: Company) => company.companyName,
+    subTitle: "This is the company name"
+  }
+]
+
+const RatioList = (props: Props) => {
+  const renderedRows = config.map(row => {
+    return (
+      <li className="py-3 sm:py-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {row.label}
+            </p>
+            <p className="text-sm text-gray-500 truncate">
+              {row.subTitle && row.subTitle}
+            </p>
+          </div>
+          <div className="inline-flex items-center text-base font-semibold text-gray-900">
+            {row.render(data)}
+          </div>
+        </div>
+      </li>
+    )
+  })
+  return (
+    <div className="bg-white shadow rounded-lg mb-4 p-4 sm:p-6 h-full">
+      <ul className="divide-y divided-gray-200">
+        {renderedRows}
+      </ul>
+    </div>
+  )
+}
+
+export default RatioList
+{% endhighlight %}
+
+### DesignPage
+
+* DesignPage.tsx
+{% highlight tsx %}
+import React from 'react'
+import Table from '../../components/Table/Table'
+import RatioList from '../../components/RatioList/RatioList'
+
+type Props = {}
+
+const DesignPage = (props: Props) => {
+  return (
+    <>
+      <h1>FinShark Design Page</h1>
+      <h2>This is Finshark's design page. This is where we well house various design aspects of the app</h2>
+      <RatioList />
+      <Table />
+    </>
+  )
+}
+
+export default DesignPage
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/33.jpg"><img src="/assets/img/posts/react_finshark/33.jpg"></a>
+	<figcaption>RatioList</figcaption>
 </figure>
 
 # Api
