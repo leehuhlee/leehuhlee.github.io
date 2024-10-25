@@ -2160,7 +2160,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-const CardDashboard = ({ children }: Props) => {
+const CompanyDashboard = ({ children }: Props) => {
   return (
     <div className="relative md:ml-64 bg-blueGray-100 w-full">
       <div className="relative pt-20 pb-32 bg-lightBlue-500">
@@ -2179,7 +2179,7 @@ const CardDashboard = ({ children }: Props) => {
   )
 }
 
-export default CardDashboard
+export default CompanyDashboard
 {% endhighlight %}
 
 ### CompanyPage
@@ -2192,7 +2192,7 @@ import { useParams } from 'react-router'
 import { CompanyProfile } from '../../company';
 import { getCompanyProfile } from '../../api';
 import Sidebar from '../../components/Sidebar/Sidebar';
-import CardDashboard from '../../components/CardDashboard/CardDashboard';
+import CompanyDashboard from '../../components/CompanyDashboard/CompanyDashboard';
 import Title from '../../components/Title/Title';
 
 type Props = {}
@@ -2214,9 +2214,9 @@ const CompanyPage: React.FC<Props> = (props: Props): JSX.Element => {
       {company ? (
         <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
           <Sidebar />
-          <CardDashboard>
+          <CompanyDashboard>
             <Title title="Company Name" subTitle={company.companyName}/>
-          </CardDashboard>
+          </CompanyDashboard>
         </div>
       ) : (
         <p>Company not found!</p>
@@ -4106,6 +4106,325 @@ export default DesignPage
 <figure>
   <a href="/assets/img/posts/react_finshark/33.jpg"><img src="/assets/img/posts/react_finshark/33.jpg"></a>
 	<figcaption>RatioList</figcaption>
+</figure>
+
+# CompanyProfile
+
+* CompanyProfile.tsx
+{% highlight tsx %}
+import React, { useEffect, useState } from 'react'
+import { CompanyKeyMetrics } from '../../company';
+import { useOutletContext } from 'react-router';
+import { getKeyMetrics } from '../../api';
+import RatioList from '../RatioList/RatioList';
+
+type Props = {}
+
+const tableConfig = [
+  {
+    label: "Market Cap",
+    render: (company: CompanyKeyMetrics) => company.marketCapTTM,
+    subTitle: "Total value of all a company's shares of stock",
+  },
+  {
+    label: "Current Ratio",
+    render: (company: CompanyKeyMetrics) => company.currentRatioTTM,
+    subTitle:
+      "Measures the companies ability to pay short term debt obligations",
+  },
+  {
+    label: "Return On Equity",
+    render: (company: CompanyKeyMetrics) => company.roeTTM,
+    subTitle:
+      "Return on equity is the measure of a company's net income divided by its shareholder's equity",
+  },
+  {
+    label: "Return On Assets",
+    render: (company: CompanyKeyMetrics) => company.returnOnTangibleAssetsTTM,
+    subTitle:
+      "Return on assets is the measure of how effective a company is using its assets",
+  },
+  {
+    label: "Free Cashflow Per Share",
+    render: (company: CompanyKeyMetrics) => company.freeCashFlowPerShareTTM,
+    subTitle:
+      "Return on assets is the measure of how effective a company is using its assets",
+  },
+  {
+    label: "Book Value Per Share TTM",
+    render: (company: CompanyKeyMetrics) => company.bookValuePerShareTTM,
+    subTitle:
+      "Book value per share indicates a firm's net asset value (total assets - total liabilities) on per share basis",
+  },
+  {
+    label: "Divdend Yield TTM",
+    render: (company: CompanyKeyMetrics) => company.dividendYieldTTM,
+    subTitle: "Shows how much a company pays each year relative to stock price",
+  },
+  {
+    label: "Capex Per Share TTM",
+    render: (company: CompanyKeyMetrics) => company.capexPerShareTTM,
+    subTitle:
+      "Capex is used by a company to aquire, upgrade, and maintain physical assets",
+  },
+  {
+    label: "Graham Number",
+    render: (company: CompanyKeyMetrics) => company.grahamNumberTTM,
+    subTitle:
+      "This is the upperbouind of the price range that a defensive investor should pay for a stock",
+  },
+  {
+    label: "PE Ratio",
+    render: (company: CompanyKeyMetrics) => company.peRatioTTM,
+    subTitle:
+      "This is the upperbouind of the price range that a defensive investor should pay for a stock",
+  },
+];
+
+const CompanyProfile = (props: Props) => {
+  const ticker = useOutletContext<string>();
+  const[companyData, setCompanyData] = useState<CompanyKeyMetrics>();
+
+  useEffect(() => {
+    const getCompanyKeyMetrics = async () => {
+      const value = await getKeyMetrics(ticker);
+      setCompanyData(value?.data[0]);
+    };
+    getCompanyKeyMetrics();
+  }, []);
+
+  return (
+    <>
+      { companyData ? (
+        <RatioList data={companyData} config={tableConfig}/>
+      ):(
+        <>Loading...</>
+      )}
+    </>
+  )
+}
+
+export default CompanyProfile
+{% endhighlight %}
+
+### CompanyDashboard
+
+* CompanyDashboard.tsx
+{% highlight tsx %}
+import React from 'react'
+import { Outlet } from 'react-router'
+
+interface Props {
+  children: React.ReactNode;
+  ticker: string;
+}
+
+const CompanyDashboard = ({ children, ticker }: Props) => {
+  return (
+    <div className="relative md:ml-64 bg-blueGray-100 w-full">
+      <div className="relative pt-20 pb-32 bg-lightBlue-500">
+        <div className="px-4 md:px-6 mx-auto w-full">
+          <div>
+            <div className="flex flex-wrap">
+              {children}
+            </div>
+            <div className="flex flex-wrap">
+              {<Outlet context={ticker}/>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default CompanyDashboard
+{% endhighlight %}
+
+### RatioList
+
+* RatioList.tsx
+{% highlight tsx %}
+type Props = {
+  config: any;
+  data: any;
+}
+
+const RatioList = ({ config, data }: Props) => {
+  const renderedRows = config.map((row: any) => {
+    return (
+      <li className="py-3 sm:py-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {row.label}
+            </p>
+            <p className="text-sm text-gray-500 truncate">
+              {row.subTitle && row.subTitle}
+            </p>
+          </div>
+          <div className="inline-flex items-center text-base font-semibold text-gray-900">
+            {row.render(data)}
+          </div>
+        </div>
+      </li>
+    )
+  })
+  return (
+    <div className="bg-white shadow rounded-lg ml-4 mt-4 mb-4 p-4 sm:p-6 h-full">
+      <ul className="divide-y divided-gray-200">
+        {renderedRows}
+      </ul>
+    </div>
+  )
+}
+
+export default RatioList
+{% endhighlight %}
+
+### Company Model
+
+* company.d.ts
+{% highlight ts %}
+...
+  export interface CompanyKeyMetrics {
+    revenuePerShareTTM: number;
+    netIncomePerShareTTM: number;
+    operatingCashFlowPerShareTTM: number;
+    freeCashFlowPerShareTTM: number;
+    cashPerShareTTM: number;
+    bookValuePerShareTTM: number;
+    tangibleBookValuePerShareTTM: number;
+    shareholdersEquityPerShareTTM: number;
+    interestDebtPerShareTTM: number;
+    marketCapTTM: number;
+    enterpriseValueTTM: number;
+    peRatioTTM: number;
+    priceToSalesRatioTTM: number;
+    pocfratioTTM: number;
+    pfcfRatioTTM: number;
+    pbRatioTTM: number;
+    ptbRatioTTM: number;
+    evToSalesTTM: number;
+    enterpriseValueOverEBITDATTM: number;
+    evToOperatingCashFlowTTM: number;
+    evToFreeCashFlowTTM: number;
+    earningsYieldTTM: number;
+    freeCashFlowYieldTTM: number;
+    debtToEquityTTM: number;
+    debtToAssetsTTM: number;
+    netDebtToEBITDATTM: number;
+    currentRatioTTM: number;
+    interestCoverageTTM: number;
+    incomeQualityTTM: number;
+    dividendYieldTTM: number;
+    dividendYieldPercentageTTM: number;
+    payoutRatioTTM: number;
+    salesGeneralAndAdministrativeToRevenueTTM: number;
+    researchAndDevelopementToRevenueTTM: number;
+    intangiblesToTotalAssetsTTM: number;
+    capexToOperatingCashFlowTTM: number;
+    capexToRevenueTTM: number;
+    capexToDepreciationTTM: number;
+    stockBasedCompensationToRevenueTTM: number;
+    grahamNumberTTM: number;
+    roicTTM: number;
+    returnOnTangibleAssetsTTM: number;
+    grahamNetNetTTM: number;
+    workingCapitalTTM: number;
+    tangibleAssetValueTTM: number;
+    netCurrentAssetValueTTM: number;
+    investedCapitalTTM: number;
+    averageReceivablesTTM: number;
+    averagePayablesTTM: number;
+    averageInventoryTTM: number;
+    daysSalesOutstandingTTM: number;
+    daysPayablesOutstandingTTM: number;
+    daysOfInventoryOnHandTTM: number;
+    receivablesTurnoverTTM: number;
+    payablesTurnoverTTM: number;
+    inventoryTurnoverTTM: number;
+    roeTTM: number;
+    capexPerShareTTM: number;
+    dividendPerShareTTM: number;
+    debtToMarketCapTTM: number;
+  }
+{% endhighlight %}
+
+### Api
+
+* api.tsx
+{% highlight tsx %}
+...
+export const getKeyMetrics = async (query: string) => {
+  try {
+    const data = await axios.get<CompanyKeyMetrics[]>(
+      `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${query}?apikey=${process.env.REACT_APP_API_KEY}`
+    );
+    return data;
+  } catch (error: any) {
+    console.log("error message from API: ", error.message);
+  }
+}
+{% endhighlight %}
+
+### CompanyPage
+
+* CompanyPage.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      {company ? (
+        <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
+          <Sidebar />
+          <CompanyDashboard ticker={ticker!}>
+            <Title title="Company Name" subTitle={company.companyName}/>
+          </CompanyDashboard>
+        </div>
+      ) : (
+        <p>Company not found!</p>
+      )}
+    </>
+  )
+{% endhighlight %}
+
+### DesignPage
+
+* DesignPage.tsx
+{% highlight tsx %}
+import React from 'react'
+import Table from '../../components/Table/Table'
+import RatioList from '../../components/RatioList/RatioList'
+import { testIncomeStatementData } from '../../components/Table/testData';
+
+type Props = {}
+
+const tableConfig = [
+  {
+    label: "Market Cap",
+    render: (company: any) => company.marketCapTTM,
+    subTitle: "Total value of all a company's shares of stock",
+  }
+];
+
+const DesignPage = (props: Props) => {
+  return (
+    <>
+      <h1>FinShark Design Page</h1>
+      <h2>This is Finshark's design page. This is where we well house various design aspects of the app</h2>
+      <RatioList data={testIncomeStatementData} config={tableConfig}/>
+      <Table />
+    </>
+  )
+}
+
+export default DesignPage
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/34.jpg"><img src="/assets/img/posts/react_finshark/34.jpg"></a>
+	<figcaption>CompanyProfile</figcaption>
 </figure>
 
 # Api
