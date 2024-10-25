@@ -4108,7 +4108,10 @@ export default DesignPage
 	<figcaption>RatioList</figcaption>
 </figure>
 
-# CompanyProfile
+# Company Profile
+
+## useOutletContext
+-  is a hook provided by React Router to access context data passed through `Outlet`.
 
 * CompanyProfile.tsx
 {% highlight tsx %}
@@ -4425,6 +4428,218 @@ export default DesignPage
 <figure>
   <a href="/assets/img/posts/react_finshark/34.jpg"><img src="/assets/img/posts/react_finshark/34.jpg"></a>
 	<figcaption>CompanyProfile</figcaption>
+</figure>
+
+# Income Statement
+- create `IncomeStatement` folder in components folder
+- create `IncomeStatement.tsx` and `IncomeStatement.css` in IncomeStatement folder
+
+* IncomeStatement.tsx
+{% highlight tsx %}
+import React, { useEffect, useState } from 'react'
+import { CompanyIncomeStatement } from '../../company';
+import { useOutletContext } from 'react-router';
+import { getIncomeStatement } from '../../api';
+import Table from '../Table/Table';
+
+type Props = {}
+
+const configs = [
+  {
+    label: "Date",
+    render: (company: CompanyIncomeStatement) => company.date,
+  },
+  {
+    label: "Revenue",
+    render: (company: CompanyIncomeStatement) => company.revenue,
+  },
+  {
+    label: "Cost Of Revenue",
+    render: (company: CompanyIncomeStatement) => company.costOfRevenue,
+  },
+  {
+    label: "Depreciation",
+    render: (company: CompanyIncomeStatement) =>
+      company.depreciationAndAmortization,
+  },
+  {
+    label: "Operating Income",
+    render: (company: CompanyIncomeStatement) => company.operatingIncome,
+  },
+  {
+    label: "Income Before Taxes",
+    render: (company: CompanyIncomeStatement) => company.incomeBeforeTax,
+  },
+  {
+    label: "Net Income",
+    render: (company: CompanyIncomeStatement) => company.netIncome,
+  },
+  {
+    label: "Net Income Ratio",
+    render: (company: CompanyIncomeStatement) => company.netIncomeRatio,
+  },
+  {
+    label: "Earnings Per Share",
+    render: (company: CompanyIncomeStatement) => company.eps,
+  },
+  {
+    label: "Earnings Per Diluted",
+    render: (company: CompanyIncomeStatement) => company.epsdiluted,
+  },
+  {
+    label: "Gross Profit Ratio",
+    render: (company: CompanyIncomeStatement) => company.grossProfitRatio,
+  },
+  {
+    label: "Opearting Income Ratio",
+    render: (company: CompanyIncomeStatement) => company.operatingIncomeRatio,
+  },
+  {
+    label: "Income Before Taxes Ratio",
+    render: (company: CompanyIncomeStatement) => company.incomeBeforeTaxRatio,
+  },
+];
+
+const IncomeStatement = (props: Props) => {
+  const ticker = useOutletContext<string>();
+  const [incomeStatement, setIncomeStatement] = useState<CompanyIncomeStatement[]>();
+  
+  useEffect(() => {
+    const getCompanyIncomeStatement = async () => {
+      const result = await getIncomeStatement(ticker!);
+      setIncomeStatement(result!.data);
+    }
+    getCompanyIncomeStatement();
+  }, []);
+
+  return (
+    <>
+      { incomeStatement ? (
+        <Table configs={configs} data={incomeStatement}/>
+      ):(
+        <>Loading...</>
+      )}
+    </>
+  )
+}
+
+export default IncomeStatement
+{% endhighlight %}
+
+### Sidebar
+
+* Sidebar.tsx
+{% highlight tsx %}
+...
+<Link to="company-profile" className="flex md:min-w-full text-blueGray-500 text-xs uppercase font-bold block pt-1 pb-4 no-underline">
+            <FaHome/>
+            <h6 className="ml-3">Company Profile</h6>
+          </Link>
+          <Link to="income-statement" className="flex md:min-w-full text-blueGray-500 text-xs uppercase font-bold block pt-1 pb-4 no-underline">
+            <FaHome/>
+            <h6 className="ml-3">Income Statement</h6>
+          </Link>
+...
+{% endhighlight %}
+
+### Table
+
+* Table.tsx
+{% highlight tsx %}
+type Props = {
+  configs: any;
+  data: any;
+}
+
+const Table = ({ configs, data }: Props) => {
+  const renderedRows = data.map((company: any) => {
+    return (
+      <tr key={company.cik}>
+        {configs.map((val: any) => {
+          return (
+            <td className="p-3">
+              {val.render(company)}
+            </td>
+        )})}
+      </tr>
+    )
+  })
+  const renderedHeaders = configs.map((configs: any) => {
+    return (
+      <th className="p-3" key={configs.label}>
+        {configs.label}
+      </th>
+    )
+  })
+
+  return (
+    <div className="bg-white shadow rounded-lg p-4 sm:p-6 xl:p-8">
+      <table>
+        <thead className="min-w-full divide-y divide-gray-200 m-5">
+          {renderedHeaders}
+        </thead>
+        <tbody>
+          {renderedRows}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export default Table
+{% endhighlight %}
+
+### DesignPage
+
+* DesignPage.tsx
+{% highlight tsx %}
+...
+const DesignPage = (props: Props) => {
+  return (
+    <>
+      <h1>FinShark Design Page</h1>
+      <h2>This is Finshark's design page. This is where we well house various design aspects of the app</h2>
+      <RatioList data={testIncomeStatementData} config={tableConfig}/>
+      <Table data={testIncomeStatementData} configs={tableConfig} />
+    </>
+  )
+...
+{% endhighlight %}
+
+### Routes
+
+* Routes.tsx
+{% highlight tsx %}
+...
+{ path: "company/:ticker", element: <CompanyPage/>,
+        children: [
+          { path: "company-profile", element: <CompanyProfile/> },
+          { path: "income-statement", element: <IncomeStatement/> }
+        ]
+      }
+...
+{% endhighlight %}
+
+### Api
+
+* api.tsx
+{% highlight tsx %}
+...
+export const getIncomeStatement = async (query: string) => {
+  try {
+    const data = await axios.get<CompanyIncomeStatement[]>(
+      `https://financialmodelingprep.com/api/v3/income-statement/${query}?apikey=${process.env.REACT_APP_API_KEY}`
+    );
+    return data;
+  } catch (error: any) {
+    console.log("error message from API: ", error.message);
+  }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/35.jpg"><img src="/assets/img/posts/react_finshark/35.jpg"></a>
+	<figcaption>Income Statement</figcaption>
 </figure>
 
 # Api
