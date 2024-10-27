@@ -2193,7 +2193,7 @@ import { CompanyProfile } from '../../company';
 import { getCompanyProfile } from '../../api';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import CompanyDashboard from '../../components/CompanyDashboard/CompanyDashboard';
-import Title from '../../components/Title/Title';
+import Tile from '../../components/Tile/Tile';
 
 type Props = {}
 
@@ -2215,7 +2215,7 @@ const CompanyPage: React.FC<Props> = (props: Props): JSX.Element => {
         <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
           <Sidebar />
           <CompanyDashboard>
-            <Title title="Company Name" subTitle={company.companyName}/>
+            <Tile title="Company Name" subTitle={company.companyName}/>
           </CompanyDashboard>
         </div>
       ) : (
@@ -2260,9 +2260,9 @@ const Sidebar: React.FC<Props> = (props: Props): JSX.Element => (
 export default Sidebar
 {% endhighlight %}
 
-### Title
+### Tile
 
-* Title.tsx
+* Tile.tsx
 
 {% highlight tsx %}
 import React from 'react'
@@ -2272,7 +2272,7 @@ type Props = {
   subTitle: string;
 }
 
-const Title = ({ title, subTitle }: Props) => {
+const Tile = ({ title, subTitle }: Props) => {
   return (
     <div className="w-full lg:w-6/12 xl:w-3/12 px-4">
       <div className="relative flex flex-col min-w-0 break-words bg-white rounded-lg mb-6 xl:mb-0 shadow-lg">
@@ -2291,7 +2291,7 @@ const Title = ({ title, subTitle }: Props) => {
   )
 }
 
-export default Title
+export default Tile
 {% endhighlight %}
 
 <figure>
@@ -4382,7 +4382,7 @@ return (
         <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
           <Sidebar />
           <CompanyDashboard ticker={ticker!}>
-            <Title title="Company Name" subTitle={company.companyName}/>
+            <Tile title="Company Name" subTitle={company.companyName}/>
           </CompanyDashboard>
         </div>
       ) : (
@@ -5027,7 +5027,7 @@ return (
         <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
           <Sidebar />
           <CompanyDashboard ticker={ticker!}>
-            <Title title="Company Name" subTitle={company.companyName}/>
+            <Tile title="Company Name" subTitle={company.companyName}/>
           </CompanyDashboard>
         </div>
       ) : (
@@ -5036,6 +5036,288 @@ return (
     </>
   )
 {% endhighlight %}
+
+# Formatting
+
+## Number Formatting
+- create `Helpers` folder in components folder
+- create `NumberFormatting.tsx` in Helpers folder
+
+* NumberFormatting.tsx
+{% highlight tsx %}
+export const formatLargeMonetaryNumber: any = (number: number) => {
+  if (number < 0) {
+    return "-" + formatLargeMonetaryNumber(-1 * number);
+  }
+  if (number < 1000) {
+    return "$" + number;
+  } else if (number >= 1000 && number < 1_000_000) {
+    return "$" + (number / 1000).toFixed(1) + "K";
+  } else if (number >= 1_000_000 && number < 1_000_000_000) {
+    return "$" + (number / 1_000_000).toFixed(1) + "M";
+  } else if (number >= 1_000_000_000 && number < 1_000_000_000_000) {
+    return "$" + (number / 1_000_000_000).toFixed(1) + "B";
+  } else if (number >= 1_000_000_000_000 && number < 1_000_000_000_000_000) {
+    return "$" + (number / 1_000_000_000_000).toFixed(1) + "T";
+  }
+};
+
+export const formatLargeNonMonetaryNumber: any = (number: number) => {
+  if (number < 0) {
+    return "-" + formatLargeMonetaryNumber(-1 * number);
+  }
+  if (number < 1000) {
+    return number;
+  } else if (number >= 1000 && number < 1_000_000) {
+    return (number / 1000).toFixed(1) + "K";
+  } else if (number >= 1_000_000 && number < 1_000_000_000) {
+    return (number / 1_000_000).toFixed(1) + "M";
+  } else if (number >= 1_000_000_000 && number < 1_000_000_000_000) {
+    return (number / 1_000_000_000).toFixed(1) + "B";
+  } else if (number >= 1_000_000_000_000 && number < 1_000_000_000_000_000) {
+    return (number / 1_000_000_000_000).toFixed(1) + "T";
+  }
+};
+
+export const formatRatio = (ratio: number) => {
+  return (Math.round(ratio * 100) / 100).toFixed(2);
+};
+{% endhighlight %}
+
+### BalanceSheet
+
+* BalanceSheet.tsx
+{% highlight tsx %}
+const config = [
+  {
+    label: <div className="font-bold">Total Assets</div>,
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.totalAssets)
+  },
+  {
+    label: "Current Assets",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.totalCurrentAssets)
+  },
+  {
+    label: "Total Cash",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.cashAndCashEquivalents)
+  },
+  {
+    label: "Property & equipment",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.propertyPlantEquipmentNet)
+  },
+  {
+    label: "Intangible Assets",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.intangibleAssets)
+  },
+  {
+    label: "Long Term Debt",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.longTermDebt)
+  },
+  {
+    label: "Total Debt",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.otherCurrentLiabilities)
+  },
+  {
+    label: <div className="font-bold">Total Liabilites</div>,
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.totalLiabilities)
+  },
+  {
+    label: "Current Liabilities",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.totalCurrentLiabilities)
+  },
+  {
+    label: "Long-Term Debt",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.longTermDebt)
+  },
+  {
+    label: "Long-Term Income Taxes",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.otherLiabilities)
+  },
+  {
+    label: "Stakeholder's Equity",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.totalStockholdersEquity)
+  },
+  {
+    label: "Retained Earnings",
+    render: (company: CompanyBalanceSheet) => formatLargeMonetaryNumber(company.retainedEarnings)
+  },
+];
+...
+{% endhighlight %}
+
+### CashFlowStatement
+
+* CashFlowStatement.tsx
+{% highlight tsx %}
+const config = [
+  {
+    label: "Date",
+    render: (company: CompanyCashFlow) => company.date
+  },
+  {
+    label: "Operating Cashflow",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.operatingCashFlow)
+  },
+  {
+    label: "Investing Cashflow",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.netCashUsedForInvestingActivites)
+  },
+  {
+    label: "Financing Cashflow",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.netCashUsedProvidedByFinancingActivities)
+  },
+  {
+    label: "Cash At End of Period",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.cashAtEndOfPeriod)
+  },
+  {
+    label: "CapEX",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.capitalExpenditure)
+  },
+  {
+    label: "Issuance Of Stock",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.commonStockIssued)
+  },
+  {
+    label: "Free Cash Flow",
+    render: (company: CompanyCashFlow) => formatLargeMonetaryNumber(company.freeCashFlow)
+  },
+];
+...
+{% endhighlight %}
+
+### CompanyProfile
+
+* CompanyProfile.tsx
+{% highlight tsx %}
+const tableConfig = [
+  {
+    label: "Market Cap",
+    render: (company: CompanyKeyMetrics) => formatLargeMonetaryNumber(company.marketCapTTM),
+    subTitle: "Total value of all a company's shares of stock",
+  },
+  {
+    label: "Current Ratio",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.currentRatioTTM),
+    subTitle:
+      "Measures the companies ability to pay short term debt obligations",
+  },
+  {
+    label: "Return On Equity",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.roeTTM),
+    subTitle:
+      "Return on equity is the measure of a company's net income divided by its shareholder's equity",
+  },
+  {
+    label: "Return On Assets",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.returnOnTangibleAssetsTTM),
+    subTitle:
+      "Return on assets is the measure of how effective a company is using its assets",
+  },
+  {
+    label: "Free Cashflow Per Share",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.freeCashFlowPerShareTTM),
+    subTitle:
+      "Return on assets is the measure of how effective a company is using its assets",
+  },
+  {
+    label: "Book Value Per Share TTM",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.bookValuePerShareTTM),
+    subTitle:
+      "Book value per share indicates a firm's net asset value (total assets - total liabilities) on per share basis",
+  },
+  {
+    label: "Divdend Yield TTM",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.dividendYieldTTM),
+    subTitle: "Shows how much a company pays each year relative to stock price",
+  },
+  {
+    label: "Capex Per Share TTM",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.capexPerShareTTM),
+    subTitle:
+      "Capex is used by a company to aquire, upgrade, and maintain physical assets",
+  },
+  {
+    label: "Graham Number",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.grahamNumberTTM),
+    subTitle:
+      "This is the upperbouind of the price range that a defensive investor should pay for a stock",
+  },
+  {
+    label: "PE Ratio",
+    render: (company: CompanyKeyMetrics) => formatRatio(company.peRatioTTM),
+    subTitle:
+      "This is the upperbouind of the price range that a defensive investor should pay for a stock",
+  },
+];
+...
+{% endhighlight %}
+
+### IncomeStatement
+
+* IncomeStatement.tsx
+{% highlight tsx %}
+const configs = [
+  {
+    label: "Date",
+    render: (company: CompanyIncomeStatement) => company.date,
+  },
+  {
+    label: "Revenue",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.revenue)
+  },
+  {
+    label: "Cost Of Revenue",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.costOfRevenue)
+  },
+  {
+    label: "Depreciation",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.depreciationAndAmortization)
+  },
+  {
+    label: "Operating Income",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.operatingIncome)
+  },
+  {
+    label: "Income Before Taxes",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.incomeBeforeTax)
+  },
+  {
+    label: "Net Income",
+    render: (company: CompanyIncomeStatement) => formatLargeMonetaryNumber(company.netIncome)
+  },
+  {
+    label: "Net Income Ratio",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.netIncomeRatio)
+  },
+  {
+    label: "Earnings Per Share",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.eps)
+  },
+  {
+    label: "Earnings Per Diluted",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.epsdiluted)
+  },
+  {
+    label: "Gross Profit Ratio",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.grossProfitRatio)
+  },
+  {
+    label: "Opearting Income Ratio",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.operatingIncomeRatio)
+  },
+  {
+    label: "Income Before Taxes Ratio",
+    render: (company: CompanyIncomeStatement) => formatRatio(company.incomeBeforeTaxRatio)
+  },
+];
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/38.jpg"><img src="/assets/img/posts/react_finshark/38.jpg"></a>
+	<figcaption>Formatting</figcaption>
+</figure>
 
 # Api
 - create `Api` application as `.net Asp Core Web Api` with visual studio
