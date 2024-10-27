@@ -4925,6 +4925,118 @@ export const getCashFlowStatement = async (query: string) => {
 	<figcaption>Cash Flow Statement</figcaption>
 </figure>
 
+# Spinner
+- type `npm install react-spinners`
+- create `Spinner` folder in components folder
+- create `Spinner.tsx` and `Spinner.css` in Spinner folder
+
+* Spinner.tsx
+{% highlight tsx %}
+import { ClipLoader } from 'react-spinners';
+import "./Spinner.css"
+
+type Props = {
+  isLoading? : boolean;
+}
+
+const Spinner = ({ isLoading = true }: Props) => {
+  return (
+    <>
+      <div id="loading-spinner">
+        <ClipLoader color="#36d7b7" loading={isLoading} size={35} aria-label="Loading Spinner" data-testid="loader"/>
+      </div>
+    </>
+  )
+}
+
+export default Spinner
+{% endhighlight %}
+
+### BalanceSheet
+
+* BalanceSheet.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      { balanceSheet ? (
+        <RatioList config={config} data={balanceSheet}/>
+      ) : (
+        <Spinner/>
+      )}
+    </>
+  )
+{% endhighlight %}
+
+### CashFlowStatement
+
+* CashFlowStatement.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      { cashFlowStatement ? (
+        <RatioList config={config} data={cashFlowStatement}/>
+      ) : (
+        <Spinner/>
+      )}
+    </>
+  )
+{% endhighlight %}
+
+### CashFlowStatement
+
+* CompanyProfile.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      { companyData ? (
+        <RatioList data={companyData} config={tableConfig}/>
+      ):(
+        <Spinner/>
+      )}
+    </>
+  )
+{% endhighlight %}
+
+### IncomeStatement
+
+* IncomeStatement.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      { incomeStatement ? (
+        <Table configs={configs} data={incomeStatement}/>
+      ):(
+        <Spinner/>
+      )}
+    </>
+  )
+{% endhighlight %}
+
+### CompanyPage
+
+* CompanyPage.tsx
+{% highlight tsx %}
+...
+return (
+    <>
+      {company ? (
+        <div className="w-full relative flex ct-docs-disable-sidebar-content overflow-x-hidden">
+          <Sidebar />
+          <CompanyDashboard ticker={ticker!}>
+            <Title title="Company Name" subTitle={company.companyName}/>
+          </CompanyDashboard>
+        </div>
+      ) : (
+        <Spinner/>
+      )}
+    </>
+  )
+{% endhighlight %}
+
 # Api
 - create `Api` application as `.net Asp Core Web Api` with visual studio
 
