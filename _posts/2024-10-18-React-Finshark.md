@@ -4642,6 +4642,150 @@ export const getIncomeStatement = async (query: string) => {
 	<figcaption>Income Statement</figcaption>
 </figure>
 
+# Balance Sheet
+- create `BalanceSheet` folder in components folder
+- create `BalanceSheet.tsx` and `BalanceSheet.css` in BalanceSheet folder
+
+* BalanceSheet.tsx
+{% highlight tsx %}
+import React, { useEffect, useState } from 'react'
+import { CompanyBalanceSheet, CompanyCashFlow } from '../../company';
+import { useOutletContext } from 'react-router';
+import { getBalanceSheet } from '../../api';
+import RatioList from '../RatioList/RatioList';
+
+type Props = {}
+
+const config = [
+  {
+    label: "Cash",
+    render: (company: CompanyBalanceSheet) => company.cashAndCashEquivalents,
+  },
+  {
+    label: "Inventory",
+    render: (company: CompanyBalanceSheet) => company.inventory,
+  },
+  {
+    label: "Other Current Assets",
+    render: (company: CompanyBalanceSheet) => company.otherCurrentAssets,
+  },
+  {
+    label: "Minority Interest",
+    render: (company: CompanyBalanceSheet) => company.minorityInterest,
+  },
+  {
+    label: "Other Non-Current Assets",
+    render: (company: CompanyBalanceSheet) => company.otherNonCurrentAssets,
+  },
+  {
+    label: "Long Term Debt",
+    render: (company: CompanyBalanceSheet) => company.longTermDebt,
+  },
+  {
+    label: "Total Debt",
+    render: (company: CompanyBalanceSheet) => company.otherCurrentLiabilities,
+  },
+];
+
+const BalanceSheet = (props: Props) => {
+  const ticker = useOutletContext<string>();
+  const [balanceSheet, setBalanceSheet] = useState<CompanyBalanceSheet>();
+
+  useEffect(() => {
+    const getCompanyBalanceSheet = async() => {
+      const result = await getBalanceSheet(ticker!)
+      setBalanceSheet(result?.data[0]);
+    }
+    getCompanyBalanceSheet();
+  }, [])
+
+  return (
+    <>
+      { balanceSheet ? (
+        <RatioList config={config} data={balanceSheet}/>
+      ) : (
+        <>Loading...</>
+      )}
+    </>
+  )
+}
+
+export default BalanceSheet
+{% endhighlight %}
+
+### Api
+
+* api.tsx
+{% highlight tsx %}
+...
+export const getBalanceSheet = async (query: string) => {
+  try {
+    const data = await axios.get<CompanyBalanceSheet[]>(
+      `https://financialmodelingprep.com/api/v3/balance-sheet-statement/${query}?apikey=${process.env.REACT_APP_API_KEY}`
+    );
+    return data;
+  } catch (error: any) {
+    console.log("error message from API: ", error.message);
+  }
+}
+{% endhighlight %}
+
+### Routes
+
+* Routes.tsx
+{% highlight tsx %}
+...
+{ path: "company/:ticker", element: <CompanyPage/>,
+        children: [
+          { path: "company-profile", element: <CompanyProfile/> },
+          { path: "income-statement", element: <IncomeStatement/> },
+          { path: "balance-sheet", element: <BalanceSheet/> }
+        ]
+      }
+...
+{% endhighlight %}
+
+### Sidebar
+
+* Sidebar.tsx
+{% highlight tsx %}
+...
+<Link to="balance-sheet" className="flex md:min-w-full text-blueGray-500 text-xs uppercase font-bold block pt-1 pb-4 no-underline">
+            <FaHome/>
+            <h6 className="ml-3">Balance Sheet</h6>
+          </Link>
+...
+{% endhighlight %}
+
+* RatioList.tsx
+{% highlight tsx %}
+...
+ return (
+    <div className="bg-white shadow rounded-lg ml-4 mt-4 mb-4 p-4 sm:p-6 w-full">
+      <ul className="divide-y divided-gray-200">
+        {renderedRows}
+      </ul>
+    </div>
+  )
+{% endhighlight %}
+
+* RatioList.tsx
+{% highlight tsx %}
+...
+ return (
+    <div className="bg-white shadow rounded-lg ml-4 mt-4 mb-4 p-4 sm:p-6 w-full">
+      <ul className="divide-y divided-gray-200">
+        {renderedRows}
+      </ul>
+    </div>
+  )
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/36.jpg"><img src="/assets/img/posts/react_finshark/36.jpg"></a>
+	<figcaption>Balance Sheet</figcaption>
+</figure>
+
 # Api
 - create `Api` application as `.net Asp Core Web Api` with visual studio
 
