@@ -4786,6 +4786,145 @@ export const getBalanceSheet = async (query: string) => {
 	<figcaption>Balance Sheet</figcaption>
 </figure>
 
+# Cash Flow Statement
+- create `CashFlowStatement` folder in components folder
+- create `CashFlowStatement.tsx` and `CashFlowStatement.css` in CashFlowStatement folder
+
+* CashFlowStatement.tsx
+{% highlight tsx %}
+import React, { useEffect, useState } from 'react'
+import { CompanyCashFlow } from '../../company';
+import { getCashFlowStatement } from '../../api';
+import { useOutletContext } from 'react-router';
+import RatioList from '../RatioList/RatioList';
+
+type Props = {}
+
+const config = [
+  {
+    label: "Date",
+    render: (company: CompanyCashFlow) => company.date,
+  },
+  {
+    label: "Operating Cashflow",
+    render: (company: CompanyCashFlow) => company.operatingCashFlow,
+  },
+  {
+    label: "Property/Machinery Cashflow",
+    render: (company: CompanyCashFlow) =>
+      company.investmentsInPropertyPlantAndEquipment,
+  },
+  {
+    label: "Other Investing Cashflow",
+    render: (company: CompanyCashFlow) => company.otherInvestingActivites,
+  },
+  {
+    label: "Debt Cashflow",
+    render: (company: CompanyCashFlow) =>
+      company.netCashUsedProvidedByFinancingActivities,
+  },
+  {
+    label: "CapEX",
+    render: (company: CompanyCashFlow) => company.capitalExpenditure,
+  },
+  {
+    label: "Free Cash Flow",
+    render: (company: CompanyCashFlow) => company.freeCashFlow,
+  },
+];
+
+const CashFlowStatement = (props: Props) => {
+  const ticker = useOutletContext<string>();
+  const [cashFlowStatement, setCashFlowStatement] = useState<CompanyCashFlow>();
+  useEffect(() => {
+    const getCompanyCashFlowStatement = async () => {
+      const result = await getCashFlowStatement(ticker);
+      setCashFlowStatement(result?.data[0]);
+    }
+    getCompanyCashFlowStatement();
+  }, []);
+
+  return (
+    <>
+      { cashFlowStatement ? (
+        <RatioList config={config} data={cashFlowStatement}/>
+      ) : (
+        <>Loading...</>
+      )}
+    </>
+  )
+}
+
+export default CashFlowStatement
+{% endhighlight %}
+
+### Api
+
+* api.tsx
+{% highlight tsx %}
+...
+export const getCashFlowStatement = async (query: string) => {
+  try {
+    const data = await axios.get<CompanyCashFlow[]>(
+      `https://financialmodelingprep.com/api/v3/cash-flow-statement/${query}?apikey=${process.env.REACT_APP_API_KEY}`
+    );
+    return data;
+  } catch (error: any) {
+    console.log("error message from API: ", error.message);
+  }
+}
+...
+{% endhighlight %}
+
+### Routes
+
+* Routes.tsx
+{% highlight tsx %}
+...
+{ path: "company/:ticker", element: <CompanyPage/>,
+        children: [
+          { path: "company-profile", element: <CompanyProfile/> },
+          { path: "income-statement", element: <IncomeStatement/> },
+          { path: "balance-sheet", element: <BalanceSheet/> },
+          { path: "cashflow-statement", element: <CashFlowStatement/> }
+        ]
+      }
+...
+{% endhighlight %}
+
+### Routes
+
+* Routes.tsx
+{% highlight tsx %}
+...
+{ path: "company/:ticker", element: <CompanyPage/>,
+        children: [
+          { path: "company-profile", element: <CompanyProfile/> },
+          { path: "income-statement", element: <IncomeStatement/> },
+          { path: "balance-sheet", element: <BalanceSheet/> },
+          { path: "cashflow-statement", element: <CashFlowStatement/> }
+        ]
+      }
+...
+{% endhighlight %}
+
+### Routes
+
+* Sidebar.tsx
+{% highlight tsx %}
+...
+<Link to="cashflow-statement" className="flex md:min-w-full text-blueGray-500 text-xs uppercase font-bold block pt-1 pb-4 no-underline">
+            <FaHome/>
+            <h6 className="ml-3">Cash Flow Statement</h6>
+          </Link>
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/37.jpg"><img src="/assets/img/posts/react_finshark/37.jpg"></a>
+	<figcaption>Cash Flow Statement</figcaption>
+</figure>
+
 # Api
 - create `Api` application as `.net Asp Core Web Api` with visual studio
 
