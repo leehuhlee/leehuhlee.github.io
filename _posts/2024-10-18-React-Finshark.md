@@ -5492,7 +5492,7 @@ namespace Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById([FromRoute] string id)
+        public IActionResult GetById([FromRoute] int id)
         {
             var stock = _context.Stocks.Find(id);
 
@@ -5525,3 +5525,146 @@ namespace Api.Controllers
 </figure>
 
 # DTOs
+- create `Dtos` folder in Api folder
+- create `Stock` folder in Dtos folder
+- create `StockDto.cs` in Stock folder
+
+* StockDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Stock
+{
+    public class StockDto
+    {
+        public int Id { get; set; }
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public decimal Purchase { get; set; }
+        public decimal LastDiv { get; set; }
+        public string Industry { get; set; } = string.Empty;
+        public long MarketCap { get; set; }
+    }
+}
+{% endhighlight %}
+
+### Mapper
+- create `Mappers` folder in Api folder
+- create `StockMappers.cs` in Mappers folder
+
+* StockMappers.cs
+{% highlight cs %}
+using Api.Dtos.Stock;
+using Api.Models;
+
+namespace Api.Mappers
+{
+    public static class StockMappers
+    {
+        public static StockDto ToStockDto(this Stock stockModel)
+        {
+            return new StockDto
+            {
+                Id = stockModel.Id,
+                Symbol = stockModel.Symbol,
+                CompanyName = stockModel.CompanyName,
+                Purchase = stockModel.Purchase,
+                LastDiv = stockModel.LastDiv,
+                Industry = stockModel.Industry,
+                MarketCap = stockModel.MarketCap
+            };
+        }
+    }
+}
+{% endhighlight %}
+
+### Controllers
+
+* StockController.cs
+{% highlight cs %}
+...
+[HttpGet]
+public IActionResult Get()
+{
+    var stock = _context.Stocks.ToList()
+        .Select(s => s.ToStockDto());
+
+    return Ok(stock);
+}
+
+[HttpGet("{id}")]
+public IActionResult GetById([FromRoute] int id)
+{
+    var stock = _context.Stocks.Find(id);
+
+    if (stock == null)
+    {
+        return NotFound();
+    }
+
+    return Ok(stock.ToStockDto());
+}
+{% endhighlight %}
+
+# POST
+
+### Controllers
+
+* StockController.cs
+{% highlight cs %}
+...
+[HttpPost]
+public IActionResult Create([FromBody] CreateStockRequestDto stockDto)
+{
+    var stockModel = stockDto.ToStockFromCreateDto();
+    _context.Stocks.Add(stockModel);
+    _context.SaveChanges();
+
+    return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
+}
+{% endhighlight %}
+
+### CreateStockRequestDto
+- create `CreateStockRequestDto.cs` in Stock folder
+
+* CreateStockRequestDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Stock
+{
+    public class CreateStockRequestDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public decimal Purchase { get; set; }
+        public decimal LastDiv { get; set; }
+        public string Industry { get; set; } = string.Empty;
+        public long MarketCap { get; set; }
+    }
+}
+{% endhighlight %}
+
+### StockMappers
+
+* StockMappers.cs
+{% highlight cs %}
+...
+public static Stock ToStockFromCreateDto(this CreateStockRequestDto stockDto)
+{
+    return new Stock
+    {
+        Symbol = stockDto.Symbol,
+        CompanyName = stockDto.CompanyName,
+        Purchase = stockDto.Purchase,
+        LastDiv = stockDto.LastDiv,
+        Industry = stockDto.Industry,
+        MarketCap = stockDto.MarketCap
+    };
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/39.jpg"><img src="/assets/img/posts/react_finshark/39.jpg"></a>
+	<figcaption>POST</figcaption>
+</figure>
+
+# PUT
+
+
