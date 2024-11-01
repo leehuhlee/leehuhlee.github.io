@@ -5461,52 +5461,6 @@ var app = builder.Build();
 	<figcaption>Entity Framework</figcaption>
 </figure>
 
-# Controllers
-
-### StockController
-- create `StockController.cs` in Controllers folder
-
-* StockController.cs
-{% highlight cs %}
-using Api.Data;
-using Microsoft.AspNetCore.Mvc;
-
-namespace Api.Controllers
-{
-    [Route("api/stock")]
-    [ApiController]
-    public class StockController : ControllerBase
-    {
-        private readonly ApplicationDBContext _context;
-
-        public StockController(ApplicationDBContext context)
-        {
-            _context = context;    
-        }
-
-        [HttpGet]
-        public IActionResult Get()
-        {
-            var stock = _context.Stocks.ToList();
-            return Ok(stock);
-        }
-
-        [HttpGet("{id}")]
-        public IActionResult GetById([FromRoute] int id)
-        {
-            var stock = _context.Stocks.Find(id);
-
-            if (stock == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(stock);
-        }
-    }
-}
-{% endhighlight %}
-
 ### SQL Server Management Studio
 - right click `dbo.Stocks` table in finshark database
 - click `Edit Top 200 Rows`
@@ -5517,25 +5471,145 @@ namespace Api.Controllers
 	<figcaption>Controllers</figcaption>
 </figure>
 
-### Run
+# Stock
 
-<figure>
-  <a href="/assets/img/posts/react_finshark/26.jpg"><img src="/assets/img/posts/react_finshark/26.jpg"></a>
-	<figcaption>Controllers</figcaption>
-</figure>
+### Controller
+- create `StockController.cs` in Controllers folder
 
-# DTOs
+* StockController.cs
+{% highlight cs %}
+using Api.Dtos.Stock;
+using Api.Interfaces;
+using Api.Mappers;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.Controllers
+{
+    [Route("api/stock")]
+    [ApiController]
+    public class StockController : ControllerBase
+    {
+        private readonly IStockRepository _stockRepository;
+
+        public StockController(IStockRepository stockRepository)
+        {
+            _stockRepository = stockRepository;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var stock = await _stockRepository.GetAllAsync();
+            var stockDto = stock.Select(s => s.ToStockDto());
+
+            return Ok(stock);
+        }
+
+        [HttpGet]
+        [Route("{id}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
+        {
+            var stock = await _stockRepository.GetByIdAsync(id);
+
+            if (stock == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(stock.ToStockDto());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
+        {
+            var stockModel = stockDto.ToStockFromCreateDto();
+            await _stockRepository.CreateAsync(stockModel);
+
+            return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
+        }
+
+        [HttpPut]
+        [Route("{id}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
+        {
+            var stockModel = await _stockRepository.UpdateAsync(id, updateDto);
+
+            if (stockModel == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(stockModel.ToStockDto());
+        }
+
+        [HttpDelete]
+        [Route("{id}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
+        {
+            var stockModel = await _stockRepository.DeleteAsync(id);
+
+            if (stockModel == null)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+    }
+}
+{% endhighlight %}
+
+### DTOs
 - create `Dtos` folder in Api folder
 - create `Stock` folder in Dtos folder
 - create `StockDto.cs` in Stock folder
 
 * StockDto.cs
 {% highlight cs %}
+using Api.Dtos.Comment;
+
 namespace Api.Dtos.Stock
 {
     public class StockDto
     {
         public int Id { get; set; }
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public decimal Purchase { get; set; }
+        public decimal LastDiv { get; set; }
+        public string Industry { get; set; } = string.Empty;
+        public long MarketCap { get; set; }
+        public List<CommentDto>? Comments { get; set; }
+    }
+}
+{% endhighlight %}
+
+- create `CreateStockRequestDto.cs` in Stock folder
+
+* CreateStockRequestDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Stock
+{
+    public class CreateStockRequestDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public decimal Purchase { get; set; }
+        public decimal LastDiv { get; set; }
+        public string Industry { get; set; } = string.Empty;
+        public long MarketCap { get; set; }
+    }
+}
+{% endhighlight %}
+
+- create `UpdateStockRequestDto.cs` in Stock folder
+
+* UpdateStockRequestDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Stock
+{
+    public class UpdateStockRequestDto
+    {
         public string Symbol { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty;
         public decimal Purchase { get; set; }
@@ -5569,338 +5643,23 @@ namespace Api.Mappers
                 Purchase = stockModel.Purchase,
                 LastDiv = stockModel.LastDiv,
                 Industry = stockModel.Industry,
-                MarketCap = stockModel.MarketCap
+                MarketCap = stockModel.MarketCap,
+                Comments = stockModel.Comments.Select(c => c.ToCommentDto()).ToList(),
             };
         }
-    }
-}
-{% endhighlight %}
 
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-[HttpGet]
-public IActionResult Get()
-{
-    var stock = _context.Stocks.ToList()
-        .Select(s => s.ToStockDto());
-
-    return Ok(stock);
-}
-
-[HttpGet("{id}")]
-public IActionResult GetById([FromRoute] int id)
-{
-    var stock = _context.Stocks.Find(id);
-
-    if (stock == null)
-    {
-        return NotFound();
-    }
-
-    return Ok(stock.ToStockDto());
-}
-{% endhighlight %}
-
-# POST
-
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-[HttpPost]
-public IActionResult Create([FromBody] CreateStockRequestDto stockDto)
-{
-    var stockModel = stockDto.ToStockFromCreateDto();
-    _context.Stocks.Add(stockModel);
-    _context.SaveChanges();
-
-    return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
-}
-{% endhighlight %}
-
-### CreateStockRequestDto
-- create `CreateStockRequestDto.cs` in Stock folder
-
-* CreateStockRequestDto.cs
-{% highlight cs %}
-namespace Api.Dtos.Stock
-{
-    public class CreateStockRequestDto
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string CompanyName { get; set; } = string.Empty;
-        public decimal Purchase { get; set; }
-        public decimal LastDiv { get; set; }
-        public string Industry { get; set; } = string.Empty;
-        public long MarketCap { get; set; }
-    }
-}
-{% endhighlight %}
-
-### StockMappers
-
-* StockMappers.cs
-{% highlight cs %}
-...
-public static Stock ToStockFromCreateDto(this CreateStockRequestDto stockDto)
-{
-    return new Stock
-    {
-        Symbol = stockDto.Symbol,
-        CompanyName = stockDto.CompanyName,
-        Purchase = stockDto.Purchase,
-        LastDiv = stockDto.LastDiv,
-        Industry = stockDto.Industry,
-        MarketCap = stockDto.MarketCap
-    };
-}
-{% endhighlight %}
-
-<figure>
-  <a href="/assets/img/posts/react_finshark/39.jpg"><img src="/assets/img/posts/react_finshark/39.jpg"></a>
-	<figcaption>POST</figcaption>
-</figure>
-
-# PUT
-
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-[HttpPut]
-[Route("{id}")]
-public IActionResult Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
-{
-    var stockModel = _context.Stocks.FirstOrDefault(x => x.Id == id);
-
-    if (stockModel == null)
-    {
-        return NotFound();
-    }
-
-    stockModel.Symbol = updateDto.Symbol;
-    stockModel.CompanyName = updateDto.CompanyName;
-    stockModel.Purchase = updateDto.Purchase;
-    stockModel.LastDiv = updateDto.LastDiv;
-    stockModel.MarketCap = updateDto.MarketCap;
-
-    _context.SaveChanges();
-
-    return Ok(stockModel.ToStockDto());
-}
-{% endhighlight %}
-
-### UpdateStockRequestDto
-- create `UpdateStockRequestDto.cs` in Stock folder
-
-* UpdateStockRequestDto.cs
-{% highlight cs %}
-namespace Api.Dtos.Stock
-{
-    public class UpdateStockRequestDto
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string CompanyName { get; set; } = string.Empty;
-        public decimal Purchase { get; set; }
-        public decimal LastDiv { get; set; }
-        public string Industry { get; set; } = string.Empty;
-        public long MarketCap { get; set; }
-    }
-}
-{% endhighlight %}
-
-<figure>
-  <a href="/assets/img/posts/react_finshark/40.jpg"><img src="/assets/img/posts/react_finshark/40.jpg"></a>
-	<figcaption>PUT</figcaption>
-</figure>
-
-# DELETE
-
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-[HttpDelete]
-[Route("{id}")]
-public IActionResult Delete([FromRoute] int id)
-{
-    var stockModel = _context.Stocks.FirstOrDefault(x => x.Id==id);
-
-    if (stockModel == null)
-    {
-        return NotFound();
-    }
-
-    _context.Stocks.Remove(stockModel);
-    _context.SaveChanges();
-
-    return NoContent();
-}
-{% endhighlight %}
-
-<figure>
-  <a href="/assets/img/posts/react_finshark/41.jpg"><img src="/assets/img/posts/react_finshark/41.jpg"></a>
-	<figcaption>DELETE</figcaption>
-</figure>
-
-# Async/Await
-
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-[HttpGet]
-public async Task<IActionResult> GetAll()
-{
-    var stock = await _context.Stocks.ToListAsync();
-    var stockDto = stock.Select(s => s.ToStockDto());
-
-    return Ok(stock);
-}
-
-[HttpGet("{id}")]
-public async Task<IActionResult> GetById([FromRoute] int id)
-{
-    var stock = await _context.Stocks.FindAsync(id);
-
-    if (stock == null)
-    {
-        return NotFound();
-    }
-
-    return Ok(stock.ToStockDto());
-}
-
-[HttpPost]
-public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
-{
-    var stockModel = stockDto.ToStockFromCreateDto();
-    await _context.Stocks.AddAsync(stockModel);
-    await _context.SaveChangesAsync();
-
-    return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
-}
-
-[HttpPut]
-[Route("{id}")]
-public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
-{
-    var stockModel = await _context.Stocks.FirstOrDefaultAsync(x => x.Id == id);
-
-    if (stockModel == null)
-    {
-        return NotFound();
-    }
-
-    stockModel.Symbol = updateDto.Symbol;
-    stockModel.CompanyName = updateDto.CompanyName;
-    stockModel.Purchase = updateDto.Purchase;
-    stockModel.LastDiv = updateDto.LastDiv;
-    stockModel.MarketCap = updateDto.MarketCap;
-
-    await _context.SaveChangesAsync();
-
-    return Ok(stockModel.ToStockDto());
-}
-
-[HttpDelete]
-[Route("{id}")]
-public async Task<IActionResult> Delete([FromRoute] int id)
-{
-    var stockModel = await _context.Stocks.FirstOrDefaultAsync(x => x.Id==id);
-
-    if (stockModel == null)
-    {
-        return NotFound();
-    }
-
-    _context.Stocks.Remove(stockModel);
-    await _context.SaveChangesAsync();
-
-    return NoContent();
-}
-{% endhighlight %}
-
-# Repository Pattern + DI
-
-### Controllers
-
-* StockController.cs
-{% highlight cs %}
-...
-public class StockController : ControllerBase
-{
-    private readonly IStockRepository _stockRepository;
-
-    public StockController(IStockRepository stockRepository)
-    {
-        _stockRepository = stockRepository;
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var stock = await _stockRepository.GetAllAsync();
-        var stockDto = stock.Select(s => s.ToStockDto());
-
-        return Ok(stock);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById([FromRoute] int id)
-    {
-        var stock = await _stockRepository.GetByIdAsync(id);
-
-        if (stock == null)
+        public static Stock ToStockFromCreateDto(this CreateStockRequestDto stockDto)
         {
-            return NotFound();
+            return new Stock
+            {
+                Symbol = stockDto.Symbol,
+                CompanyName = stockDto.CompanyName,
+                Purchase = stockDto.Purchase,
+                LastDiv = stockDto.LastDiv,
+                Industry = stockDto.Industry,
+                MarketCap = stockDto.MarketCap
+            };
         }
-
-        return Ok(stock.ToStockDto());
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
-    {
-        var stockModel = stockDto.ToStockFromCreateDto();
-        await _stockRepository.CreateAsync(stockModel);
-
-        return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
-    }
-
-    [HttpPut]
-    [Route("{id}")]
-    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
-    {
-        var stockModel = await _stockRepository.UpdateAsync(id, updateDto);
-
-        if (stockModel == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(stockModel.ToStockDto());
-    }
-
-    [HttpDelete]
-    [Route("{id}")]
-    public async Task<IActionResult> Delete([FromRoute] int id)
-    {
-        var stockModel = await _stockRepository.DeleteAsync(id);
-
-        if (stockModel == null)
-        {
-            return NotFound();
-        }
-
-        return NoContent();
     }
 }
 {% endhighlight %}
@@ -5923,6 +5682,7 @@ namespace Api.Interfaces
         Task<Stock?> CreateAsync(Stock stockModel);
         Task<Stock?> UpdateAsync(int id, UpdateStockRequestDto stockModel);
         Task<Stock?> DeleteAsync(int id);
+        Task<bool> StockExists(int id);
     }
 }
 {% endhighlight %}
@@ -5952,13 +5712,17 @@ namespace Api.Repository
 
         public async Task<List<Stock>> GetAllAsync()
         {
-            return await _context.Stocks.ToListAsync();
+            return await _context.Stocks.Include(c => c.Comments).ToListAsync();
         }
 
         public async Task<Stock?> GetByIdAsync(int id)
         {
-            var stockModel = await _context.Stocks.FindAsync(id);
-            return stockModel;
+            return await _context.Stocks.FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<bool> StockExists(int id)
+        {
+            return await _context.Stocks.AnyAsync(s => s.Id == id);
         }
 
         public async Task<Stock?> CreateAsync(Stock stockModel)
@@ -5991,7 +5755,7 @@ namespace Api.Repository
         {
             var stockModel = await _context.Stocks.FirstOrDefaultAsync(x => x.Id == id);
 
-            if (stockModel != null)
+            if (stockModel == null)
             {
                 return null;
             }
@@ -6013,9 +5777,609 @@ builder.Services.AddScoped<IStockRepository, StockRepository>();
 ...
 {% endhighlight %}
 
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/39.jpg"><img src="/assets/img/posts/react_finshark/39.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/40.jpg"><img src="/assets/img/posts/react_finshark/40.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/41.jpg"><img src="/assets/img/posts/react_finshark/41.jpg"></a>
+	<figcaption>Stock</figcaption>
+</figure>
+
 # Comment
 
+
+### Controller
+- create `CommentController.cs` in Controllers folder
+
+* CommentController.cs
+{% highlight cs %}
+using Api.Dtos.Comment;
+using Api.Interfaces;
+using Api.Mappers;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.Controllers
+{
+    [Route("api/comment")]
+    [ApiController]
+    public class CommentController : ControllerBase
+    {
+        private readonly ICommentRepository _commentRepository;
+        private readonly IStockRepository _stockRepository;
+
+        public CommentController(ICommentRepository commentRepository, IStockRepository stockRepository)
+        {
+            _commentRepository = commentRepository;
+            _stockRepository = stockRepository;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var comments = await _commentRepository.GetAllAsync();
+
+            var commentDto = comments.Select(s => s.ToCommentDto());
+
+            return Ok(commentDto);
+        }
+
+        [HttpGet]
+        [Route("{id}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
+        {
+            var comment = await _commentRepository.GetByIdAsync(id);
+
+            if (comment == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(comment.ToCommentDto());
+        }
+
+        [HttpPost]
+        [Route("{stockId}")]
+        public async Task<IActionResult> Create([FromRoute] int stockId, [FromBody] CreateCommentDto commentDto)
+        {
+            if (!await _stockRepository.StockExists(stockId))
+            {
+                return BadRequest("Stock does not exist");
+            }
+
+            var commentModel = commentDto.ToCommentFromCreate(stockId);
+            await _commentRepository.CreateAsync(commentModel);
+
+            return CreatedAtAction(nameof(GetById), new { id = commentModel.Id }, commentModel.ToCommentDto());
+        }
+
+        [HttpPut]
+        [Route("{id}")]
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateCommentRequestDto updateDto)
+        {
+            var comment = await _commentRepository.UpdateAsync(id, updateDto.ToCommentFromUpdate());
+
+            if (comment == null)
+            {
+                return NotFound("Comment not found");
+            }
+
+            return Ok(comment.ToCommentDto());
+        }
+
+        [HttpDelete]
+        [Route("{id}")]
+        public async Task<IActionResult> Delete([FromRoute] int id)
+        {
+            var commentModel = await _commentRepository.DeleteAsync(id);
+
+            if (commentModel == null)
+            {
+                return NotFound("Comment does not exist");
+            }
+
+            return Ok(commentModel);
+        }
+    }
+}
+
+{% endhighlight %}
+
+### DTOs
+- create `Stock` folder in Dtos folder
+- create `CommentDto.cs` in Comment folder
+
+* StockDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Comment
+{
+    public class CommentDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public DateTime CreatedOn { get; set; } = DateTime.Now;
+        public int? StockId { get; set; }
+    }
+}
+{% endhighlight %}
+
+- create `CreateCommentRequestDto.cs` in Comment folder
+
+* CreateCommentRequestDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Comment
+{
+    public class CreateCommentRequestDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+    }
+}
+
+{% endhighlight %}
+
+- create `UpdateCommentRequestDto.cs` in Comment folder
+
+* UpdateCommentRequestDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Comment
+{
+    public class UpdateCommentRequestDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+    }
+}
+{% endhighlight %}
+
+### Mapper
+- create `CommentMapper.cs` in Mappers folder
+
+* CommentMapper.cs
+{% highlight cs %}
+using Api.Dtos.Comment;
+using Api.Models;
+
+namespace Api.Mappers
+{
+    public static class CommentMapper
+    {
+        public static CommentDto ToCommentDto(this Comment commentModel)
+        {
+            return new CommentDto
+            {
+                Id = commentModel.Id,
+                Title = commentModel.Title,
+                Content = commentModel.Content,
+                CreatedOn = commentModel.CreatedOn,
+                StockId = commentModel.StockId
+            };
+        }
+
+        public static Comment ToCommentFromCreate(this CreateCommentRequestDto commentDto, int stockId)
+        {
+            return new Comment
+            {
+                Title = commentDto.Title,
+                Content = commentDto.Content,
+                StockId = stockId
+            };
+        }
+
+        public static Comment ToCommentFromUpdate(this UpdateCommentRequestDto commentDto)
+        {
+            return new Comment
+            {
+                Title = commentDto.Title,
+                Content = commentDto.Content
+            };
+        }
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+- create `ICommentRepository.cs` in Interfaces folder
+
+* ICommentRepository.cs
+{% highlight cs %}
+using Api.Models;
+
+namespace Api.Interfaces
+{
+    public interface ICommentRepository
+    {
+        Task<List<Comment>> GetAllAsync();
+        Task<Comment?> GetByIdAsync(int id);
+        Task<Comment> CreateAsync(Comment commentModel);
+        Task<Comment?> UpdateAsync(int id, Comment commentModel);
+        Task<Comment?> DeleteAsync(int id);
+    }
+}
+
+{% endhighlight %}
+
+### Repository
+- create `CommentRepository.cs` in Repository folder
+
+* CommentRepository.cs
+{% highlight cs %}
+using Api.Data;
+using Api.Interfaces;
+using Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Api.Repository
+{
+    public class CommentRepository : ICommentRepository
+    {
+        private readonly ApplicationDBContext _context;
+
+        public CommentRepository(ApplicationDBContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<Comment>> GetAllAsync()
+        {
+            return await _context.Comments.ToListAsync();
+        }
+
+        public async Task<Comment?> GetByIdAsync(int id)
+        {
+            return await _context.Comments.FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<Comment> CreateAsync(Comment commentModel)
+        {
+            await _context.Comments.AddAsync(commentModel);
+            await _context.SaveChangesAsync();
+
+            return commentModel;
+        }
+
+        public async Task<Comment?> UpdateAsync(int id, Comment commentModel)
+        {
+            var existingComment = await _context.Comments.FirstOrDefaultAsync(x => x.Id == id);
+
+            if (existingComment == null)
+            {
+                return null;
+            }
+
+            existingComment.Title = commentModel.Title;
+            existingComment.Content = commentModel.Content;
+
+            await _context.SaveChangesAsync();
+            return existingComment;
+        }
+
+        public async Task<Comment?> DeleteAsync(int id)
+        {
+            var commentModel = await _context.Comments.FirstOrDefaultAsync(x => x.Id == id);
+
+            if (commentModel == null)
+            {
+                return null;
+            }
+
+            _context.Comments.Remove(commentModel);
+            await _context.SaveChangesAsync();
+
+            return commentModel;
+        }
+    }
+}
+{% endhighlight %}
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+...
+{% endhighlight %}
+
 <figure>
-  <a href="/assets/img/posts/react_finshark/42.jpg"><img src="/assets/img/posts/react_finshark/42.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/44.jpg"><img src="/assets/img/posts/react_finshark/44.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/45.jpg"><img src="/assets/img/posts/react_finshark/45.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/46.jpg"><img src="/assets/img/posts/react_finshark/46.jpg"></a>
 	<figcaption>Comment</figcaption>
 </figure>
+
+# Data Validation
+
+## Controller Validation
+- You can set route's type with `:{type}`
+- If you use data annotation in Dtos, you can alert to user with error message by `ModelState`
+
+* StockController.cs
+{% highlight cs %}
+...
+[HttpGet]
+public async Task<IActionResult> GetAll()
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stock = await _stockRepository.GetAllAsync();
+    var stockDto = stock.Select(s => s.ToStockDto());
+
+    return Ok(stock);
+}
+
+[HttpGet]
+[Route("{id:int}")]
+public async Task<IActionResult> GetById([FromRoute] int id)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stock = await _stockRepository.GetByIdAsync(id);
+
+    if (stock == null)
+    {
+        return NotFound();
+    }
+
+    return Ok(stock.ToStockDto());
+}
+
+[HttpPost]
+public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stockModel = stockDto.ToStockFromCreateDto();
+    await _stockRepository.CreateAsync(stockModel);
+
+    return CreatedAtAction(nameof(GetById), new { id = stockModel.Id}, stockModel.ToStockDto());
+}
+
+[HttpPut]
+[Route("{id:int}")]
+public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stockModel = await _stockRepository.UpdateAsync(id, updateDto);
+
+    if (stockModel == null)
+    {
+        return NotFound();
+    }
+
+    return Ok(stockModel.ToStockDto());
+}
+
+[HttpDelete]
+[Route("{id:int}")]
+public async Task<IActionResult> Delete([FromRoute] int id)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stockModel = await _stockRepository.DeleteAsync(id);
+
+    if (stockModel == null)
+    {
+        return NotFound();
+    }
+
+    return NoContent();
+}
+{% endhighlight %}
+
+* CommentController.cs
+{% highlight cs %}
+...
+[HttpGet]
+public async Task<IActionResult> GetAll()
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var comments = await _commentRepository.GetAllAsync();
+    var commentDto = comments.Select(s => s.ToCommentDto());
+
+    return Ok(commentDto);
+}
+
+[HttpGet]
+[Route("{id:int}")]
+public async Task<IActionResult> GetById([FromRoute] int id)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var comment = await _commentRepository.GetByIdAsync(id);
+
+    if (comment == null)
+    {
+        return NotFound();
+    }
+
+    return Ok(comment.ToCommentDto());
+}
+
+[HttpPost]
+[Route("{stockId:int}")]
+public async Task<IActionResult> Create([FromRoute] int stockId, [FromBody] CreateCommentRequestDto commentDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    if (!await _stockRepository.StockExists(stockId))
+    {
+        return BadRequest("Stock does not exist");
+    }
+
+    var commentModel = commentDto.ToCommentFromCreate(stockId);
+    await _commentRepository.CreateAsync(commentModel);
+
+    return CreatedAtAction(nameof(GetById), new { id = commentModel.Id }, commentModel.ToCommentDto());
+}
+
+[HttpPut]
+[Route("{id:int}")]
+public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateCommentRequestDto updateDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var comment = await _commentRepository.UpdateAsync(id, updateDto.ToCommentFromUpdate());
+
+    if (comment == null)
+    {
+        return NotFound("Comment not found");
+    }
+
+    return Ok(comment.ToCommentDto());
+}
+
+[HttpDelete]
+[Route("{id:int}")]
+public async Task<IActionResult> Delete([FromRoute] int id)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var commentModel = await _commentRepository.DeleteAsync(id);
+
+    if (commentModel == null)
+    {
+        return NotFound("Comment does not exist");
+    }
+
+    return Ok(commentModel);
+}
+{% endhighlight %}
+
+## Data Annotations
+
+* CreateCommentRequestDto.cs
+{% highlight cs %}
+public class CreateCommentRequestDto
+{
+    [Required]
+    [MinLength(5,ErrorMessage = "Title must be 5 chaaracters")]
+    [MaxLength(280, ErrorMessage = "Title cannot be over 280 characters")]
+    public string Title { get; set; } = string.Empty;
+    [Required]
+    [MinLength(5, ErrorMessage = "Content must be 5 chaaracters")]
+    [MaxLength(280, ErrorMessage = "Content cannot be over 280 characters")]
+    public string Content { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* UpdateCommentRequestDto.cs
+{% highlight cs %}
+public class UpdateCommentRequestDto
+{
+    [Required]
+    [MinLength(5, ErrorMessage = "Title must be 5 chaaracters")]
+    [MaxLength(280, ErrorMessage = "Title cannot be over 280 characters")]
+    public string Title { get; set; } = string.Empty;
+    [Required]
+    [MinLength(5, ErrorMessage = "Content must be 5 chaaracters")]
+    [MaxLength(280, ErrorMessage = "Content cannot be over 280 characters")]
+    public string Content { get; set; } = string.Empty;
+}
+{% endhighlight %}
+
+* CreateStockRequestDto.cs
+{% highlight cs %}
+public class CreateStockRequestDto
+{
+    [Required]
+    [MaxLength(10, ErrorMessage = "Symbol cannot be over 10 characters")]
+    public string Symbol { get; set; } = string.Empty;
+    [Required]
+    [MaxLength(10, ErrorMessage = "Company cannot be over 10 characters")]
+    public string CompanyName { get; set; } = string.Empty;
+    [Required]
+    [Range(1, 1000000000)]
+    public decimal Purchase { get; set; }
+    [Required]
+    [Range(0.001, 100)]
+    public decimal LastDiv { get; set; }
+    [Required]
+    [MaxLength(10, ErrorMessage = "Industry cannot be over 10 characters")]
+    public string Industry { get; set; } = string.Empty;
+    [Required]
+    [Range(1, 5000000000)]
+    public long MarketCap { get; set; }
+}
+{% endhighlight %}
+
+* UpdateStockRequestDto.cs
+{% highlight cs %}
+public class UpdateStockRequestDto
+{
+    [Required]
+    [MaxLength(10, ErrorMessage = "Symbol cannot be over 10 characters")]
+    public string Symbol { get; set; } = string.Empty;
+    [Required]
+    [MaxLength(10, ErrorMessage = "Company cannot be over 10 characters")]
+    public string CompanyName { get; set; } = string.Empty;
+    [Required]
+    [Range(1, 1000000000)]
+    public decimal Purchase { get; set; }
+    [Required]
+    [Range(0.001, 100)]
+    public decimal LastDiv { get; set; }
+    [Required]
+    public string Industry { get; set; } = string.Empty;
+    [Required]
+    [Range(1, 5000000000)]
+    public long MarketCap { get; set; }
+}
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/26.jpg"><img src="/assets/img/posts/react_finshark/26.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/42.jpg"><img src="/assets/img/posts/react_finshark/42.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/43.jpg"><img src="/assets/img/posts/react_finshark/43.jpg"></a>
+	<figcaption>Data Validation</figcaption>
+</figure>
+
+# Filtering
+
+### Program
+- Download `Newtonsoft.Json` in Nuget Package Manager
+- Download `Microsoft.AspNetCore.Mvc.NewtonsoftJson` in Nuget Package Manager
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddControllers()
+    .AddNewtonsoftJson(options =>
+    {
+        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    });
+...
+{% endhighlight %}
+
