@@ -6400,7 +6400,7 @@ builder.Services.AddControllers()
 
 ### Helpers
 - create `Helpers` folder in Api folder
-- create `QueryObject` in Helpers folder
+- create `QueryObject.cs` in Helpers folder
 
 * QueryObject.cs
 {% highlight cs %}
@@ -6484,3 +6484,563 @@ public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
 	<figcaption>Filtering</figcaption>
 </figure>
 
+# Identify
+
+## IdentityDbContext
+- is a specialized DbContext provided by the Entity Framework (EF) to handle authentication and authorization.
+- includes several built-in DbSets (tables) that support the default identity functionality, like users, roles and claims.
+
+## IdentityRole
+- is the built-in role model from ASP.NET Core Identity, representing user roles in the application. 
+- allows to define roles like "Admin", "User" and etc.
+
+## Authentication
+- in an ASP.NET Core application can use JWT (JSON Web Token) Bearer Authentication.
+- `JwtBearerDefaults.AuthenticationScheme` uses the JWT Bearer token approach.
+
+## TokenValidationParameters 
+- ensures that only valid and authorized tokens are accepted.
+
+## app.useAuthentication()
+- is a middleware that enables the authentication system within the request pipeline.
+- should be placed before `app.UseAuthorization()`
+
+### Nuget Packages
+- Download `Microsoft.AspNetCore.Authentication.JwtBearer` in Nuget Package Manager
+- Download `Microsoft.AspNetCore.Identity.EntityFrameworkCore` in Nuget Package Manager
+- Download `Microsoft.Extensions.Identity.Core` in Nuget Package Manager
+
+### Data
+
+* ApplicationDBContext.cs
+{% highlight cs %}
+public class ApplicationDBContext : IdentityDbContext<AppUser>
+...
+{% endhighlight %}
+
+### Models
+- create `AppUser.cs` in Models folder
+
+* AppUser.cs
+{% highlight cs %}
+using Microsoft.AspNetCore.Identity;
+
+namespace Api.Models
+{
+    public class AppUser : IdentityUser
+    {
+
+    }
+}
+{% endhighlight %}
+
+### appsettigs
+
+* appsettigs.json
+{% highlight json %}
+...
+"JWT": {
+  "Issuer": "http://localhost:5246",
+  "Audience": "http://localhost:5246",
+  "SigningKey":  "swordrish"
+}
+{% endhighlight %}
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 12;
+}).AddEntityFrameworkStores<ApplicationDBContext>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme =
+    options.DefaultChallengeScheme =
+    options.DefaultForbidScheme =
+    options.DefaultScheme =
+    options.DefaultSignInScheme =
+    options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["JWT:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = builder.Configuration["JWT:Audience"],
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"]))
+    };
+});
+...
+app.UseAuthentication();
+...
+{% endhighlight %}
+
+### Database
+- type `dotnet ef migrations add Identity` in developer power shell
+- type `dotnet ef database update` in developer power shell
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/48.jpg"><img src="/assets/img/posts/react_finshark/48.jpg"></a>
+	<figcaption>Identify</figcaption>
+</figure>
+
+# Registration
+
+## UserManager
+- provides a high-level API for managing user-related operations in applications that use ASP.NET Identity for authentication and authorization.
+
+## OnModelCreating
+- provides a place to customize the model created by Entity Framework Core before generateing the database.
+
+### DTOs
+- create `RegisterDto.cs` in Dtos folder
+
+* RegisterDto.cs
+{% highlight cs %}
+using System.ComponentModel.DataAnnotations;
+
+namespace Api.Dtos.Account
+{
+    public class RegisterDto
+    {
+        [Required]
+        public string? UserName { get; set; }
+        [Required]
+        [EmailAddress]
+        public string? Email { get; set; }
+        [Required]
+        public string? Password { get; set; }
+    }
+}
+{% endhighlight %}
+
+### Controller
+- create `AccountController.cs` in Controllers folder
+
+* AccountController.cs
+{% highlight cs %}
+using Api.Dtos.Account;
+using Api.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.Controllers
+{
+    [Route("api/account")]
+    [ApiController]
+    public class AccountController : ControllerBase
+    {
+        private readonly UserManager<AppUser> _userManager;
+
+        public AccountController(UserManager<AppUser> userManager)
+        {
+            _userManager = userManager;   
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid) 
+                { 
+                    return BadRequest(ModelState);
+                }
+
+                var appUser = new AppUser
+                {
+                    UserName = registerDto.UserName,
+                    Email = registerDto.Email
+                };
+
+                var createUser = await _userManager.CreateAsync(appUser, registerDto.Password);
+
+                if (createUser.Succeeded) 
+                {
+                    var roleResult = await _userManager.AddToRoleAsync(appUser, "User");
+                    if (roleResult.Succeeded)
+                    {
+                        return Ok("User created");
+                    }
+                    else
+                    {
+                        return StatusCode(500, roleResult.Errors);
+                    }
+                }
+                else
+                {
+                    return StatusCode(500, createUser.Errors);
+                }
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, e);
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+### ApplicationDBContext
+
+* ApplicationDBContext.cs
+{% highlight cs %}
+...
+protected override void OnModelCreating(ModelBuilder builder)
+{
+    base.OnModelCreating(builder);
+
+    List<IdentityRole> roles = new List<IdentityRole>
+    {
+        new IdentityRole
+        {
+            Name = "Admin",
+            NormalizedName = "ADMIN"
+        },
+        new IdentityRole
+        {
+            Name = "User",
+            NormalizedName = "USER"
+        }
+    };
+
+    builder.Entity<IdentityRole>().HasData(roles);
+}
+{% endhighlight %}
+
+### Database
+- type `dotnet ef migrations add SeedRole` in developer power shell
+- type `dotnet ef database update` in developer power shell
+
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/49.jpg"><img src="/assets/img/posts/react_finshark/49.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/50.jpg"><img src="/assets/img/posts/react_finshark/50.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/51.jpg"><img src="/assets/img/posts/react_finshark/51.jpg"></a>
+	<figcaption>Registration</figcaption>
+</figure>
+
+# Token
+
+## JWT (Json Web Token)
+- is used in applications to securely transmit information for stateless, secure and cross-platform authentication.
+- allows applications to manage user sessions without relying on centralized server-side session.
+- you can decode your JWT in <a href="https://jwt.io/">https://jwt.io/</a>
+
+### DTOs
+- create `NewUserDto.cs` in Dtos folder
+
+* NewUserDto.cs
+{% highlight cs %}
+namespace Api.Dtos.Account
+{
+    public class NewUserDto
+    {
+        public string UserName { get; set; }
+        public string Email { get; set; }
+        public string Token { get; set; }
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+- create `ITokenService.cs` in Interfaces folder
+
+* ITokenService.cs
+{% highlight cs %}
+using Api.Models;
+
+namespace Api.Interfaces
+{
+    public interface ITokenService
+    {
+        string CreateToken(AppUser appUser);
+    }
+}
+{% endhighlight %}
+
+### Services
+- create `Services` folder
+- create `TokenService.cs` in Services folder
+
+* TokenService.cs
+{% highlight cs %}
+using Api.Interfaces;
+using Api.Models;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace Api.Service
+{
+    public class TokenService : ITokenService
+    {
+        private readonly IConfiguration _configuration;
+        private readonly SymmetricSecurityKey _symmetricSecurityKey;
+
+        public TokenService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+            _symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SigningKey"]));
+        }
+
+        public string CreateToken(AppUser appUser)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Email, appUser.Email),
+                new Claim(JwtRegisteredClaimNames.GivenName, appUser.UserName)
+            };
+
+            var signingCredentials = new SigningCredentials(_symmetricSecurityKey, SecurityAlgorithms.HmacSha512Signature);
+            var securityTokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(7),
+                SigningCredentials = signingCredentials,
+                Issuer = _configuration["JWT:Issuer"],
+                Audience = _configuration["JWT:Audience"]
+            };
+
+            var jwtSecutiryTokenHandler = new JwtSecurityTokenHandler();
+
+            var token = jwtSecutiryTokenHandler.CreateToken(securityTokenDescriptor);
+
+            return jwtSecutiryTokenHandler.WriteToken(token);
+        }
+    }
+}
+
+{% endhighlight %}
+
+### Controllers
+
+* AccountController.cs
+{% highlight cs %}
+private readonly UserManager<AppUser> _userManager;
+private readonly ITokenService _tokenService;
+
+public AccountController(UserManager<AppUser> userManager, ITokenService tokenService)
+{
+    _userManager = userManager;   
+    _tokenService = tokenService;
+}
+...
+        if (roleResult.Succeeded)
+        {
+            return Ok(
+                new NewUserDto
+                {
+                    UserName = appUser.UserName,
+                    Email = appUser.Email,
+                    Token = _tokenService.CreateToken(appUser)
+                });
+        }
+{% endhighlight %}
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<ITokenService, TokenService>();
+...
+{% endhighlight %}
+
+### appsettigs
+
+* appsettigs.json
+{% highlight json %}
+...
+"SigningKey":  "iamgoodiamcooliambeautifuliamprettyiamwonderfuliamgeniousiamcleveriamthebest"
+...
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/react_finshark/52.jpg"><img src="/assets/img/posts/react_finshark/52.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/53.jpg"><img src="/assets/img/posts/react_finshark/53.jpg"></a>
+	<figcaption>Token</figcaption>
+</figure>
+
+# Login
+
+### DTOs
+- create `LoginDto.cs` in Dtos folder
+
+* LoginDto.cs
+{% highlight cs %}
+using System.ComponentModel.DataAnnotations;
+
+namespace Api.Dtos.Account
+{
+    public class LoginDto
+    {
+        [Required]
+        public string UserName { get; set; }
+        [Required]
+        public string Password { get; set; }
+    }
+}
+{% endhighlight %}
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddSwaggerGen(option =>
+{
+    option.SwaggerDoc("v1", new OpenApiInfo { Title = "Demo API", Version = "v1" });
+    option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+    option.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
+...
+{% endhighlight %}
+
+### Controllers
+
+* AccountController.cs
+{% highlight cs %}
+public class AccountController : ControllerBase
+{
+    private readonly UserManager<AppUser> _userManager;
+    private readonly ITokenService _tokenService;
+    private readonly SignInManager<AppUser> _signInManager;
+
+    public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, SignInManager<AppUser> signInManager)
+    {
+        _userManager = userManager;   
+        _tokenService = tokenService;
+        _signInManager = signInManager;
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginDto loginDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.UserName == loginDto.UserName.ToLower());
+
+        if (user == null)
+        {
+            return Unauthorized("Invalid username!");
+        }
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+
+        if (!result.Succeeded) 
+        {
+            return Unauthorized("Username not found/or password incorrect");
+        }
+
+        return Ok(
+            new NewUserDto
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                Token = _tokenService.CreateToken(user)
+            });
+    }
+...
+{% endhighlight %}
+
+* CommentController.cs
+{% highlight cs %}
+public class AccountController : ControllerBase
+...
+[HttpGet]
+[Authorize]
+public async Task<IActionResult> GetAll()
+...
+[HttpGet]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> GetById([FromRoute] int id)
+...
+[HttpPost]
+[Authorize]
+[Route("{stockId:int}")]
+public async Task<IActionResult> Create([FromRoute] int stockId, [FromBody] CreateCommentRequestDto commentDto)
+...
+[HttpPut]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateCommentRequestDto updateDto)
+...
+[HttpDelete]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> Delete([FromRoute] int id)
+...
+{% endhighlight %}
+
+* StockController.cs
+{% highlight cs %}
+public class AccountController : ControllerBase
+...
+[HttpGet]
+[Authorize]
+public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
+...
+[HttpGet]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> GetById([FromRoute] int id)
+...
+[HttpPost]
+[Authorize]
+public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
+...
+[HttpPut]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
+...
+[HttpDelete]
+[Authorize]
+[Route("{id:int}")]
+public async Task<IActionResult> Delete([FromRoute] int id)
+...
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/54.jpg"><img src="/assets/img/posts/react_finshark/54.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/55.jpg"><img src="/assets/img/posts/react_finshark/55.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/56.jpg"><img src="/assets/img/posts/react_finshark/56.jpg"></a>
+	<figcaption>Token</figcaption>
+</figure>
