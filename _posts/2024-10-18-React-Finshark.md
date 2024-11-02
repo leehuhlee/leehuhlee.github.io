@@ -6359,7 +6359,7 @@ public class UpdateStockRequestDto
 }
 {% endhighlight %}
 
-<figure>
+<figure class="third">
   <a href="/assets/img/posts/react_finshark/26.jpg"><img src="/assets/img/posts/react_finshark/26.jpg"></a>
   <a href="/assets/img/posts/react_finshark/42.jpg"><img src="/assets/img/posts/react_finshark/42.jpg"></a>
   <a href="/assets/img/posts/react_finshark/43.jpg"><img src="/assets/img/posts/react_finshark/43.jpg"></a>
@@ -6382,4 +6382,105 @@ builder.Services.AddControllers()
     });
 ...
 {% endhighlight %}
+
+### Program
+- Download `Newtonsoft.Json` in Nuget Package Manager
+- Download `Microsoft.AspNetCore.Mvc.NewtonsoftJson` in Nuget Package Manager
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddControllers()
+    .AddNewtonsoftJson(options =>
+    {
+        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    });
+...
+{% endhighlight %}
+
+### Helpers
+- create `Helpers` folder in Api folder
+- create `QueryObject` in Helpers folder
+
+* QueryObject.cs
+{% highlight cs %}
+namespace Api.Helpers
+{
+    public class QueryObject
+    {
+        public string? Symbol { get; set; } = null;
+        public string? CompanyName { get; set; } = null;
+        public string? SortBy { get; set; } = null;
+        public bool IsDecsending { get; set; } = false;
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+
+* IStockRepository.cs
+{% highlight cs %}
+Task<List<Stock>> GetAllAsync(QueryObject query);
+...
+{% endhighlight %}
+
+### Repository
+
+* StockRepository.cs
+{% highlight cs %}
+public async Task<List<Stock>> GetAllAsync(QueryObject query)
+{
+    var stocks = _context.Stocks.Include(c => c.Comments).AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(query.CompanyName))
+    {
+        stocks = stocks.Where(s => s.CompanyName.Contains(query.CompanyName));
+    }
+
+    if (!string.IsNullOrWhiteSpace(query.Symbol)) 
+    {
+        stocks = stocks.Where(s => s.Symbol.Contains(query.Symbol));
+    }
+
+    if (!string.IsNullOrWhiteSpace(query.SortBy))
+    {
+        if (query.SortBy.Equals("Symbol", StringComparison.OrdinalIgnoreCase))
+        {
+            stocks = query.IsDecsending ? stocks.OrderByDescending(s => s.Symbol) : stocks.OrderBy(s => s.Symbol);
+        }
+    }
+
+    var skipNumber = (query.PageNumber - 1) * query.PageSize;
+
+    return await stocks.Skip(skipNumber).Take(query.PageSize).ToListAsync();
+}
+...
+{% endhighlight %}
+
+### Controller
+
+* StockController.cs
+{% highlight cs %}
+[HttpGet]
+public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stock = await _stockRepository.GetAllAsync(query);
+    var stockDto = stock.Select(s => s.ToStockDto());
+
+    return Ok(stock);
+}
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/47.jpg"><img src="/assets/img/posts/react_finshark/47.jpg"></a>
+	<figcaption>Filtering</figcaption>
+</figure>
 
