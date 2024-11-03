@@ -5449,7 +5449,7 @@ var app = builder.Build();
 }
 {% endhighlight %}
 
-### Developer Power Shell
+### Database
 - open `Developer Power Shell` in visual studio
 - type `doenet ef migrations add init`
 - type `doenet ef database update`
@@ -7043,4 +7043,473 @@ public async Task<IActionResult> Delete([FromRoute] int id)
   <a href="/assets/img/posts/react_finshark/55.jpg"><img src="/assets/img/posts/react_finshark/55.jpg"></a>
   <a href="/assets/img/posts/react_finshark/56.jpg"><img src="/assets/img/posts/react_finshark/56.jpg"></a>
 	<figcaption>Token</figcaption>
+</figure>
+
+# Portfolio
+
+## Database Relationship
+- means like n:n, 1:n, n:1 and 1:1.
+- `HasOne` sets up 1:1 or 1:n relationships between entities.
+- `WithMany` sets up n:1 or n:n relationships between entities.
+- `HasKey` sets a primary key from a composite key in an entity
+- `HasForeignKey` sets a foreign key to refer an entity
+
+### Models
+- create `Portfolio.cs` in Models folder
+
+* Portfolio.cs
+{% highlight cs %}
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Api.Models
+{
+    [Table("Portfolios")]
+    public class Portfolio
+    {
+        public string AppUserId { get; set; }
+        public int StockId { get; set; }
+        public AppUser AppUser { get; set; }
+        public Stock Stock { get; set; }
+    }
+}
+{% endhighlight %}
+
+* AppUser.cs
+{% highlight cs %}
+public class AppUser : IdentityUser
+{
+    public List<Portfolio> Portfolios { get; set; } = new List<Portfolio>();
+}
+{% endhighlight %}
+
+* Comment.cs
+{% highlight cs %}
+[Table("Comments")]
+public class Comment
+{
+...
+{% endhighlight %}
+
+* Stock.cs
+{% highlight cs %}
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Api.Models
+{
+    [Table("Stocks")]
+    public class Stock
+    {
+        public int Id { get; set; }
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        [Column(TypeName="decimal(18, 2)")]
+        public decimal Purchase { get; set; }
+        [Column(TypeName="decimal(18, 2)")]
+        public decimal LastDiv { get; set; }
+        public string Industry { get; set; } = string.Empty;
+        public long MarketCap { get; set; }
+        public List<Comment> Comments { get; set; } = new List<Comment>();
+        public List<Portfolio> Portfolios { get; set; } = new List<Portfolio>();
+    }
+}
+{% endhighlight %}
+
+### Data
+
+* ApplicationDBContext.cs
+{% highlight cs %}
+...
+public DbSet<Portfolio> Portfolios { get; set; }
+
+protected override void OnModelCreating(ModelBuilder builder)
+{
+    base.OnModelCreating(builder);
+
+    builder.Entity<Portfolio>(x => x.HasKey(p => new { p.AppUserId, p.StockId }));
+
+    builder.Entity<Portfolio>()
+      .HasOne(p => p.AppUser)
+      .WithMany(u => u.Portfolios)
+      .HasForeignKey(p => p.AppUserId);
+
+    builder.Entity<Portfolio>()
+      .HasOne(p => p.Stock)
+      .WithMany(s => s.Portfolios)
+      .HasForeignKey(p => p.StockId);
+...
+{% endhighlight %}
+
+### Extensions
+- create `Extensions` folder in Api folder
+- create `ClaimsExtensions.cs` in Extensions folder
+
+* ClaimsExtensions.cs
+{% highlight cs %}
+using System.Security.Claims;
+
+namespace Api.Extensions
+{
+    public static class ClaimsExtensions
+    {
+        public static string GetUsername(this ClaimsPrincipal user)
+        {
+            return user.Claims.SingleOrDefault(x => x.Type.Equals("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")).Value;
+        }
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+- create `IPortfolioRepository.cs` in Interfaces folder
+
+* IPortfolioRepository.cs
+{% highlight cs %}
+using Api.Models;
+
+namespace Api.Interfaces
+{
+    public interface IPortfolioRepository
+    {
+        Task<List<Stock>> GetUserPortfolio(AppUser appUser);
+        Task<Portfolio> CreateAsync (Portfolio portfolio);
+        Task<Portfolio> DeleteAsync (AppUser appUser, string symbol);
+    }
+}
+{% endhighlight %}
+
+* IStockRepository.cs
+{% highlight cs %}
+...
+Task<Stock?>  GetBySymbolAsync(string symbol);
+...
+{% endhighlight %}
+
+### Repository
+- create `PortfolioRepository.cs` in Repository folder
+
+* IPortfolioRepository.cs
+{% highlight cs %}
+using Api.Data;
+using Api.Interfaces;
+using Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Api.Repository
+{
+    public class PortfolioRepository : IPortfolioRepository
+    {
+        private readonly ApplicationDBContext _context;
+
+        public PortfolioRepository(ApplicationDBContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<Stock>> GetUserPortfolio(AppUser appUser)
+        {
+            return await _context.Portfolios.Where(u => u.AppUserId == appUser.Id)
+                .Select(stock => new Stock
+                {
+                    Id = stock.StockId,
+                    Symbol = stock.Stock.Symbol,
+                    CompanyName = stock.Stock.CompanyName,
+                    Purchase = stock.Stock.Purchase,
+                    LastDiv = stock.Stock.LastDiv,
+                    MarketCap = stock.Stock.MarketCap
+                }).ToListAsync();
+        }
+
+        public async Task<Portfolio> CreateAsync(Portfolio portfolio)
+        {
+            await _context.Portfolios.AddAsync(portfolio);
+            await _context.SaveChangesAsync();
+            return portfolio;
+        }
+
+        public async Task<Portfolio> DeleteAsync(AppUser appUser, string symbol)
+        {
+            var portfolioModel = await _context.Portfolios.FirstOrDefaultAsync(x => x.AppUserId == appUser.Id 
+                && x.Stock.Symbol.ToLower() == symbol.ToLower());
+            
+            if (portfolioModel != null)
+            {
+                return null;
+            }
+
+            _context.Portfolios.Remove(portfolioModel);
+            await _context.SaveChangesAsync();
+
+            return portfolioModel;
+        }
+    }
+}
+{% endhighlight %}
+
+* StockRepository.cs
+{% highlight cs %}
+...
+ public async Task<Stock?> GetBySymbolAsync(string symbol)
+ {
+     return await _context.Stocks.FirstOrDefaultAsync(x => x.Symbol == symbol);
+ }
+...
+{% endhighlight %}
+
+### Program
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+...
+{% endhighlight %}
+
+### PortfolioController
+
+* PortfolioController.cs
+{% highlight cs %}
+using Api.Extensions;
+using Api.Interfaces;
+using Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.Controllers
+{
+    [Route("api/portfolio")]
+    [ApiController]
+    public class PortfolioController : ControllerBase
+    {
+        private readonly UserManager<AppUser> _userManager;
+        private readonly IStockRepository _stockRepository;
+        private readonly IPortfolioRepository _portfolioRepository;
+
+        public PortfolioController(UserManager<AppUser> userManager, IStockRepository stockRepository, IPortfolioRepository portfolioRepository)
+        {
+            _userManager = userManager;
+            _stockRepository = stockRepository;
+            _portfolioRepository = portfolioRepository;
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetUserPortfolio()
+        {
+            var username = User.GetUsername();
+            var appUser = await _userManager.FindByNameAsync(username);
+            var userPortfolio = await _portfolioRepository.GetUserPortfolio(appUser);
+
+            return Ok(userPortfolio);
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> AddPortfolio(string symbol)
+        {
+            var username = User.GetUsername();
+            var appUser = await _userManager.FindByNameAsync(username);
+            var stock = await _stockRepository.GetBySymbolAsync(symbol);
+
+            if (stock == null)
+            {
+                return BadRequest("Stock not found");
+            }
+
+            var userPortfolio = await _portfolioRepository.GetUserPortfolio(appUser);
+
+            if (userPortfolio.Any(e => e.Symbol.ToLower() == symbol.ToLower()))
+            {
+                return BadRequest("Cannot add same stock to portfolio");
+            }
+
+            var portfolioModel = new Portfolio
+            {
+                StockId = stock.Id,
+                AppUserId = appUser.Id
+            };
+
+            await _portfolioRepository.CreateAsync(portfolioModel);
+
+            if (portfolioModel == null) 
+            {
+                return StatusCode(500, "Cloud not create");
+            }
+            else
+            {
+                return Created();
+            }
+        }
+
+        [HttpDelete]
+        [Authorize]
+        public async Task<IActionResult> DeletePortfolio(string symbol)
+        {
+            var username = User.GetUsername();
+            var appUser = await _userManager.FindByNameAsync(username);
+            var userPortfolio = await _portfolioRepository.GetUserPortfolio(appUser);
+            
+            var filteredStock = userPortfolio.Where(u => u.Symbol.ToLower() == symbol.ToLower()).ToList();
+
+            if (filteredStock.Count() == 1) 
+            {
+                await _portfolioRepository.DeleteAsync(appUser, symbol);
+            }
+            else
+            {
+                return BadRequest("Stock not in your portfolio");
+            }
+
+            return Ok();
+        }
+    }
+}
+{% endhighlight %}
+
+### Database
+- type `dotnet ef migrations add ManyToMany`
+- type `dotnet ef database update`
+
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/57.jpg"><img src="/assets/img/posts/react_finshark/57.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/58.jpg"><img src="/assets/img/posts/react_finshark/58.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/59.jpg"><img src="/assets/img/posts/react_finshark/59.jpg"></a>
+	<figcaption>Portfolio</figcaption>
+</figure>
+
+# Comment
+
+### DTOs
+
+* CommentDto.cs
+{% highlight cs %}
+...
+public string CreatedBy { get; set; } = string.Empty;
+...
+{% endhighlight %}
+
+### Models
+
+* Comment.cs
+{% highlight cs %}
+...
+public string? AppUserId { get; set; }
+public AppUser AppUser { get; set; }
+...
+{% endhighlight %}
+
+### Mappers
+
+* CommentMapper.cs
+{% highlight cs %}
+...
+public static CommentDto ToCommentDto(this Comment commentModel)
+{
+    return new CommentDto
+    {
+        Id = commentModel.Id,
+        Title = commentModel.Title,
+        Content = commentModel.Content,
+        CreatedOn = commentModel.CreatedOn,
+        CreatedBy = commentModel.AppUser.UserName,
+        StockId = commentModel.StockId
+    };
+}
+...
+{% endhighlight %}
+
+### Repository
+
+* CommentRepository.cs
+{% highlight cs %}
+...
+public async Task<List<Comment>> GetAllAsync()
+{
+    return await _context.Comments.Include(c => c.AppUser).ToListAsync();
+}
+
+public async Task<Comment?> GetByIdAsync(int id)
+{
+    return await _context.Comments.Include(c => c.AppUser).FirstOrDefaultAsync(x => x.Id == id);
+}
+...
+{% endhighlight %}
+
+* StockRepository.cs
+{% highlight cs %}
+...
+public async Task<List<Stock>> GetAllAsync(QueryObject query)
+{
+    var stocks = _context.Stocks.Include(c => c.Comments).ThenInclude(a => a.AppUser).AsQueryable();
+...
+{% endhighlight %}
+
+### Controllers
+
+* CommentController.cs
+{% highlight cs %}
+...
+private readonly UserManager<AppUser> _userManager;
+
+public CommentController(ICommentRepository commentRepository, IStockRepository stockRepository, UserManager<AppUser> userManager)
+{
+    _commentRepository = commentRepository;
+    _stockRepository = stockRepository;
+    _userManager = userManager;
+}
+
+...
+[HttpPost]
+[Authorize]
+[Route("{stockId:int}")]
+public async Task<IActionResult> Create([FromRoute] int stockId, [FromBody] CreateCommentRequestDto commentDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    if (!await _stockRepository.StockExists(stockId))
+    {
+        return BadRequest("Stock does not exist");
+    }
+
+    var username = User.GetUsername();
+    var appUser = await _userManager.FindByNameAsync(username);
+    var commentModel = commentDto.ToCommentFromCreate(stockId);
+    commentModel.AppUserId = appUser.Id;
+
+    await _commentRepository.CreateAsync(commentModel);
+
+    return CreatedAtAction(nameof(GetById), new { id = commentModel.Id }, commentModel.ToCommentDto());
+}
+...
+{% endhighlight %}
+
+* StockController.cs
+{% highlight cs %}
+...
+[HttpGet]
+[Authorize]
+public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var stock = await _stockRepository.GetAllAsync(query);
+    var stockDto = stock.Select(s => s.ToStockDto()).ToList();
+
+    return Ok(stockDto);
+}
+...
+{% endhighlight %}
+
+### Database
+- type `dotnet ef migrations CommentOneToOne`
+- tpye `dotnet ef database update`
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/60.jpg"><img src="/assets/img/posts/react_finshark/60.jpg"></a>
+	<figcaption>Comment</figcaption>
 </figure>
