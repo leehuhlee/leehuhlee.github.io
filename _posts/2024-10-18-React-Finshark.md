@@ -7513,3 +7513,291 @@ public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
   <a href="/assets/img/posts/react_finshark/60.jpg"><img src="/assets/img/posts/react_finshark/60.jpg"></a>
 	<figcaption>Comment</figcaption>
 </figure>
+
+# HttpClient
+
+### DTOs
+
+* FinancialModelingPrepStock.cs
+{% highlight cs %}
+namespace api.Dtos.Stock
+{
+    public class FinancialModelingPrepStock
+    {
+        public string symbol { get; set; }
+        public double price { get; set; }
+        public double beta { get; set; }
+        public int volAvg { get; set; }
+        public long mktCap { get; set; }
+        public double lastDiv { get; set; }
+        public string range { get; set; }
+        public double changes { get; set; }
+        public string companyName { get; set; }
+        public string currency { get; set; }
+        public string cik { get; set; }
+        public string isin { get; set; }
+        public string cusip { get; set; }
+        public string exchange { get; set; }
+        public string exchangeShortName { get; set; }
+        public string industry { get; set; }
+        public string website { get; set; }
+        public string description { get; set; }
+        public string ceo { get; set; }
+        public string sector { get; set; }
+        public string country { get; set; }
+        public string fullTimeEmployees { get; set; }
+        public string phone { get; set; }
+        public string address { get; set; }
+        public string city { get; set; }
+        public string state { get; set; }
+        public string zip { get; set; }
+        public double dcfDiff { get; set; }
+        public double dcf { get; set; }
+        public string image { get; set; }
+        public string ipoDate { get; set; }
+        public bool defaultImage { get; set; }
+        public bool isEtf { get; set; }
+        public bool isActivelyTrading { get; set; }
+        public bool isAdr { get; set; }
+        public bool isFund { get; set; }
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+
+* IFinancialModelingPrepService.cs
+{% highlight cs %}
+using Api.Models;
+
+namespace Api.Interfaces
+{
+    public interface IFinancialModelingPrepService
+    {
+        Task<Stock?> FindStockBySymbolAsync(string symbol);
+    }
+}
+{% endhighlight %}
+
+### Services
+
+* FinancialModelingPrepService.cs
+{% highlight cs %}
+using api.Dtos.Stock;
+using Api.Interfaces;
+using Api.Mappers;
+using Api.Models;
+using Newtonsoft.Json;
+
+namespace Api.Service
+{
+    public class FinancialModelingPrepService : IFinancialModelingPrepService
+    {
+        private HttpClient _httpClient;
+        private IConfiguration _configuration;
+
+        public FinancialModelingPrepService(HttpClient httpClient, IConfiguration configuration)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+        }
+
+        public async Task<Stock?> FindStockBySymbolAsync(string symbol)
+        {
+            try
+            {
+                var result = await _httpClient.GetAsync($"https://financialmodelingprep.com/api/v3/profile/{symbol}?apikey={_configuration["FinancialModelingPrepKey"]}");
+                if (result.IsSuccessStatusCode)
+                {
+                    var content = await result.Content.ReadAsStringAsync();
+                    var tasks = JsonConvert.DeserializeObject<FinancialModelingPrepStock[]>(content);
+                    var stock = tasks[0];
+
+                    if (stock != null) 
+                    {
+                        return stock.ToStockFromFinancialModelingPrep();
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception e) 
+            {
+                Console.WriteLine(e);
+                return null;
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+### appsettigs
+
+* appsettigs.json
+{% highlight json %}
+...
+"FinancialModelingPrepKey": "{YOUR_FINANCIAL_MODELING_PREP_APIKEY}",
+...
+{% endhighlight %}
+
+### Mappers
+
+* StockMapper.cs
+{% highlight cs %}
+...
+public static Stock ToStockFromFinancialModelingPrep(this FinancialModelingPrepStock financialModelingPrepStock)
+{
+    return new Stock
+    {
+        Symbol = financialModelingPrepStock.symbol,
+        CompanyName = financialModelingPrepStock.companyName,
+        Purchase = (decimal)financialModelingPrepStock.price,
+        LastDiv = (decimal)financialModelingPrepStock.lastDiv,
+        Industry = financialModelingPrepStock.industry,
+        MarketCap = financialModelingPrepStock.mktCap
+    };
+}
+{% endhighlight %}
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IFinancialModelingPrepService, FinancialModelingPrepService>();
+builder.Services.AddHttpClient<IFinancialModelingPrepService, FinancialModelingPrepService>();
+...
+{% endhighlight %}
+
+### Controllers
+
+* PortfolioController.cs
+{% highlight cs %}
+...
+private readonly UserManager<AppUser> _userManager;
+private readonly IStockRepository _stockRepository;
+private readonly IPortfolioRepository _portfolioRepository;
+private readonly IFinancialModelingPrepService _financialModelingPrepService;
+
+public PortfolioController(UserManager<AppUser> userManager, IStockRepository stockRepository, IPortfolioRepository portfolioRepository, IFinancialModelingPrepService financialModelingPrepService)
+{
+    _userManager = userManager;
+    _stockRepository = stockRepository;
+    _portfolioRepository = portfolioRepository;
+    _financialModelingPrepService = financialModelingPrepService;
+}
+...
+public async Task<IActionResult> AddPortfolio(string symbol)
+{
+    var username = User.GetUsername();
+    var appUser = await _userManager.FindByNameAsync(username);
+    var stock = await _stockRepository.GetBySymbolAsync(symbol);
+
+    if (stock == null)
+    {
+        stock = await _financialModelingPrepService.FindStockBySymbolAsync(symbol);
+
+        if (stock == null)
+        {
+            return BadRequest("Stock not found");
+        }
+        else
+        {
+            await _stockRepository.CreateAsync(stock);
+        }
+    }
+
+    var userPortfolio = await _portfolioRepository.GetUserPortfolio(appUser);
+
+    if (userPortfolio.Any(e => e.Symbol.ToLower() == symbol.ToLower()))
+    {
+        return BadRequest("Cannot add same stock to portfolio");
+    }
+
+    var portfolioModel = new Portfolio
+    {
+        StockId = stock.Id,
+        AppUserId = appUser.Id
+    };
+
+    await _portfolioRepository.CreateAsync(portfolioModel);
+
+    if (portfolioModel == null) 
+    {
+        return StatusCode(500, "Cloud not create");
+    }
+    else
+    {
+        return Created();
+    }
+}
+...
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/61.jpg"><img src="/assets/img/posts/react_finshark/61.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/62.jpg"><img src="/assets/img/posts/react_finshark/62.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/63.jpg"><img src="/assets/img/posts/react_finshark/63.jpg"></a>
+	<figcaption>HttpClient</figcaption>
+</figure>
+
+* CommentController.cs
+{% highlight cs %}
+...
+private readonly UserManager<AppUser> _userManager;
+private readonly ICommentRepository _commentRepository;
+private readonly IStockRepository _stockRepository;
+private readonly IFinancialModelingPrepService _financialModelingPrepService;
+
+public CommentController(UserManager<AppUser> userManager, ICommentRepository commentRepository, IStockRepository stockRepository, IFinancialModelingPrepService financialModelingPrepService)
+{
+    _userManager = userManager;
+    _commentRepository = commentRepository;
+    _stockRepository = stockRepository;
+    _financialModelingPrepService = financialModelingPrepService;
+}
+...
+[HttpPost]
+[Authorize]
+[Route("{symbol:alpha}")]
+public async Task<IActionResult> Create([FromRoute] string symbol, [FromBody] CreateCommentRequestDto commentDto)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+    
+    var stock = await _stockRepository.GetBySymbolAsync(symbol);
+
+    if (stock == null)
+    {
+        stock = await _financialModelingPrepService.FindStockBySymbolAsync(symbol);
+
+        if (stock == null)
+        {
+            return BadRequest("Stock does not exists");
+        }
+        else
+        {
+            await _stockRepository.CreateAsync(stock);
+        }
+    }
+
+    var username = User.GetUsername();
+    var appUser = await _userManager.FindByNameAsync(username);
+    var commentModel = commentDto.ToCommentFromCreate(stock.Id);
+    commentModel.AppUserId = appUser.Id;
+
+    await _commentRepository.CreateAsync(commentModel);
+
+    return CreatedAtAction(nameof(GetById), new { id = commentModel.Id }, commentModel.ToCommentDto());
+}
+...
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/react_finshark/64.jpg"><img src="/assets/img/posts/react_finshark/64.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/66.jpg"><img src="/assets/img/posts/react_finshark/66.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/65.jpg"><img src="/assets/img/posts/react_finshark/65.jpg"></a>
+	<figcaption>HttpClient</figcaption>
+</figure>
