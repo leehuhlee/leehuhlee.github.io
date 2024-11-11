@@ -7517,6 +7517,7 @@ public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
 # HttpClient
 
 ### DTOs
+- create `FinancialModelingPrepStock.cs` in Dtos folder
 
 * FinancialModelingPrepStock.cs
 {% highlight cs %}
@@ -7565,6 +7566,7 @@ namespace api.Dtos.Stock
 {% endhighlight %}
 
 ### Interfaces
+- create `IFinancialModelingPrepService.cs` in Interfaces folder
 
 * IFinancialModelingPrepService.cs
 {% highlight cs %}
@@ -7580,6 +7582,7 @@ namespace Api.Interfaces
 {% endhighlight %}
 
 ### Services
+- create `FinancialModelingPrepService.cs` in Services folder
 
 * FinancialModelingPrepService.cs
 {% highlight cs %}
@@ -7801,3 +7804,93 @@ public async Task<IActionResult> Create([FromRoute] string symbol, [FromBody] Cr
   <a href="/assets/img/posts/react_finshark/65.jpg"><img src="/assets/img/posts/react_finshark/65.jpg"></a>
 	<figcaption>HttpClient</figcaption>
 </figure>
+
+# OrderBy
+
+### Helpers
+- create `CommentQueryObject.cs` in Helpers folder
+
+* CommentQueryObject.cs
+{% highlight cs %}
+namespace Api.Helpers
+{
+    public class CommentQueryObject
+    {
+        public string Symbol { get; set; }
+        public bool IsDecsending { get; set; } = true;
+    }
+}
+{% endhighlight %}
+
+### Interfaces
+
+* ICommentRepository.cs
+{% highlight cs %}
+...
+Task<List<Comment>> GetAllAsync(CommentQueryObject queryObject);
+...
+{% endhighlight %}
+
+### Repository
+
+* CommentRepository.cs
+{% highlight cs %}
+...
+public async Task<List<Comment>> GetAllAsync(CommentQueryObject queryObject)
+{
+    var comments = _context.Comments.Include(c => c.AppUser).AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(queryObject.Symbol))
+    {
+        comments = comments.Where(s => s.Stock.Symbol == queryObject.Symbol);
+    }
+
+    if (queryObject.IsDecsending)
+    {
+        comments = comments.OrderByDescending(c => c.CreatedOn);
+    }
+
+    return await comments.ToListAsync();
+}
+...
+{% endhighlight %}
+
+### Controllers
+
+* CommentController.cs
+{% highlight cs %}
+...
+public async Task<IActionResult> GetAll([FromQuery] CommentQueryObject queryObject)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var comments = await _commentRepository.GetAllAsync(queryObject);
+    var commentDto = comments.Select(s => s.ToCommentDto());
+
+    return Ok(commentDto);
+}
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/67.jpg"><img src="/assets/img/posts/react_finshark/67.jpg"></a>
+	<figcaption>HttpClient</figcaption>
+</figure>
+
+# CORS(Cross-Origin Resource Sharing)
+- is a browser security feature that restricts web pages from making requests to a different origin.
+- APIs are hosted on different domains than the websites that consume them. 
+- CORS allows controlled access to these APIs.
+
+### Program
+
+* Program.cs
+{% highlight cs %}
+...
+builder.Services.AddScoped<IFinancialModelingPrepService, FinancialModelingPrepService>();
+builder.Services.AddHttpClient<IFinancialModelingPrepService, FinancialModelingPrepService>();
+...
+{% endhighlight %}
