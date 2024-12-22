@@ -7919,3 +7919,124 @@ public async Task<IActionResult> GetAll([FromQuery] CommentQueryObject queryObje
 }
 ...
 {% endhighlight %}
+
+# Context AuthService
+- type `npm install react-toastify` in terminal for toasting.
+
+### App
+
+* App.tsx
+{% highlight tsx %}
+import { Outlet } from 'react-router';
+import './App.css';
+import Navbar from './components/Navbar/Navbar';
+import { ToastContainer } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+
+function App() {
+  
+  return (
+    <>
+      <Navbar/>
+      <Outlet/>
+      <ToastContainer />
+    </>
+  );
+}
+
+export default App;
+
+{% endhighlight %}
+
+### ErrorHandler
+- create `helpers` folder in src
+- create `ErrorHandler.tsx` in helpers folder
+
+* ErrorHandler.tsx
+{% highlight tsx %}
+import axios from "axios"
+import { toast } from "react-toastify";
+
+export const handleError = (error: any) => {
+  if(axios.isAxiosError(error)) {
+    var err = error.response;
+
+    if(Array.isArray(err?.data.errors)) {
+      for(let val of err.data.errors) {
+        toast.warning(val.description);
+      }
+    } else if (typeof err?.data.errors === 'object') {
+      for(let e in err?.data.errors) {
+        toast.warning(err.data.errors[e][0]);
+      }
+    } else if (err?.data) {
+      toast.warning(err.data);
+    } else if (err?.status === 401) {
+      toast.warning("Please login");
+      window.history.pushState({}, "LoginPage", "/login");
+    } else if (err) {
+      toast.warning(err?.data);
+    }
+  }
+}
+{% endhighlight %}
+
+- Array of errors (Array.isArray): Handles multiple errors and displays each one as a warning.
+- Object of errors (typeof === 'object'): Iterates through the object’s keys and displays the first error message for each key.
+- General error message (err?.data): Displays a single error message.
+- Authentication error (401 status): Prompts the user to log in and redirects them to the login page.
+- Unexpected errors: Displays the raw error object as a warning.
+
+### User
+- create `models` folder in src
+- create `User.tsx` in models folder
+
+* User.tsx
+{% highlight tsx %}
+export type UserProfileToken = {
+  username: string;
+  email: string;
+  token: string;
+}
+{% endhighlight %}
+
+### AuthService
+- create `services` folder in src
+- create `AuthService.tsx` in services folder
+
+* AuthService.tsx
+{% highlight tsx %}
+import axios from "axios";
+import { handleError } from "../helpers/ErrorHandler";
+import { UserProfileToken } from "../models/User";
+
+const api = "http://localhost:7242/api";
+
+export const loginAPI = async (username: string, password: string) => {
+  try {
+    const data = await axios.post<UserProfileToken>(api + "account/login", {
+      username: username,
+      password: password
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const registerAPI = async (email: string, username: string, password: string) => {
+  try {
+    const data = await axios.post<UserProfileToken>(api + "account/register", {
+      email: email,
+      username: username,
+      password: password
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+{% endhighlight %}
+
