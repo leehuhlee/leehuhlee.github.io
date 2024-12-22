@@ -7890,7 +7890,32 @@ public async Task<IActionResult> GetAll([FromQuery] CommentQueryObject queryObje
 * Program.cs
 {% highlight cs %}
 ...
-builder.Services.AddScoped<IFinancialModelingPrepService, FinancialModelingPrepService>();
-builder.Services.AddHttpClient<IFinancialModelingPrepService, FinancialModelingPrepService>();
+app.UseCors(x => x
+.AllowAnyMethod()
+.AllowAnyHeader()
+.AllowCredentials()
+.SetIsOriginAllowed(origin => true));
+...
+{% endhighlight %}
+
+### CommentController
+
+* CommentController.cs
+{% highlight cs %}
+...
+[HttpGet]
+[Authorize]
+public async Task<IActionResult> GetAll([FromQuery] CommentQueryObject queryObject)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var comments = await _commentRepository.GetAllAsync(queryObject);
+    var commentDto = comments.Select(s => s.ToCommentDto());
+
+    return Ok(commentDto);
+}
 ...
 {% endhighlight %}
