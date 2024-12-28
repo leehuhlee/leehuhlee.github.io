@@ -8714,6 +8714,23 @@ const StockCommentForm = ({ symbol, handleComment }: Props) => {
 export default StockCommentForm
 {% endhighlight %}
 
+### CompanyProfile
+{% highlight tsx %}
+...
+return (
+  <>
+    { companyData 
+      ? <>
+          <RatioList data={companyData} config={tableConfig} />
+          <StockComment stockSymbol={ticker} />
+        </>
+      : <Spinner/>
+    }
+  </>
+)
+...
+{% endhighlight %}
+
 <figure class="half">
   <a href="/assets/img/posts/react_finshark/73.jpg"><img src="/assets/img/posts/react_finshark/73.jpg"></a>
   <a href="/assets/img/posts/react_finshark/74.jpg"><img src="/assets/img/posts/react_finshark/74.jpg"></a>
