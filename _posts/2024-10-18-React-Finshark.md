@@ -8194,7 +8194,7 @@ import { useForm } from 'react-hook-form';
 
 type Props = {};
 
-type LoginFormsInputs = {
+type LoginFormInputs = {
   userName: string;
   password: string;
 };
@@ -8206,8 +8206,8 @@ const validation = Yup.object().shape({
 
 const LoginPage = (props: Props) => {
   const { loginUser } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormsInputs>({ resolver: yupResolver(validation) });
-  const handleLogin = (form: LoginFormsInputs) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>({ resolver: yupResolver(validation) });
+  const handleLogin = (form: LoginFormInputs) => {
     loginUser(form.userName, form.password);
   };
 
@@ -8334,7 +8334,7 @@ import { useForm } from 'react-hook-form';
 
 type Props = {}
 
-type RegisterFormsInputs = {
+type RegisterFormInputs = {
   email: string;
   userName: string;
   password: string;
@@ -8348,8 +8348,8 @@ const validation = Yup.object().shape({
 
 const RegisterPage = (props: Props) => {
   const { registerUser } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormsInputs>({ resolver: yupResolver(validation) });
-  const handleLogin = (form: RegisterFormsInputs) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormInputs>({ resolver: yupResolver(validation) });
+  const handleLogin = (form: RegisterFormInputs) => {
     registerUser(form.email, form.userName, form.password);
   };
 
@@ -8549,3 +8549,173 @@ const Navbar: React.FC<Props> = (props: Props): JSX.Element => {
 
 export default Navbar
 {% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/72.jpg"><img src="/assets/img/posts/react_finshark/72.jpg"></a>
+	<figcaption>Logout</figcaption>
+</figure>
+
+# Comment 
+
+## {...register()}
+- is same with `value={title} onChange={(e) => setTitle(e.target.value)}`.
+- is making easy to use validation and to manage value.
+
+### Comment
+- create `Comment.tsx` in models folder
+
+* Comment.tsx
+{% highlight tsx %}
+import axios from "axios";
+import { CommentPost } from "../models/Comment";
+import { handleError } from "../helpers/ErrorHandler";
+
+const api = "https://localhost:7242/api/comment/";
+
+export const commentPostAPI = async (title: string, content: string, symbol: string) => {
+  try {
+    const data = await axios.post<CommentPost>(api + `${symbol}`, {
+      title: title,
+      content: content
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+{% endhighlight %}
+
+### CommentService
+- create `CommentService.tsx` in services folder
+
+* CommentService.tsx
+{% highlight tsx %}
+import axios from "axios";
+import { CommentPost } from "../models/Comment";
+import { handleError } from "../helpers/ErrorHandler";
+
+const api = "https://localhost:7242/api/comment/";
+
+export const commentPostAPI = async (title: string, content: string, symbol: string) => {
+  try {
+    const data = await axios.post<CommentPost>(api + `${symbol}`, {
+      title: title,
+      content: content
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+{% endhighlight %}
+
+### StockComment
+- create StockComment folder in components folder
+- create `StockComment.tsx` and `StockComment.css` in StockComment folder
+
+* StockComment.tsx
+{% highlight tsx %}
+import React from 'react'
+import StockCommentForm from './StockCommentForm/StockCommentForm';
+import { commentPostAPI } from '../../services/CommentService';
+import { toast } from 'react-toastify';
+
+type Props = {
+  stockSymbol: string;
+}
+
+type CommentFormInputs = {
+  title: string;
+  content: string;
+};
+
+const StockComment = ({ stockSymbol }: Props) => {
+  const handleComment = (e: CommentFormInputs) => {
+    commentPostAPI(e.title, e.content, stockSymbol).then((res) => {
+      if (res) {
+        toast.success("Comment created successfully!");
+      }
+    }).catch((e) => {
+      toast.warning(e);
+    });
+  }
+
+  return (
+    <StockCommentForm symbol={stockSymbol} handleComment={handleComment}/>
+  )
+}
+
+export default StockComment
+{% endhighlight %}
+
+### StockCommentForm
+- create StockCommentForm folder in StockComment folder
+- create `StockCommentForm.tsx` and `StockCommentForm.css` in StockCommentForm folder
+
+* StockCommentForm.tsx
+{% highlight tsx %}
+import React from 'react'
+import * as Yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useForm } from 'react-hook-form';
+
+type Props = {
+  symbol: string;
+  handleComment: (e: CommentFormInputs) => void;
+};
+
+type CommentFormInputs = {
+  title: string;
+  content: string;
+};
+
+const validation = Yup.object().shape({
+  title: Yup.string().required("Title is required"),
+  content: Yup.string().required("Content is required")
+});
+
+const StockCommentForm = ({ symbol, handleComment }: Props) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<CommentFormInputs>({ resolver: yupResolver(validation) });
+
+  return (
+    <form className="mt-4 ml-4" onSubmit={handleSubmit(handleComment)}>
+      <input
+        type="text"
+        id="title"
+        className="mb-3 bg-white border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        placeholder="Title"
+        {...register("title")}
+      />
+      {errors.title ? <p>{errors.title.message}</p> : ""}
+      <div className="py-2 px-4 mb-4 bg-white rounded-lg rounded-t-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <label htmlFor="comment" className="sr-only">
+          Your comment
+        </label>
+        <textarea
+          id="comment"
+          rows={6}
+          className="px-0 w-full text-sm text-gray-900 border-0 focus:ring-0 focus:outline-none dark:text-white dark:placeholder-gray-400 dark:bg-gray-800"
+          placeholder="Write a comment..."
+          {...register("content")}
+        ></textarea>
+      </div>
+      <button
+        type="submit"
+        className="inline-flex items-center py-2.5 px-4 text-xs font-medium text-center text-white bg-lightGreen rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800"
+      >
+        Post comment
+      </button>
+    </form>
+  )
+}
+
+export default StockCommentForm
+{% endhighlight %}
+
+<figure class="half">
+  <a href="/assets/img/posts/react_finshark/73.jpg"><img src="/assets/img/posts/react_finshark/73.jpg"></a>
+  <a href="/assets/img/posts/react_finshark/74.jpg"><img src="/assets/img/posts/react_finshark/74.jpg"></a>
+	<figcaption>Comment</figcaption>
+</figure>
