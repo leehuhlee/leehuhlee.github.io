@@ -8736,3 +8736,185 @@ return (
   <a href="/assets/img/posts/react_finshark/74.jpg"><img src="/assets/img/posts/react_finshark/74.jpg"></a>
 	<figcaption>Comment</figcaption>
 </figure>
+
+# Comment List
+
+### Comment
+
+* Comment.tsx
+{% highlight tsx %}
+...
+export type CommentGet = {
+  title: string;
+  content: string;
+  createdBy: string;
+};
+{% endhighlight %}
+
+### CommentService
+
+* CommentService.tsx
+{% highlight tsx %}
+import axios from "axios";
+import { CommentGet, CommentPost } from "../models/Comment";
+import { handleError } from "../helpers/ErrorHandler";
+
+const api = "https://localhost:7242/api/comment/";
+const token = localStorage.getItem('token');
+
+export const commentPostAPI = async (title: string, content: string, symbol: string) => {
+  try {
+    const data = await axios.post<CommentPost>(api + `${symbol}`, {
+      title: title,
+      content: content,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export const commentsGetAPI = async (symbol: string) => {
+  try {
+    const data = await axios.get<CommentGet[]>(api + `?Symbol=${symbol}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+{% endhighlight %}
+
+### StockComment
+
+* StockComment.tsx
+{% highlight tsx %}
+import React, { useEffect, useState } from 'react'
+import StockCommentForm from './StockCommentForm/StockCommentForm';
+import { commentPostAPI, commentsGetAPI } from '../../services/CommentService';
+import { toast } from 'react-toastify';
+import { CommentGet } from '../../models/Comment';
+import Spinner from '../Spinner/Spinner';
+import StockCommentList from '../StockCommentList/StockCommentList';
+
+type Props = {
+  stockSymbol: string;
+}
+
+type CommentFormInputs = {
+  title: string;
+  content: string;
+};
+
+const StockComment = ({ stockSymbol }: Props) => {
+  const [comments, setComments] = useState<CommentGet[] | null>(null);
+  const [loading, setLoading] = useState<boolean>();
+
+  useEffect(() => {
+    getComments();
+  }, [])
+
+  const handleComment = (e: CommentFormInputs) => {
+    commentPostAPI(e.title, e.content, stockSymbol).then((res) => {
+      if (res) {
+        toast.success("Comment created successfully!");
+        getComments();
+      }
+    }).catch((e) => {
+      toast.warning(e);
+    });
+  }
+
+  const getComments = () => {
+    setLoading(true);
+    commentsGetAPI(stockSymbol).then((res) => {
+      setLoading(false);
+      setComments(res?.data!);
+    });
+  }
+  return (
+    <div className="flex flex-col">
+      {loading ? <Spinner /> : <StockCommentList comments={comments!} />}
+      <StockCommentForm symbol={stockSymbol} handleComment={handleComment} />
+    </div>
+  )
+}
+
+export default StockComment
+{% endhighlight %}
+
+### StockCommentList
+- create `StockCommentList` folder in components folder
+- create `StockCommentList.tsx` and `StockCommentList.css` files in StockCommentList folder
+
+* StockCommentList.tsx
+{% highlight tsx %}
+import React from 'react'
+import { CommentGet } from '../../models/Comment';
+import StockCommentListItem from '../StockCommentListItem/StockCommentListItem';
+
+type Props = {
+  comments: CommentGet[];
+}
+
+const StockCommentList = ({comments}: Props) => {
+  return (
+    <>
+      {comments 
+        ? comments.map((comment) => {
+          return <StockCommentListItem comment={comment} />;
+          })
+        : ""}
+    </>
+  )
+}
+
+export default StockCommentList
+{% endhighlight %}
+
+### StockCommentListItem
+- create `StockCommentListItem` folder in components folder
+- create `StockCommentListItem.tsx` and `StockCommentListItem.css` files in StockCommentListItem folder
+
+* StockCommentListItem.tsx
+{% highlight tsx %}
+import React from 'react'
+import { CommentGet } from '../../models/Comment'
+
+type Props = {
+  comment: CommentGet;
+}
+
+const StockCommentListItem = ({comment}: Props) => {
+  return (
+    <div className="relative grid grid-cols-1 gap-4 ml-4 p-4 mb-8 w-full border rounded-lg bg-white shadow-lg">
+      <div className="relative flex gap-4">
+        <div className="flex flex-col w-full">
+          <div className="flex flex-row justify-between">
+            <p className=" relative text-xl whitespace-nowrap truncate overflow-hidden">
+              {comment.title}
+            </p>
+          </div>
+          <p className="text-dark text-sm">@{comment.createdBy}</p>
+        </div>
+      </div>
+      <p className="-mt-4 text-gray-500">{comment.content}</p>
+    </div>
+  )
+}
+
+export default StockCommentListItem
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/75.jpg"><img src="/assets/img/posts/react_finshark/75.jpg"></a>
+	<figcaption>Comment List</figcaption>
+</figure>
