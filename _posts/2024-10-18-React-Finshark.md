@@ -7231,7 +7231,7 @@ namespace Api.Repository
             var portfolioModel = await _context.Portfolios.FirstOrDefaultAsync(x => x.AppUserId == appUser.Id 
                 && x.Stock.Symbol.ToLower() == symbol.ToLower());
             
-            if (portfolioModel != null)
+            if (portfolioModel == null)
             {
                 return null;
             }
@@ -8741,8 +8741,8 @@ return (
 
 ### Comment
 
-* Comment.tsx
-{% highlight tsx %}
+* Comment.ts
+{% highlight ts %}
 ...
 export type CommentGet = {
   title: string;
@@ -8780,7 +8780,7 @@ export const commentPostAPI = async (title: string, content: string, symbol: str
 
 export const commentsGetAPI = async (symbol: string) => {
   try {
-    const data = await axios.get<CommentGet[]>(api + `?Symbol=${symbol}`, {
+    const data = await axios.get<CommentGet[]>(api + `?symbol=${symbol}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -8918,3 +8918,263 @@ export default StockCommentListItem
   <a href="/assets/img/posts/react_finshark/75.jpg"><img src="/assets/img/posts/react_finshark/75.jpg"></a>
 	<figcaption>Comment List</figcaption>
 </figure>
+
+# Portfolio Service
+
+### Portfolio
+- create `Portfolio.ts` in models folder
+
+* Portfolio.ts
+{% highlight ts %}
+export type PortfolioGet = {
+  id: number;
+  symbol: string;
+  companyName: string;
+  purchase: number;
+  lastDiv: number;
+  industry: string;
+  marketCap: number;
+  comments: any;
+}
+
+export type PortfolioPost = {
+  symbol: string;
+}
+{% endhighlight %}
+
+### PortfolioService
+- create `PortfolioService.ts` in services folder
+
+* PortfolioService.tsx
+{% highlight tsx %}
+import axios from "axios";
+import { PortfolioGet, PortfolioPost } from "../models/Portfolio";
+import { handleError } from "../helpers/ErrorHandler";
+
+const api="https://localhost:7242/api/portfolio";
+const token = localStorage.getItem('token');
+
+export const portfolioAddAPI = async (symbol: string) => {
+  try {
+    const data = await axios.post<PortfolioPost>(api + `?symbol=${symbol}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export const portfolioDeleteAPI = async (symbol: string) => {
+  try {
+    const data = await axios.delete<PortfolioPost>(api + `?symbol=${symbol}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export const portfolioGetAPI = async () => {
+  try {
+    const data = await axios.get<PortfolioGet[]>(api, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    return data;
+  } catch (error) {
+    handleError(error);
+  }
+}
+{% endhighlight %}
+
+### CardPortfolio
+
+* CardPortfolio.tsx
+{% highlight tsx %}
+import React, { SyntheticEvent } from 'react'
+import DeletePortfolio from '../DeletePortfolio/DeletePortfolio';
+import { Link } from 'react-router-dom';
+import { PortfolioGet } from '../../../models/Portfolio';
+
+interface Props {
+  portfolioValue: PortfolioGet;
+  onPortfolioDelete: (e: SyntheticEvent) => void;
+}
+
+const CardPortfolio: React.FC<Props> = ({ portfolioValue, onPortfolioDelete }: Props): JSX.Element => {
+  return (
+    <div className="flex flex-col w-full p-8 space-y-4 text-center rounded-lg shadow-lg md:w-1/3">
+      <Link to={`/company/${portfolioValue}`} className="pt-6 text-xl font-bold">
+        {portfolioValue.symbol}
+      </Link>
+      <DeletePortfolio
+        portfolioValue={portfolioValue.symbol}
+        onPortfolioDelete={onPortfolioDelete}
+      />
+    </div>
+  )
+}
+
+export default CardPortfolio
+{% endhighlight %}
+
+### DeletePortfolio
+
+* DeletePortfolio.tsx
+{% highlight tsx %}
+import React, { SyntheticEvent } from 'react'
+
+interface Props {
+  portfolioValue: string;
+  onPortfolioDelete: (e: SyntheticEvent) => void;
+}
+
+const DeletePortfolio: React.FC<Props> = ({ portfolioValue, onPortfolioDelete }: Props): JSX.Element => {
+  return (
+    <div>
+      <form onSubmit={onPortfolioDelete}>
+        <input hidden={true} value={portfolioValue} />
+        <button className="block w-full py-3 text-white duration-200 border-2 rounded-lg bg-red-500 hover:text-red-500 hover:bg-white border-red-500">
+          X
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export default DeletePortfolio
+{% endhighlight %}
+
+### ListPortfolio
+
+* ListPortfolio.tsx
+{% highlight tsx %}
+...
+interface Props {
+  portfolioValues: PortfolioGet[];
+  onPortfolioDelete: (e: SyntheticEvent) => void;
+}
+...
+{% endhighlight %}
+
+### SearchPage
+
+* SearchPage.tsx
+{% highlight tsx %}
+import React, { ChangeEvent, SyntheticEvent, useEffect, useState } from 'react'
+import Navbar from '../../components/Navbar/Navbar'
+import Search from '../../components/Search/Search'
+import ListPortfolio from '../../components/Portfolio/ListPortfolio/ListPortfolio'
+import CardList from '../../components/CardList/CardList'
+import { CompanySearch } from '../../company'
+import { searchCompanies } from '../../api'
+import { PortfolioGet } from '../../models/Portfolio'
+import { portfolioAddAPI, portfolioDeleteAPI, portfolioGetAPI } from '../../services/PortfolioService'
+import { toast } from 'react-toastify'
+
+type Props = {}
+
+const SearchPage = (props: Props) => {
+  const [search, setSearch] = useState<string>("");
+  const [portfolioValues, setPortfolioValues] = useState<PortfolioGet[] | null>([]);
+  const [searchResult, setSearchResult] = useState<CompanySearch[]>([]);
+  const [serverError, setServerError] = useState<string>("");
+
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    console.log(e);
+  };
+
+  useEffect(() => {
+    getPortfolio();
+  }, []);
+
+  const getPortfolio = () => {
+    portfolioGetAPI().then((res) => {
+      if (res?.data) {
+        setPortfolioValues(res?.data);
+      }
+    }).catch((e) => {
+      toast.warning("Could not get portfolio values!");
+    });
+  };
+
+  const onSearchSubmit = async (e: SyntheticEvent) => {
+    e.preventDefault();
+
+    const result = await searchCompanies(search);
+    if (typeof result === "string") {
+      setServerError(result);
+    } else if (Array.isArray(result.data)){
+      setSearchResult(result.data);
+    }
+    console.log(searchResult);
+  };
+
+  const onPortfolioCreate = (e: any) => {
+    e.preventDefault();
+    
+    console.log("HHH");
+    portfolioAddAPI(e.target[0].value).then((res) => {
+      if (res?.status === 204) {
+        toast.success("Stock added to portfolio!");
+        getPortfolio();
+      }
+    }).catch((e) => {
+      toast.warning("Could not get portfolio values!");
+    });
+  };
+
+  const onPortfolioDelete = (e: any) => {
+    e.preventDefault();
+    
+    portfolioDeleteAPI(e.target[0].value).then((res) => {
+      if (res?.status === 200) {
+        toast.success("Stock deleted to portfolio!");
+        getPortfolio();
+      }
+    }).catch((e) => {
+      toast.warning("Could not get portfolio values!");
+    });
+  };
+
+  return (
+    <div>
+      <Search
+        onSearchSubmit={onSearchSubmit}
+        search={search}
+        handleSearchChange={handleSearchChange}
+      />
+      <ListPortfolio
+        portfolioValues={portfolioValues!}
+        onPortfolioDelete={onPortfolioDelete}
+      />
+      <CardList
+        searchResults={searchResult}
+        onPortfolioCreate={onPortfolioCreate}
+      />
+
+      {serverError && <div>Unable to connect to API</div>}
+    </div>
+  )
+}
+
+export default SearchPage
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/react_finshark/76.jpg"><img src="/assets/img/posts/react_finshark/76.jpg"></a>
+	<figcaption>Portfolio Service</figcaption>
+</figure>
+
+[Download](https://github.com/leehuhlee/FinShark){: .btn}
