@@ -942,3 +942,493 @@ function setFilter(value) {
   <a href="/assets/img/posts/vue_taskmanager/7.jpg"><img src="/assets/img/posts/vue_taskmanager/7.jpg"></a>
 	<figcaption>components</figcaption>
 </figure>
+
+# computed
+- computed properties are cached based on their reactive dependencies. 
+- computed property will only re-evaluate when some of its reactive dependencies have changed. 
+
+
+* App.vue
+{% highlight vue %}
+import { ref, reactive, computed } from 'vue';
+...
+const filteredTasks = computed(() => {
+  switch(filterBy.value) {
+    case 'todo':
+      return tasks.filter(task => !task.completed);
+    case 'done':
+      return tasks.filter(task => task.completed)
+    default:
+      return tasks;
+  }
+})
+...
+    <div class="tasks">
+      <Task @toggleCompleted="toggleCompleted" v-for="(task, index) in filteredTasks" :task="task" :key="index"/>
+    </div>
+{% endhighlight %}
+
+<figure class="third">
+  <a href="/assets/img/posts/vue_taskmanager/8.jpg"><img src="/assets/img/posts/vue_taskmanager/8.jpg"></a>
+  <a href="/assets/img/posts/vue_taskmanager/9.jpg"><img src="/assets/img/posts/vue_taskmanager/9.jpg"></a>
+  <a href="/assets/img/posts/vue_taskmanager/10.jpg"><img src="/assets/img/posts/vue_taskmanager/10.jpg"></a>
+	<figcaption>computed</figcaption>
+</figure>
+
+# Modal
+- create `ModalWindow.vue` and `ModalCloseButton.vue` in components folder
+
+* ModalWindow.vue
+{% highlight vue %}
+<script setup>
+import ModalCloseButton from './ModalCloseButton.vue';
+
+</script>
+
+<template>
+  <div class="modal-wrapper" aria-modal="true"
+      role="dialog" tabindex="-1">
+      <div class="inner">
+           <ModalCloseButton @click="$emit('closePopup')"/>
+           <div class="form">
+               Your Popup Content Goes Here
+           </div>
+      </div>
+  </div>
+</template>
+
+<style lang="scss">
+.modal-wrapper {
+       position: fixed;
+       left: 0;
+       top: 0;
+       z-index: 500;
+       width: 100vw;
+       height: 100vh;
+       background: rgba(0, 0, 0, 0.2);
+       display: grid;
+       place-items: center;
+       color: #000;
+  
+       .inner {
+       background-color: white;
+       padding: 30px;
+       border-radius: 12px;
+       display: flex;
+       flex-direction: column;
+       position: relative;
+       max-width: 600px;
+       width: 90%;
+  
+       h3 {
+           font-size: 16px;
+           font-weight: 700;
+           line-height: 21px;
+           margin-bottom: 20px;
+       }
+  
+       .close-btn {
+           position: absolute;
+           top: 15px;
+           right: 15px;
+           cursor: pointer;
+           background-color: #fff;
+       }
+  
+       .form {
+           display: flex;
+           flex-direction: column;
+           max-width: 100%;
+
+
+           label {
+           font-size: 12px;
+           font-weight: 500;
+           line-height: 16px;
+           letter-spacing: 0em;
+           text-align: left;
+           }
+
+
+           input,
+           select,
+           textarea {
+           font-size: 12px;
+           font-weight: 400;
+           line-height: 16px;
+           letter-spacing: 0em;
+           text-align: left;
+           border: 1px solid #C2C2C2;
+           border-radius: 4px;
+           padding: 8px 12px;
+           margin-top: 5px;
+
+
+           &::placeholder {
+               color: #A6A6A6;
+           }
+           }
+  
+          
+  
+           .btn {
+           width: fit-content;
+           padding-inline: 23px;
+           }
+       }
+       }
+   }
+</style>
+{% endhighlight %}
+
+* ModalCloseButton.vue
+{% highlight vue %}
+<template>
+  <button class="close-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256">
+    <path fill="currentColor"
+      d="M208.49 191.51a12 12 0 0 1-17 17L128 145l-63.51 63.49a12 12 0 0 1-17-17L111 128L47.51 64.49a12 12 0 0 1 17-17L128 111l63.51-63.52a12 12 0 0 1 17 17L145 128Z" />
+    </svg>
+  </button>
+</template>
+{% endhighlight %}
+
+* App.vue
+{% highlight vue %}
+...
+let filterBy = ref("");
+let modalIsActive = ref(false);
+...
+    </div>
+
+    <ModalWindow @closePopup="modalIsActive=false" v-if="modalIsActive"/>
+  </main>
+{% endhighlight %}
+
+## slot
+- passes a template fragment to a child component, and let the child component render the fragment within its own template.
+- create `modal` folder and move `ModalCloseButton.vue` and `ModalCloseButton.vue` in modal folder
+- create `AddTaskModal.vue` in modal folter
+
+* AddTaskModal.vue
+{% highlight vue %}
+<template>
+  <div class="form">
+    <h3>Add a new task</h3>
+    <label for="title">Title *</label>
+    <input type="text" name="title" placeholder="Enter a title..."><br />
+    <label for="title">Description *</label>
+    <textarea name="description" rows="4" placeholder="Enter a description..." /><br />
+    <button class="btn gray">Add Task</button>
+  </div>
+</template>
+{% endhighlight %}
+
+* App.vue
+{% highlight vue %}
+...
+    <div class="tasks">
+      <Task @toggleCompleted="toggleCompleted" v-for="(task, index) in filteredTasks" :task="task" :key="index" />
+    </div>
+
+    <ModalWindow @closePopup="modalIsActive = false" v-if="modalIsActive">
+      <AddTaskModal/>
+    </ModalWindow>
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/vue_taskmanager/11.jpg"><img src="/assets/img/posts/vue_taskmanager/11.jpg"></a>
+	<figcaption>Modal</figcaption>
+</figure>
+
+# State
+- is the source of truth of the application.
+- is changed by props, set and so on.
+
+## State Management
+- there is a store to save state.
+- with state management, parent and child don't need to communicate each other.
+- they can just get state from the store.
+
+<figure class="half">
+  <a href="/assets/img/posts/vue_taskmanager/12.jpg"><img src="/assets/img/posts/vue_taskmanager/12.jpg"></a>
+  <a href="/assets/img/posts/vue_taskmanager/13.jpg"><img src="/assets/img/posts/vue_taskmanager/13.jpg"></a>
+	<figcaption>State</figcaption>
+</figure>
+
+### Pinia
+- <a href="https://pinia.vuejs.org/">Pinia</a> is a single source of truth.
+- type `npm i pinia` in terminal to download Pinia.
+
+<figure>
+  <a href="/assets/img/posts/vue_taskmanager/14.jpg"><img src="/assets/img/posts/vue_taskmanager/14.jpg"></a>
+	<figcaption>State</figcaption>
+</figure>
+
+# taskStore
+- create `stores` folder and create `tasksStore.js` file in stores folder
+
+* taskStore.js
+{% highlight js %}
+import { defineStore } from "pinia";
+import { reactive, ref, computed } from "vue";
+
+export const useTasksStore = defineStore('tasks', () => {
+  let tasks = reactive([
+    {
+      id: 1,
+      name: "Website design",
+      description: "Define the style guide, branding and create the webdesign on Figma.",
+      completed: true
+    },
+    {
+      id: 2,
+      name: "Website development",
+      description: "Develop the portfolio website using Vue JS.",
+      completed: false
+    },
+    {
+      id: 3,
+      name: "Hosting and infrastructure",
+      description: "Define hosting, domain and infrastructure for the portfolio website.",
+      completed: false
+    },
+    {
+      id: 4,
+      name: "Composition API",
+      description: "Learn how to use the composition API and how it compares to the options API.",
+      completed: true
+    },
+    {
+      id: 5,
+      name: "Pinia",
+      description: "Learn how to setup a store using Pinia.",
+      completed: true
+    },
+    {
+      id: 6,
+      name: "Groceries",
+      description: "Buy rice, apples and potatos.",
+      completed: false
+    },
+    {
+      id: 7,
+      name: "Bank account",
+      description: "Open a bank account for my freelance business.",
+      completed: false
+    }
+  ]);
+
+  let filterBy = ref("");
+  let modalIsActive = ref(false);
+
+  const filteredTasks = computed(() => {
+    switch (filterBy.value) {
+      case 'todo':
+        return tasks.filter(task => !task.completed);
+      case 'done':
+        return tasks.filter(task => task.completed)
+      default:
+        return tasks;
+    }
+  })
+
+  function setFilter(value) {
+    filterBy.value = value;
+  }
+
+  function addTask(newTask) {
+    if (newTask.name && newTask.description) {
+      newTask.id = Math.max(...tasks.map(task => task.id)) + 1;
+      tasks.push(newTask);
+      closeModal();
+    } else {
+      alret("Please enter the title and description for the task.");
+    }
+  }
+  
+  function toggleCompleted(id) {
+    tasks.forEach(task => {
+      if (task.id === id) {
+        task.completed = !task.completed;
+      }
+    });
+  }
+
+  function openModal() {
+    modalIsActive.value = true;
+  }
+
+  function closeModal() {
+    modalIsActive.value = false;
+  }
+
+  return { tasks, filterBy, modalIsActive, filteredTasks, setFilter, addTask, toggleCompleted, openModal, closeModal }
+});
+{% endhighlight %}
+
+* App.vue
+{% highlight vue %}
+...
+const appName = ref("My new task manager");
+const store = useTasksStore();
+</script>
+
+<template>
+  <main class="container">
+    <div class="header">
+      <div class="header-side">
+        <h1>
+          {{ appName }}
+        </h1>
+      </div>
+      <div class="header-side">
+        <button @click="store.openModal()" class="btn secondary">+ Add Task</button>
+      </div>
+      <input type="text" v-model="appName">
+    </div>
+
+    <Filter/>
+
+    <div class="tasks">
+      <Task v-for="(task, index) in store.filteredTasks" :task="task" :key="index" />
+    </div>
+
+    <ModalWindow @closePopup="store.closeModal()" v-if="store.modalIsActive">
+      <AddTaskModal/>
+    </ModalWindow>
+  </main>
+</template>
+...
+{% endhighlight %}
+
+* Task.vue
+{% highlight vue %}
+<script setup>
+import { useTasksStore } from '../stores/tasksStore';
+
+const props = defineProps(['task']);
+const store = useTasksStore();
+</script>
+
+<template>
+  <div class="task">
+    <h3>
+      {{ task.name }}
+    </h3>
+    <p>
+      {{ task.description }}
+    </p>
+    <div class="task-check">
+      <input @click="store.toggleCompleted(task.id)" type="checkbox" :checked="task.completed" />
+      <label>
+        {{ task.completed ? 'Done' : 'To-Do' }}
+      </label>
+    </div>
+  </div>
+</template>
+...
+{% endhighlight %}
+
+* Filter.vue
+{% highlight vue %}
+<script setup>
+import { useTasksStore } from '../stores/tasksStore';
+
+const props = defineProps(['filterBy']);
+const store = useTasksStore();
+</script>
+
+<template>
+  <div class="filters">
+    <div>
+      <p>Filter by state</p>
+      <div class="badges">
+        <div @click="store.setFilter('todo')" class="badge" :class="{ selected: store.filterBy === 'todo' }">
+          To-Do
+        </div>
+        <div @click="store.setFilter('done')" class="badge" :class="{ selected: store.filterBy === 'done' }">
+          Done
+        </div>
+        <span @click="store.setFilter('')" v-if="store.filterBy" class="clear">
+          x clear
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+...
+{% endhighlight %}
+
+* ModalWindow.vue
+{% highlight vue %}
+<script setup>
+import { useTasksStore } from '../../stores/tasksStore';
+import ModalCloseButton from './ModalCloseButton.vue';
+
+const store = useTasksStore();
+</script>
+
+<template>
+    <div class="modal-wrapper" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="inner">
+            <ModalCloseButton @click="store.closeModal()" />
+            <slot></slot>
+        </div>
+    </div>
+</template>
+...
+{% endhighlight %}
+
+* AddTaskModal.vue
+{% highlight vue %}
+<script setup>
+import { useTasksStore } from '../../stores/tasksStore';
+
+const store = useTasksStore();
+let newTask = { completed: false };
+</script>
+
+<template>
+  <div class="form">
+    <h3>Add a new task</h3>
+    <label for="title">Title *</label>
+    <input v-model="newTask.name" type="text" name="title" placeholder="Enter a title..."><br />
+    <label for="title">Description *</label>
+    <textarea v-model="newTask.description" name="description" rows="4" placeholder="Enter a description..." /><br />
+    <button @click="store.addTask(newTask)" class="btn gray">Add Task</button>
+  </div>
+</template>
+...
+{% endhighlight %}
+
+# Local Storage
+- You can watch the state and its changes through the $subscribe() method of a store, similar to Vuex's subscribe method. 
+- The advantage of using $subscribe() over a regular watch() is that subscriptions will trigger only once after patches (e.g. when using the function version from above).
+
+* tasksStore.js
+{% highlight js %}
+...
+export const useTasksStore = defineStore('tasks', () => {
+  let tasks = reactive(JSON.parse(localStorage.getItem('tasks')) || []);
+...
+{% endhighlight %}
+
+* App.vue
+{% highlight vue %}
+...
+const store = useTasksStore();
+
+store.$subscribe((state) => {
+  localStorage.setItem('tasks', JSON.stringify(state.tasks));
+});
+...
+{% endhighlight %}
+
+<figure>
+  <a href="/assets/img/posts/vue_taskmanager/15.jpg"><img src="/assets/img/posts/vue_taskmanager/15.jpg"></a>
+	<figcaption>Local Storage</figcaption>
+</figure>
+
+[Download](https://github.com/leehuhlee/vue-taskmanager){: .btn}
